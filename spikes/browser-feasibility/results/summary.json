@@ -1,0 +1,5955 @@
+[
+ {
+  "file": "2026-11-25T09-23-45-951Z_tiny_csv_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "cancel never exercised for: cancel_heavy_join, cancel_during_full_sort",
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 16,
+   "assertions": 12,
+   "passed": 12,
+   "failed": 0,
+   "cancelTests": 4,
+   "cancelExercised": 0,
+   "cancelNotExercised": 4,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 1
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "tiny",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 43,
+   "swap": "total = 5376.00M  used = 3928.69M  free = 1447.31M  (encrypted)",
+   "diskFreeGB": 23.4
+  },
+  "rows": 2922,
+  "physicalInputBytes": {
+   "orders.csv": 200049,
+   "customers.csv": 4355
+  },
+  "physicalInputBytesTotal": 204404,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 51
+   },
+   {
+    "file": "customers.csv",
+    "ms": 6
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 973,
+   "renderer": 486
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 31.299999997019768,
+    "maxMs": 31.299999997019768,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.600000000000136
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 28.400000002235174,
+    "maxMs": 28.400000002235174,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 13.300000002980141
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 24.699999999254942,
+    "maxMs": 24.699999999254942,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 5,
+    "maxMs": 5,
+    "frameGap": {
+     "measured": 0,
+     "of": 1,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 25.900000002235174,
+    "maxMs": 25.900000002235174,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 34.100000001490116,
+    "maxMs": 34.100000001490116,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.59999999999991
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 28.800000000745058,
+    "maxMs": 28.800000000745058,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 26,
+    "maxMs": 26,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 11.400000000744967
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 47.79999999701977,
+    "maxMs": 47.79999999701977,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 6.300000000745058,
+    "maxMs": 6.300000000745058,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 2.4000000029802777
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 31.199999999254942,
+    "maxMs": 31.199999999254942,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.59999999999991
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 33.099999997764826,
+    "maxMs": 33.099999997764826,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.59999999999991
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 2,
+    "verdicts": {
+     "cancel-not-exercised": 2
+    },
+    "medianMs": 78.39999999850988,
+    "maxMs": 109.59999999776483,
+    "frameGap": {
+     "measured": 2,
+     "of": 2,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 2,
+    "verdicts": {
+     "cancel-not-exercised": 2
+    },
+    "medianMs": 24.600000001490116,
+    "maxMs": 25.699999999254942,
+    "frameGap": {
+     "measured": 2,
+     "of": 2,
+     "maxMs": 15.900000000000091
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-24-11-423Z_50MB_csv_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 76,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 40,
+   "cancelExercised": 40,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "50MB",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 36,
+   "swap": "total = 5376.00M  used = 4150.44M  free = 1225.56M  (encrypted)",
+   "diskFreeGB": 23.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.csv": 50000014,
+   "customers.csv": 1212466
+  },
+  "physicalInputBytesTotal": 51212480,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 129
+   },
+   {
+    "file": "customers.csv",
+    "ms": 32
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1047,
+   "renderer": 613
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 67.90000000223517,
+    "maxMs": 73.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 65.29999999701977,
+    "maxMs": 81.70000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 182.5,
+    "maxMs": 192.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 29.100000001490116,
+    "maxMs": 29.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 179.60000000149012,
+    "maxMs": 221.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 204.30000000074506,
+    "maxMs": 230.19999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 193.80000000074506,
+    "maxMs": 207.89999999850988,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 370.6000000014901,
+    "maxMs": 381.30000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 229,
+    "maxMs": 254.10000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 30.5,
+    "maxMs": 31.599999997764826,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 227.10000000149012,
+    "maxMs": 232.40000000223517,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 218.5,
+    "maxMs": 226.90000000223517,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 20,
+    "verdicts": {
+     "cancel-exercised": 20
+    },
+    "medianMs": 1143.5999999977648,
+    "maxMs": 1154.800000000745,
+    "frameGap": {
+     "measured": 20,
+     "of": 20,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 102.39999999850988
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 20,
+    "verdicts": {
+     "cancel-exercised": 20
+    },
+    "medianMs": 400.4000000022352,
+    "maxMs": 451.80000000074506,
+    "frameGap": {
+     "measured": 20,
+     "of": 20,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 148.89999999850988
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-25-04-779Z_50MB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "cancel never exercised for: cancel_during_full_sort",
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 5,
+   "cancelNotExercised": 5,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 13
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "50MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 45,
+   "swap": "total = 5376.00M  used = 4501.75M  free = 874.25M  (encrypted)",
+   "diskFreeGB": 23.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.parquet": 21262352,
+   "customers.parquet": 413014
+  },
+  "physicalInputBytesTotal": 21675366,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 15
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 2
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1117,
+   "renderer": 630
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1.800000000745058,
+    "maxMs": 9,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 33.69999999925494,
+    "maxMs": 79,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1.0999999977648258,
+    "maxMs": 1.699999999254942,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6999999992549419,
+    "maxMs": 0.8000000007450581,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 6.300000000745058,
+    "maxMs": 11.299999997019768,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 4.199999999254942
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 23.299999997019768,
+    "maxMs": 37.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 33.900000002235174,
+    "maxMs": 67.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 249.5,
+    "maxMs": 258,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 36.80000000074506,
+    "maxMs": 48.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999727
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2.899999998509884,
+    "maxMs": 4.300000000745058,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 19.599999997764826,
+    "maxMs": 20.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.59999999999991
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 14.899999998509884,
+    "maxMs": 21.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 5.999999997019586
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1062.9000000022352,
+    "maxMs": 1065.5,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 10.099999997764826
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-not-exercised": 5
+    },
+    "medianMs": 235.10000000149012,
+    "maxMs": 243.69999999925494,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-25-16-585Z_50MB_json_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "50MB",
+  "format": "json",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 40,
+   "swap": "total = 5376.00M  used = 4501.75M  free = 874.25M  (encrypted)",
+   "diskFreeGB": 23.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.ndjson": 112089907,
+   "customers.csv": 1212466
+  },
+  "physicalInputBytesTotal": 113302373,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.ndjson",
+    "ms": 119
+   },
+   {
+    "file": "customers.csv",
+    "ms": 56
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1185,
+   "renderer": 710
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 81,
+    "maxMs": 82,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 115.80000000074506,
+    "maxMs": 122.40000000223517,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 272.3999999985099,
+    "maxMs": 272.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 29.800000000745058,
+    "maxMs": 31.399999998509884,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 334.20000000298023,
+    "maxMs": 366.9000000022352,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 351,
+    "maxMs": 380.79999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 336.19999999925494,
+    "maxMs": 365,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 537.6999999992549,
+    "maxMs": 545.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 404.19999999925494,
+    "maxMs": 417.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 29.099999997764826,
+    "maxMs": 42.400000002235174,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 326.70000000298023,
+    "maxMs": 329.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 334.5999999977648,
+    "maxMs": 359.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1068.699999999255,
+    "maxMs": 1152.3999999985099,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 101.29999999701977
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 342.8999999985099,
+    "maxMs": 375,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.799999999999272
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 71.39999999850988
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-25-36-586Z_50MB_csv_table_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "cancel never exercised for: cancel_during_full_sort",
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 5,
+   "cancelNotExercised": 5,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 15
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "50MB",
+  "format": "csv",
+  "mode": "table",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 41,
+   "swap": "total = 5376.00M  used = 4555.19M  free = 820.81M  (encrypted)",
+   "diskFreeGB": 23.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.csv": 50000014,
+   "customers.csv": 1212466
+  },
+  "physicalInputBytesTotal": 51212480,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 417
+   },
+   {
+    "file": "customers.csv",
+    "ms": 35
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1043,
+   "renderer": 575
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.8000000007450581,
+    "maxMs": 9,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2.199999999254942,
+    "maxMs": 19.5,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6999999992549419,
+    "maxMs": 1.5,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.3999999985098839,
+    "maxMs": 0.3999999985098839,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 12.699999999254942,
+    "maxMs": 14.800000000745058,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 3.499999998509793
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 15.099999997764826,
+    "maxMs": 21.800000000745058,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 7.499999997764917
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 15,
+    "maxMs": 15.100000001490116,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 3.3999999992549874
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 126,
+    "maxMs": 140.39999999850988,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 14.200000002980232,
+    "maxMs": 21.900000002235174,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2.699999999254942,
+    "maxMs": 3.199999999254942,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -1.200000002235356
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 10.900000002235174,
+    "maxMs": 11.600000001490116,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 6.300000000000182
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 8.600000001490116,
+    "maxMs": 15.900000002235174,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 4.800000000000182
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1064.5,
+    "maxMs": 1066.199999999255,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 12.5
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-not-exercised": 5
+    },
+    "medianMs": 123.89999999850988,
+    "maxMs": 125.69999999925494,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-26-16-879Z_200MB_csv_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "200MB",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 48,
+   "swap": "total = 5376.00M  used = 4531.19M  free = 844.81M  (encrypted)",
+   "diskFreeGB": 22.4
+  },
+  "rows": 2690778,
+  "physicalInputBytes": {
+   "orders.csv": 200000063,
+   "customers.csv": 4926574
+  },
+  "physicalInputBytesTotal": 204926637,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 110
+   },
+   {
+    "file": "customers.csv",
+    "ms": 29
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1200,
+   "renderer": 752
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 73.59999999776483,
+    "maxMs": 82.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 57.5,
+    "maxMs": 84,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 576.3000000007451,
+    "maxMs": 607.8999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 36.900000002235174,
+    "maxMs": 52.79999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 558.1000000014901,
+    "maxMs": 580.8000000007451,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 637.5,
+    "maxMs": 646.1999999992549,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 617.9000000022352,
+    "maxMs": 636,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1489.3999999985099,
+    "maxMs": 1489.8999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 686.8000000007451,
+    "maxMs": 736.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 41.099999997764826,
+    "maxMs": 51.29999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 626,
+    "maxMs": 639.3999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 621.8000000007451,
+    "maxMs": 631.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1140.0999999977648,
+    "maxMs": 1145.0999999977648,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 90.80000000074506
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 342,
+    "maxMs": 373.5,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 70.80000000074506
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-26-50-628Z_200MB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 10
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "200MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 43,
+   "swap": "total = 5376.00M  used = 4515.19M  free = 860.81M  (encrypted)",
+   "diskFreeGB": 22.4
+  },
+  "rows": 2690778,
+  "physicalInputBytes": {
+   "orders.parquet": 88430747,
+   "customers.parquet": 1552746
+  },
+  "physicalInputBytesTotal": 89983493,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 27
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 2
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1240,
+   "renderer": 758
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2,
+    "maxMs": 9.699999999254942,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 5.700000000745149
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 21.800000000745058,
+    "maxMs": 52.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2,
+    "maxMs": 2.400000002235174,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -0.8999999985098839
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.8000000007450581,
+    "maxMs": 0.9000000022351742,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 19.699999999254942,
+    "maxMs": 35.30000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 88,
+    "maxMs": 122.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 137.79999999701977,
+    "maxMs": 175.39999999850988,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1089.2000000029802,
+    "maxMs": 1156.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 153.90000000223517,
+    "maxMs": 200.59999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 5.800000000745058,
+    "maxMs": 7.699999999254942,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 80.40000000223517,
+    "maxMs": 86.40000000223517,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 60.70000000298023,
+    "maxMs": 68.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1064.1000000014901,
+    "maxMs": 1065.7000000029802,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 14.400000002235174
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 379,
+    "maxMs": 386.5,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 83.39999999850988
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-27-06-191Z_200MB_json_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "200MB",
+  "format": "json",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 42,
+   "swap": "total = 5376.00M  used = 4515.19M  free = 860.81M  (encrypted)",
+   "diskFreeGB": 22.4
+  },
+  "rows": 2690778,
+  "physicalInputBytes": {
+   "orders.ndjson": 444591558,
+   "customers.csv": 4926574
+  },
+  "physicalInputBytesTotal": 449518132,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.ndjson",
+    "ms": 113
+   },
+   {
+    "file": "customers.csv",
+    "ms": 58
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1290,
+   "renderer": 865
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 89.69999999925494,
+    "maxMs": 90.59999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 107.39999999850988,
+    "maxMs": 108.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 759.6000000014901,
+    "maxMs": 842.6999999992549,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 39.5,
+    "maxMs": 55.400000002235174,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 975.1999999992549,
+    "maxMs": 999.8000000007451,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1104.4000000022352,
+    "maxMs": 1109.1000000014901,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1091.4000000022352,
+    "maxMs": 1126.9000000022352,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1966.699999999255,
+    "maxMs": 2050.89999999851,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1147.7000000029802,
+    "maxMs": 1242.699999999255,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 43.899999998509884,
+    "maxMs": 53.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1040.0999999977648,
+    "maxMs": 1072.800000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1029.4000000022352,
+    "maxMs": 1047.7000000029802,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1069.199999999255,
+    "maxMs": 1093.300000000745,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 39.69999999925494
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 345.6000000014901,
+    "maxMs": 390.69999999925494,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 86.19999999925494
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-27-46-090Z_200MB_csv_table_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 11
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "200MB",
+  "format": "csv",
+  "mode": "table",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 43,
+   "swap": "total = 5376.00M  used = 4623.12M  free = 752.88M  (encrypted)",
+   "diskFreeGB": 22.4
+  },
+  "rows": 2690778,
+  "physicalInputBytes": {
+   "orders.csv": 200000063,
+   "customers.csv": 4926574
+  },
+  "physicalInputBytesTotal": 204926637,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 1351
+   },
+   {
+    "file": "customers.csv",
+    "ms": 64
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1375,
+   "renderer": 890
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6999999992549419,
+    "maxMs": 4.800000000745058,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -0.39999999925476004
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2.800000000745058,
+    "maxMs": 21.199999999254942,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 4.5
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1,
+    "maxMs": 1.800000000745058,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.30000000074505806,
+    "maxMs": 0.3999999985098839,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 40.5,
+    "maxMs": 48.20000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999727
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 56.19999999925494,
+    "maxMs": 63,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 22.900000002235174,
+    "maxMs": 43.399999998509884,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 513.2999999970198,
+    "maxMs": 535.5999999977648,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 51.900000002235174,
+    "maxMs": 62.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3.699999999254942,
+    "maxMs": 5.100000001490116,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 0.20000000149047992
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 40.399999998509884,
+    "maxMs": 41.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 29.5,
+    "maxMs": 36.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1066.1000000014901,
+    "maxMs": 1068.199999999255,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 14.199999999254942
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 562.2000000029802,
+    "maxMs": 568,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 264.30000000074506
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-28-54-332Z_500MB_csv_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "500MB",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 45,
+   "swap": "total = 5376.00M  used = 4607.12M  free = 768.88M  (encrypted)",
+   "diskFreeGB": 21.7
+  },
+  "rows": 6649369,
+  "physicalInputBytes": {
+   "orders.csv": 500000030,
+   "customers.csv": 12658044
+  },
+  "physicalInputBytesTotal": 512658074,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 112
+   },
+   {
+    "file": "customers.csv",
+    "ms": 35
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1382,
+   "renderer": 1141
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 61.69999999925494,
+    "maxMs": 70,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 69.09999999776483,
+    "maxMs": 73.09999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1417.8999999985099,
+    "maxMs": 1431.800000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 60.30000000074506,
+    "maxMs": 86,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1364.1000000014901,
+    "maxMs": 1377.3999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1505,
+    "maxMs": 1525.300000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1450.199999999255,
+    "maxMs": 1486.9000000022352,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3882.699999999255,
+    "maxMs": 3937.300000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1659,
+    "maxMs": 1705.699999999255,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 66.30000000074506,
+    "maxMs": 93,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000004366
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1549.300000000745,
+    "maxMs": 1598.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1509.9000000022352,
+    "maxMs": 1518.300000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1149,
+    "maxMs": 1151.6000000014901,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 98.39999999850988
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 343.19999999925494,
+    "maxMs": 363.5,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.799999999995634
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 60.80000000074506
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-29-55-633Z_500MB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 9
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "500MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 47,
+   "swap": "total = 5376.00M  used = 4817.88M  free = 558.12M  (encrypted)",
+   "diskFreeGB": 21.7
+  },
+  "rows": 6649369,
+  "physicalInputBytes": {
+   "orders.parquet": 228948637,
+   "customers.parquet": 3440061
+  },
+  "physicalInputBytesTotal": 232388698,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 21
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 7
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1422,
+   "renderer": 935
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3,
+    "maxMs": 10.800000000745058,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 23.400000002235174,
+    "maxMs": 56.399999998509884,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2.5,
+    "maxMs": 3.300000000745058,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6000000014901161,
+    "maxMs": 0.7000000029802322,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 46.79999999701977,
+    "maxMs": 68.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 210,
+    "maxMs": 279.20000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 302.1000000014901,
+    "maxMs": 386,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 2902,
+    "maxMs": 3059.60000000149,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 435.30000000074506,
+    "maxMs": 495.5999999977648,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 13.5,
+    "maxMs": 19.100000001490116,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 6.30000000223481
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 224.19999999925494,
+    "maxMs": 237.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 191.19999999925494,
+    "maxMs": 204.89999999850988,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1066.1000000014901,
+    "maxMs": 1070.300000000745,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 18
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 372,
+    "maxMs": 375,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.799999999999272
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 71.70000000298023
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-30-20-436Z_500MB_csv_table_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 9
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "500MB",
+  "format": "csv",
+  "mode": "table",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 46,
+   "swap": "total = 5376.00M  used = 4785.88M  free = 590.12M  (encrypted)",
+   "diskFreeGB": 21.7
+  },
+  "rows": 6649369,
+  "physicalInputBytes": {
+   "orders.csv": 500000030,
+   "customers.csv": 12658044
+  },
+  "physicalInputBytesTotal": 512658074,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 3490
+   },
+   {
+    "file": "customers.csv",
+    "ms": 141
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1515,
+   "renderer": 1085
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6999999992549419,
+    "maxMs": 6.300000000745058,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -9.199999999999818
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 5,
+    "maxMs": 25.300000000745058,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 8.70000000149048
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1.699999999254942,
+    "maxMs": 2.099999997764826,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.4000000022351742,
+    "maxMs": 0.5,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 92.79999999701977,
+    "maxMs": 108.30000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 132.19999999925494,
+    "maxMs": 149.69999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 46.400000002235174,
+    "maxMs": 70.09999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1320.300000000745,
+    "maxMs": 1415.699999999255,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 132,
+    "maxMs": 184.30000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 9,
+    "maxMs": 13.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 7.700000002980232
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 100.30000000074506,
+    "maxMs": 100.39999999850988,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 73.90000000223517,
+    "maxMs": 83.10000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1065.800000000745,
+    "maxMs": 1068.8999999985099,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 16.800000000745058
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 359.0999999977648,
+    "maxMs": 361.30000000074506,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 58.19999999925494
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-32-08-719Z_1GB_csv_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 45,
+   "swap": "total = 5376.00M  used = 4737.94M  free = 638.06M  (encrypted)",
+   "diskFreeGB": 20.2
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.csv": 1000000075,
+   "customers.csv": 25543451
+  },
+  "physicalInputBytesTotal": 1025543526,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 135
+   },
+   {
+    "file": "customers.csv",
+    "ms": 54
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1328,
+   "renderer": 1148
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 85.90000000223517,
+    "maxMs": 93.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 75,
+    "maxMs": 81,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3474.60000000149,
+    "maxMs": 3493.60000000149,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 122.29999999701977,
+    "maxMs": 126.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3717.7000000029802,
+    "maxMs": 3747.199999999255,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4511.400000002235,
+    "maxMs": 4594.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4531.199999999255,
+    "maxMs": 4563.300000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 11802.199999999255,
+    "maxMs": 12279.39999999851,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 33.30000000000291
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 5273.39999999851,
+    "maxMs": 5425.800000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 161.90000000223517,
+    "maxMs": 224.09999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.69999999999709
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4797.20000000298,
+    "maxMs": 4966.800000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4588.099999997765,
+    "maxMs": 4886.199999999255,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1098.0999999977648,
+    "maxMs": 1141.4000000022352,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 33.39999999999418
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 87.90000000223517
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 374.5,
+    "maxMs": 429.80000000074506,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000017462
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 125.80000000074506
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-34-36-184Z_1GB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 6
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 54,
+   "swap": "total = 6400.00M  used = 5217.50M  free = 1182.50M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.parquet": 460880565,
+   "customers.parquet": 6874902
+  },
+  "physicalInputBytesTotal": 467755467,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 32
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 2
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1846,
+   "renderer": 1354
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 6.099999997764826,
+    "maxMs": 16.5,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -0.3000000029801413
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 36.399999998509884,
+    "maxMs": 79.09999999776483,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 5.800000000745058,
+    "maxMs": 6.900000002235174,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 6.199999999254942
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.9000000022351742,
+    "maxMs": 0.9000000022351742,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -1.200000000745149
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 121.30000000074506,
+    "maxMs": 172.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 569.8000000007451,
+    "maxMs": 665.8000000007451,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 744.5,
+    "maxMs": 932.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 8314.800000000745,
+    "maxMs": 8493.70000000298,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1166.800000000745,
+    "maxMs": 1298.800000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 47.69999999925494,
+    "maxMs": 54.20000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.69999999999709
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 690.7999999970198,
+    "maxMs": 712.3999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 600.6999999992549,
+    "maxMs": 606.2000000029802,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999995634
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1071,
+    "maxMs": 1082.0999999977648,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 28.5
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 387,
+    "maxMs": 390.30000000074506,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 87.40000000223517
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-35-25-488Z_1GB_csv_table_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 9
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "csv",
+  "mode": "table",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 52,
+   "swap": "total = 6400.00M  used = 5177.50M  free = 1222.50M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.csv": 1000000075,
+   "customers.csv": 25543451
+  },
+  "physicalInputBytesTotal": 1025543526,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 9077
+   },
+   {
+    "file": "customers.csv",
+    "ms": 299
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1797,
+   "renderer": 1407
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.8999999985098839,
+    "maxMs": 8.099999997764826,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 16.600000000000364
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 8.699999999254942,
+    "maxMs": 39.900000002235174,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4,
+    "maxMs": 4.800000000745058,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.6999999992549419,
+    "maxMs": 0.8999999985098839,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 264,
+    "maxMs": 316.19999999925494,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 360.1000000014901,
+    "maxMs": 408.3999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 113.20000000298023,
+    "maxMs": 152.79999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 3952.599999997765,
+    "maxMs": 4306.300000000745,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 412.6000000014901,
+    "maxMs": 492.80000000074506,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 27.799999997019768,
+    "maxMs": 31.799999997019768,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 345.70000000298023,
+    "maxMs": 350.70000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 269.79999999701977,
+    "maxMs": 284.0999999977648,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.80000000000291
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1072.6000000014901,
+    "maxMs": 1103.1000000014901,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 48.899999998509884
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 362.5,
+    "maxMs": 368,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000291
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 62.900000002235174
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-36-23-560Z_200MB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 3,
+   "assertions": 0,
+   "passed": 0,
+   "failed": 0,
+   "cancelTests": 0,
+   "cancelExercised": 0,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 3,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "200MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": true,
+  "memoryLimit": "2GB",
+  "only": "stress_groupby_every_row,stress_self_join_orders,stress_count_distinct_note",
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 58,
+   "swap": "total = 6400.00M  used = 5356.19M  free = 1043.81M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 2690778,
+  "physicalInputBytes": {
+   "orders.parquet": 88430747,
+   "customers.parquet": 1552746
+  },
+  "physicalInputBytesTotal": 89983493,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 20
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 8
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1184,
+   "renderer": 637
+  },
+  "workloads": {
+   "stress_groupby_every_row": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 246.29999999701977,
+    "maxMs": 246.29999999701977,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "stress_self_join_orders": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 1157,
+    "maxMs": 1157,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "stress_count_distinct_note": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 459,
+    "maxMs": 459,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-36-34-481Z_1GB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 3,
+   "assertions": 0,
+   "passed": 0,
+   "failed": 0,
+   "cancelTests": 0,
+   "cancelExercised": 0,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 3,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": true,
+  "memoryLimit": "2GB",
+  "only": "stress_groupby_every_row,stress_self_join_orders,stress_count_distinct_note",
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 59,
+   "swap": "total = 6400.00M  used = 5356.19M  free = 1043.81M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.parquet": 460880565,
+   "customers.parquet": 6874902
+  },
+  "physicalInputBytesTotal": 467755467,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 25
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 8
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1570,
+   "renderer": 1103
+  },
+  "workloads": {
+   "stress_groupby_every_row": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 1571.1000000014901,
+    "maxMs": 1571.1000000014901,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "stress_self_join_orders": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 6543.10000000149,
+    "maxMs": 6543.10000000149,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "stress_count_distinct_note": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 2413.60000000149,
+    "maxMs": 2413.60000000149,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-36-47-404Z_1GB_csv_table_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 3,
+   "assertions": 0,
+   "passed": 0,
+   "failed": 0,
+   "cancelTests": 0,
+   "cancelExercised": 0,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 3,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "csv",
+  "mode": "table",
+  "stress": true,
+  "memoryLimit": "2GB",
+  "only": "stress_groupby_every_row,stress_self_join_orders,stress_count_distinct_note",
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 54,
+   "swap": "total = 6400.00M  used = 5348.19M  free = 1051.81M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.csv": 1000000075,
+   "customers.csv": 25543451
+  },
+  "physicalInputBytesTotal": 1025543526,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 7323
+   },
+   {
+    "file": "customers.csv",
+    "ms": 297
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1906,
+   "renderer": 1490
+  },
+  "workloads": {
+   "stress_groupby_every_row": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 1251.199999999255,
+    "maxMs": 1251.199999999255,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "stress_self_join_orders": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 6460.20000000298,
+    "maxMs": 6460.20000000298,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.80000000000109
+    },
+    "errors": []
+   },
+   "stress_count_distinct_note": {
+    "n": 1,
+    "verdicts": {
+     "stress-completed": 1
+    },
+    "medianMs": 1627.2999999970198,
+    "maxMs": 1627.2999999970198,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T09-37-14-949Z_1GB_parquet_view_chrome.json",
+  "schema": "v1-historical",
+  "acceptance": "historical-unvalidated",
+  "acceptanceReasons": [
+   "historical run: no input hash validation, no source revision, verdicts derived after the fact"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 4,
+   "assertions": 1,
+   "passed": 1,
+   "failed": 0,
+   "cancelTests": 0,
+   "cancelExercised": 0,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 3,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 1
+  },
+  "missing": [],
+  "verdictsDerived": true,
+  "size": "1GB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": true,
+  "memoryLimit": "256MB",
+  "only": "stress_groupby_every_row,stress_self_join_orders,stress_count_distinct_note,count_customers",
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 57,
+   "swap": "total = 6400.00M  used = 5332.19M  free = 1067.81M  (encrypted)",
+   "diskFreeGB": 19.1
+  },
+  "rows": 13205164,
+  "physicalInputBytes": {
+   "orders.parquet": 460880565,
+   "customers.parquet": 6874902
+  },
+  "physicalInputBytesTotal": 467755467,
+  "inputValidation": "not recorded (historical run)",
+  "provenance": "not recorded (historical run)",
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 28
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 9
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1512,
+   "renderer": 960
+  },
+  "workloads": {
+   "count_customers": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 14.5,
+    "maxMs": 14.5,
+    "frameGap": {
+     "measured": 0,
+     "of": 1,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "stress_groupby_every_row": {
+    "n": 1,
+    "verdicts": {
+     "expected-boundary-error": 1
+    },
+    "medianMs": 546.2000000029802,
+    "maxMs": 546.2000000029802,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": [
+     "Out of Memory Error: failed to allocate data of size 128.0 MiB (129.0 MiB/244.1 MiB used)"
+    ]
+   },
+   "stress_self_join_orders": {
+    "n": 1,
+    "verdicts": {
+     "expected-boundary-error": 1
+    },
+    "medianMs": 566.3999999985099,
+    "maxMs": 566.3999999985099,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": [
+     "Out of Memory Error: failed to allocate data of size 256.0 MiB (167.2 MiB/244.1 MiB used)"
+    ]
+   },
+   "stress_count_distinct_note": {
+    "n": 1,
+    "verdicts": {
+     "expected-boundary-error": 1
+    },
+    "medianMs": 831.5,
+    "maxMs": 831.5,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.800000000000182
+    },
+    "errors": [
+     "Out of Memory Error: failed to allocate data of size 2.0 MiB (242.8 MiB/244.1 MiB used)"
+    ]
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T12-48-35-997Z_tiny_csv_view_chrome.json",
+  "schema": "v2",
+  "acceptance": "rejected",
+  "acceptanceReasons": [
+   "cancel never exercised for: cancel_heavy_join, cancel_during_full_sort"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 16,
+   "assertions": 12,
+   "passed": 12,
+   "failed": 0,
+   "cancelTests": 4,
+   "cancelExercised": 0,
+   "cancelNotExercised": 4,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 2
+  },
+  "missing": [],
+  "verdictsDerived": false,
+  "size": "tiny",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 51,
+   "swap": "total = 7168.00M  used = 5965.44M  free = 1202.56M  (encrypted)",
+   "diskFreeGB": 15.3
+  },
+  "rows": 2922,
+  "physicalInputBytes": {
+   "orders.csv": 200049,
+   "customers.csv": 4355
+  },
+  "physicalInputBytesTotal": 204404,
+  "inputValidation": {
+   "ok": true,
+   "combinedBytes": 204404,
+   "files": [
+    {
+     "name": "orders.csv",
+     "path": "data/tiny/orders.csv",
+     "bytes": 200049,
+     "sha256": "652f8de2f176b2f0b6aae0caffcd0b857919bbca2d0470936daaab17efaaa107",
+     "manifestBytes": 200049,
+     "manifestSha256": "652f8de2f176b2f0b6aae0caffcd0b857919bbca2d0470936daaab17efaaa107",
+     "ok": true
+    },
+    {
+     "name": "customers.csv",
+     "path": "data/tiny/customers.csv",
+     "bytes": 4355,
+     "sha256": "c5fe1814a99f3ac867860558d186800fd53b9d4562dbd16234a12efdadb5e1c8",
+     "manifestBytes": 4355,
+     "manifestSha256": "c5fe1814a99f3ac867860558d186800fd53b9d4562dbd16234a12efdadb5e1c8",
+     "ok": true
+    }
+   ]
+  },
+  "provenance": {
+   "gitHead": "eb877c204790ae1a0fdb90328d418fdc036b523a",
+   "workingTreeDirty": true,
+   "distSha256": "fa46826c9bf11539e9ca73891922cb1f9ac367ad26b181339404878d41f4f73f"
+  },
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 57
+   },
+   {
+    "file": "customers.csv",
+    "ms": 8
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1037,
+   "renderer": 553
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 27,
+    "maxMs": 27,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 9.5
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 28.30000000447035,
+    "maxMs": 28.30000000447035,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 11.400000000000091
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 24.399999998509884,
+    "maxMs": 24.399999998509884,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 4.799999997019768,
+    "maxMs": 4.799999997019768,
+    "frameGap": {
+     "measured": 0,
+     "of": 1,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 26.700000002980232,
+    "maxMs": 26.700000002980232,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 29.299999997019768,
+    "maxMs": 29.299999997019768,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 28.100000001490116,
+    "maxMs": 28.100000001490116,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 10.5
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 25.5,
+    "maxMs": 25.5,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 15.099999995529743
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 48.70000000298023,
+    "maxMs": 48.70000000298023,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 5.899999998509884,
+    "maxMs": 5.899999998509884,
+    "frameGap": {
+     "measured": 0,
+     "of": 1,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 29.80000000447035,
+    "maxMs": 29.80000000447035,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 1,
+    "verdicts": {
+     "pass": 1
+    },
+    "medianMs": 32.5,
+    "maxMs": 32.5,
+    "frameGap": {
+     "measured": 1,
+     "of": 1,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 2,
+    "verdicts": {
+     "cancel-not-exercised": 2
+    },
+    "medianMs": 81.20000000298023,
+    "maxMs": 88,
+    "frameGap": {
+     "measured": 2,
+     "of": 2,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 2,
+    "verdicts": {
+     "cancel-not-exercised": 2
+    },
+    "medianMs": 24.799999997019768,
+    "maxMs": 25.700000002980232,
+    "frameGap": {
+     "measured": 2,
+     "of": 2,
+     "maxMs": 16.59999999999991
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T12-48-50-218Z_50MB_parquet_view_chrome.json",
+  "schema": "v2",
+  "acceptance": "rejected",
+  "acceptanceReasons": [
+   "cancel never exercised for: cancel_during_full_sort"
+  ],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 5,
+   "cancelNotExercised": 5,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 13
+  },
+  "missing": [],
+  "verdictsDerived": false,
+  "size": "50MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 49,
+   "swap": "total = 7168.00M  used = 5901.44M  free = 1266.56M  (encrypted)",
+   "diskFreeGB": 15.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.parquet": 21262352,
+   "customers.parquet": 413014
+  },
+  "physicalInputBytesTotal": 21675366,
+  "inputValidation": {
+   "ok": true,
+   "combinedBytes": 21675366,
+   "files": [
+    {
+     "name": "orders.parquet",
+     "path": "data/50MB/orders.parquet",
+     "bytes": 21262352,
+     "sha256": "ede43e20c5164aaef943ec1dd3e225e5e4556caa9f9f1b264d026f586ad73849",
+     "manifestBytes": 21262352,
+     "manifestSha256": "ede43e20c5164aaef943ec1dd3e225e5e4556caa9f9f1b264d026f586ad73849",
+     "ok": true
+    },
+    {
+     "name": "customers.parquet",
+     "path": "data/50MB/customers.parquet",
+     "bytes": 413014,
+     "sha256": "0cc14c3f673c8e2700568d5e48c738bc3d9c9b9df2b6bdbd9659221c9740906a",
+     "manifestBytes": 413014,
+     "manifestSha256": "0cc14c3f673c8e2700568d5e48c738bc3d9c9b9df2b6bdbd9659221c9740906a",
+     "ok": true
+    }
+   ]
+  },
+  "provenance": {
+   "gitHead": "eb877c204790ae1a0fdb90328d418fdc036b523a",
+   "workingTreeDirty": true,
+   "distSha256": "fa46826c9bf11539e9ca73891922cb1f9ac367ad26b181339404878d41f4f73f"
+  },
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 19
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 3
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1018,
+   "renderer": 573
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1.3999999985098839,
+    "maxMs": 3.600000001490116,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 21,
+    "maxMs": 42.400000005960464,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.8999999985098839,
+    "maxMs": 1.6999999955296516,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.7999999970197678,
+    "maxMs": 0.8000000044703484,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 7.600000001490116,
+    "maxMs": 14,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": -0.5000000014902071
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 23.600000001490116,
+    "maxMs": 38.400000005960464,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 36.099999994039536,
+    "maxMs": 112.79999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 256,
+    "maxMs": 262.19999999552965,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 39,
+    "maxMs": 51.100000001490116,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4.200000002980232,
+    "maxMs": 4.299999997019768,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 0.29999999850997483
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 19.399999998509884,
+    "maxMs": 19.399999998509884,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 8.899999997019677
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 15.099999994039536,
+    "maxMs": 19.600000001490116,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1010.5,
+    "maxMs": 1012.6000000014901,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 11.5
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-not-exercised": 5
+    },
+    "medianMs": 237.60000000149012,
+    "maxMs": 248.59999999403954,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T12-49-02-474Z_50MB_csv_view_chrome.json",
+  "schema": "v2",
+  "acceptance": "accepted",
+  "acceptanceReasons": [],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 0
+  },
+  "missing": [],
+  "verdictsDerived": false,
+  "size": "50MB",
+  "format": "csv",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 48,
+   "swap": "total = 7168.00M  used = 5853.44M  free = 1314.56M  (encrypted)",
+   "diskFreeGB": 15.2
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.csv": 50000014,
+   "customers.csv": 1212466
+  },
+  "physicalInputBytesTotal": 51212480,
+  "inputValidation": {
+   "ok": true,
+   "combinedBytes": 51212480,
+   "files": [
+    {
+     "name": "orders.csv",
+     "path": "data/50MB/orders.csv",
+     "bytes": 50000014,
+     "sha256": "df3a403558c64c0fa3229a0735be4bd91b897354264f615f95fa445bd5d85c25",
+     "manifestBytes": 50000014,
+     "manifestSha256": "df3a403558c64c0fa3229a0735be4bd91b897354264f615f95fa445bd5d85c25",
+     "ok": true
+    },
+    {
+     "name": "customers.csv",
+     "path": "data/50MB/customers.csv",
+     "bytes": 1212466,
+     "sha256": "c7270a7355a5f124ea760eb822b64d0a4934e4b8a4d0ea7cc33e275f6c07bd12",
+     "manifestBytes": 1212466,
+     "manifestSha256": "c7270a7355a5f124ea760eb822b64d0a4934e4b8a4d0ea7cc33e275f6c07bd12",
+     "ok": true
+    }
+   ]
+  },
+  "provenance": {
+   "gitHead": "eb877c204790ae1a0fdb90328d418fdc036b523a",
+   "workingTreeDirty": true,
+   "distSha256": "fa46826c9bf11539e9ca73891922cb1f9ac367ad26b181339404878d41f4f73f"
+  },
+  "registration": [
+   {
+    "file": "orders.csv",
+    "ms": 119
+   },
+   {
+    "file": "customers.csv",
+    "ms": 32
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1006,
+   "renderer": 527
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 122.89999999850988,
+    "maxMs": 210.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 89.10000000149012,
+    "maxMs": 119.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 206.20000000298023,
+    "maxMs": 262.5,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 34.5,
+    "maxMs": 59.19999999552965,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 190.89999999850988,
+    "maxMs": 194.80000000447035,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 213.09999999403954,
+    "maxMs": 224.70000000298023,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 195.69999999552965,
+    "maxMs": 208,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 362.19999999552965,
+    "maxMs": 377.8999999985099,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000728
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 231.89999999850988,
+    "maxMs": 235.19999999552965,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 29.399999998509884,
+    "maxMs": 29.799999997019768,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 209.40000000596046,
+    "maxMs": 239.60000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.800000000000182
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 207.59999999403954,
+    "maxMs": 213.10000000149012,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999272
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 1094,
+    "maxMs": 1097.1000000014901,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 96.60000000149012
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 377.5,
+    "maxMs": 389.6000000014901,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.80000000000109
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 137.89999999850988
+    },
+    "errors": []
+   }
+  }
+ },
+ {
+  "file": "2026-11-25T12-49-30-729Z_50MB_parquet_view_chrome.json",
+  "schema": "v2",
+  "acceptance": "accepted",
+  "acceptanceReasons": [],
+  "harness": "completed",
+  "counts": {
+   "records": 46,
+   "assertions": 36,
+   "passed": 36,
+   "failed": 0,
+   "cancelTests": 10,
+   "cancelExercised": 10,
+   "cancelNotExercised": 0,
+   "cancelRecoveryFailed": 0,
+   "stressCompleted": 0,
+   "expectedBoundaryFailures": 0,
+   "unexpectedErrors": 0,
+   "timeouts": 0,
+   "frameGapMissing": 13
+  },
+  "missing": [],
+  "verdictsDerived": false,
+  "size": "50MB",
+  "format": "parquet",
+  "mode": "view",
+  "stress": false,
+  "memoryLimit": "2GB",
+  "only": null,
+  "browser": "158.0.8127.37",
+  "headless": true,
+  "system": {
+   "model": "MacBook Air",
+   "modelId": "Mac14,2",
+   "chip": "Apple M2",
+   "memory": "8 GB",
+   "macos": "26.5.2 (25F84)",
+   "node": "v24.2.0"
+  },
+  "preflight": {
+   "memoryFreeLevelPct": 51,
+   "swap": "total = 7168.00M  used = 5985.88M  free = 1182.12M  (encrypted)",
+   "diskFreeGB": 15.1
+  },
+  "rows": 683058,
+  "physicalInputBytes": {
+   "orders.parquet": 21262352,
+   "customers.parquet": 413014
+  },
+  "physicalInputBytesTotal": 21675366,
+  "inputValidation": {
+   "ok": true,
+   "combinedBytes": 21675366,
+   "files": [
+    {
+     "name": "orders.parquet",
+     "path": "data/50MB/orders.parquet",
+     "bytes": 21262352,
+     "sha256": "ede43e20c5164aaef943ec1dd3e225e5e4556caa9f9f1b264d026f586ad73849",
+     "manifestBytes": 21262352,
+     "manifestSha256": "ede43e20c5164aaef943ec1dd3e225e5e4556caa9f9f1b264d026f586ad73849",
+     "ok": true
+    },
+    {
+     "name": "customers.parquet",
+     "path": "data/50MB/customers.parquet",
+     "bytes": 413014,
+     "sha256": "0cc14c3f673c8e2700568d5e48c738bc3d9c9b9df2b6bdbd9659221c9740906a",
+     "manifestBytes": 413014,
+     "manifestSha256": "0cc14c3f673c8e2700568d5e48c738bc3d9c9b9df2b6bdbd9659221c9740906a",
+     "ok": true
+    }
+   ]
+  },
+  "provenance": {
+   "gitHead": "eb877c204790ae1a0fdb90328d418fdc036b523a",
+   "workingTreeDirty": true,
+   "distSha256": "fa46826c9bf11539e9ca73891922cb1f9ac367ad26b181339404878d41f4f73f"
+  },
+  "registration": [
+   {
+    "file": "orders.parquet",
+    "ms": 18
+   },
+   {
+    "file": "customers.parquet",
+    "ms": 3
+   }
+  ],
+  "engine": {
+   "bundle": "eh",
+   "duckdbVersion": "v1.5.4",
+   "packageVersion": "1.33.1-dev57.0"
+  },
+  "osPeakMB": {
+   "total": 1128,
+   "renderer": 641
+  },
+  "workloads": {
+   "schema_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 1.3999999985098839,
+    "maxMs": 3.5,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "preview_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 20.5,
+    "maxMs": 39.899999998509884,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "count_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.9000000059604645,
+    "maxMs": 1.7999999970197678,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 0
+    },
+    "errors": []
+   },
+   "count_customers": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 0.7999999970197678,
+    "maxMs": 0.8999999985098839,
+    "frameGap": {
+     "measured": 0,
+     "of": 3,
+     "maxMs": null
+    },
+    "errors": []
+   },
+   "filter_count": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 7.600000001490116,
+    "maxMs": 10.799999997019768,
+    "frameGap": {
+     "measured": 2,
+     "of": 3,
+     "maxMs": 6.900000002980278
+    },
+    "errors": []
+   },
+   "aggregate_by_region": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 24.599999994039536,
+    "maxMs": 36.29999999701977,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000045
+    },
+    "errors": []
+   },
+   "sort_topn_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 35.600000001490116,
+    "maxMs": 75.19999999552965,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.799999999999955
+    },
+    "errors": []
+   },
+   "sort_full_first_100": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 254.60000000149012,
+    "maxMs": 284.1000000014901,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "equi_join_count_sum": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 37.400000005960464,
+    "maxMs": 48.100000001490116,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 16.700000000000273
+    },
+    "errors": []
+   },
+   "fanout_key_multiplicity": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 4.0999999940395355,
+    "maxMs": 4.299999997019768,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 0.900000001490298
+    },
+    "errors": []
+   },
+   "fanout_left_join_rows": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 19.099999994039536,
+    "maxMs": 19.19999999552965,
+    "frameGap": {
+     "measured": 3,
+     "of": 3,
+     "maxMs": 9.5
+    },
+    "errors": []
+   },
+   "rowloss_unmatched_orders": {
+    "n": 3,
+    "verdicts": {
+     "pass": 3
+    },
+    "medianMs": 14.700000002980232,
+    "maxMs": 19.399999998509884,
+    "frameGap": {
+     "measured": 1,
+     "of": 3,
+     "maxMs": 16.699999999999818
+    },
+    "errors": []
+   },
+   "cancel_heavy_join": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 404.70000000298023,
+    "maxMs": 405.29999999701977,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 5
+    },
+    "errors": []
+   },
+   "cancel_during_full_sort": {
+    "n": 5,
+    "verdicts": {
+     "cancel-exercised": 5
+    },
+    "medianMs": 235.39999999850988,
+    "maxMs": 243.10000000149012,
+    "frameGap": {
+     "measured": 5,
+     "of": 5,
+     "maxMs": 16.800000000000182
+    },
+    "cancel": {
+     "methods": [
+      "cooperative"
+     ],
+     "maxStopMs": 142.89999999850988
+    },
+    "errors": []
+   }
+  }
+ }
+]
