@@ -12,14 +12,14 @@ Last updated: 2026-11-25
 
 | Area | Status |
 |---|---|
-| Repository | Initialised on `main`; no commits yet; origin set to `github.com/Yuvakunaal/queryverdict` |
+| Repository | Foundation commit `c59ca80` exists. Research drafted on `docs/competitor-research`. Origin set to `github.com/Yuvakunaal/queryverdict` |
 | Agent rules (AGENTS.md, CLAUDE.md) | Drafted |
 | Project vision | Drafted |
 | Decisions log | Drafted (confirmed and provisional entries) |
 | PRD | PENDING |
 | Architecture | PENDING |
-| Feasibility study | PENDING |
-| Competitor research | PENDING |
+| Feasibility study | Experiment plan drafted (E0–E11). **0 of 12 experiments run.** No measurements exist |
+| Competitor research | Research report drafted. CONDITIONAL GO recommendation pending maintainer review |
 | Design system | PENDING |
 | Testing strategy | PENDING |
 | Implementation plan | PENDING |
@@ -68,10 +68,24 @@ Codex review verdict: CHANGES REQUIRED (4 confirmed findings, 1 optional). Resol
 - Unresolved: Codex could not check the source of the "Maintainer brief" decisions because the brief exists only in the conversation, not the repository. The maintainer may want to confirm D-001 to D-016 during first-commit review.
 - Verification: `git check-ignore` passed for 9 paths that must be ignored and 9 that must stay committable (including `.env.example`, `.npmrc`, and fixtures under `tests/` and `src/`). 43 relative Markdown links resolved, 0 broken. No application tests exist.
 
+### 2026-11-25 — Competitor and feasibility research
+
+- Replaced the [competitor research stub](COMPETITOR_RESEARCH.md) with a dated comparison of browser workspaces, SQL debuggers, and correctness tools, including public repository metrics, documented pain points, and a proposed MVP.
+- Research recommendation is **CONDITIONAL GO** for user discovery and a separately approved feasibility spike. SQL Viewer and SQL Workbench already overlap with visual debugging. The proposed differentiation is reproducible, key-level evidence tied to declared result grain.
+- Verification passed for the Markdown tables, 50 relative file links, and the Git whitespace check. An in-memory SQLite check reproduced the worked join example and 200 deterministic single-key cases. This checks the counting identities in the report, with DuckDB-WASM qualification still pending.
+- Product and stack decisions remain pending. No application code, dependencies, browser tests, deployment, or benchmarks were added.
+
+### 2026-11-25: Engineering evaluation of the research and feasibility experiment plan (Claude Code)
+
+- Wrote [FEASIBILITY.md](FEASIBILITY.md): an engineering evaluation of the research, the smallest proof of concept, failure cases, dependencies to validate, and a prioritised plan of 12 experiments (E0–E11) with inputs, workloads, measurements, safeguards and proposed acceptance criteria. **Every experiment is NOT RUN.**
+- Main challenges to the research: query parsing (E5) is the central differentiator and risk, not an optional extra. The two-second recovery target mixes three different measurements. Browser memory APIs that need cross-origin isolation won't be available on Pages. A `<meta>` CSP may not govern the engine's worker. Technical spikes need not wait for user discovery.
+- [DECISIONS.md](DECISIONS.md): added P-014 (experiment plan) and P-015 (SQLite WASM fallback), extended the validation criteria for P-003, and added an "Awaiting maintainer decision" section. [COMPETITOR_RESEARCH.md](COMPETITOR_RESEARCH.md) was not modified.
+- Not verified: I did not open the research's cited sources or re-check its metrics. Technical claims I could not verify are marked *(to verify)* and assigned to experiments.
+- Verification: documentation only. Relative links checked. No code, dependencies, tests or benchmarks.
+
 ## Next steps
 
-1. Maintainer reviews the initialisation documents.
-2. Make the first commit (maintainer).
-3. Choose a licence.
-4. Complete the feasibility study (DuckDB-WASM on GitHub Pages, memory limits, licences of the provisional stack).
-5. Write the PRD, then architecture, testing strategy, design system, and implementation plan.
+1. Maintainer reviews the research recommendation and decides whether to approve user discovery and a scoped feasibility spike.
+2. Choose a licence and verify the provisional stack’s redistribution terms.
+3. Approve or amend the experiment plan in [FEASIBILITY.md](FEASIBILITY.md), then approve the first spike (proposed: E0–E4, the proof of concept, on an `exp/` branch).
+4. Use the evidence to decide whether to approve the MVP scope, then write the PRD, architecture, testing strategy, design system, and implementation plan.
