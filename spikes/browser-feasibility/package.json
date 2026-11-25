@@ -1,0 +1,34 @@
+{
+  "name": "queryverdict-browser-feasibility-spike",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Throwaway feasibility spike. Not production code (see docs/FEASIBILITY.md, P-010).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/vendor-extensions.mjs && tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:unit": "vitest run && python3 -m unittest discover -s tests/unit -p 'test_*.py'",
+    "test:e2e": "playwright test",
+    "generate": "python3 scripts/generate_datasets.py",
+    "bench": "node scripts/run-bench.mjs",
+    "vendor": "node scripts/vendor-extensions.mjs",
+    "build:harness": "node scripts/vendor-extensions.mjs && vite build --config vite.harness.config.ts",
+    "preview:harness": "vite preview --config vite.harness.config.ts --port 4174 --strictPort"
+  },
+  "dependencies": {
+    "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/react": "19.3.2",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
+  }
+}

