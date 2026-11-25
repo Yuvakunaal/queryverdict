@@ -24,7 +24,25 @@ playwright/.cache/
 # Benchmark output (commit curated results deliberately, not raw runs)
 benchmarks/results/raw/
 
-# Local datasets: never commit user or large benchmark data
+# Local datasets: never commit user or large benchmark data.
+# Data files are ignored everywhere. Intentional small synthetic fixtures belong under a
+# `fixtures/` directory, which is re-included below (review them before committing).
+*.csv
+*.tsv
+*.parquet
+*.ndjson
+*.jsonl
+*.arrow
+*.feather
+*.avro
+*.orc
+*.xlsx
+*.xls
+!**/fixtures/**/*.csv
+!**/fixtures/**/*.tsv
+!**/fixtures/**/*.parquet
+!**/fixtures/**/*.ndjson
+!**/fixtures/**/*.jsonl
 *.local.csv
 *.local.json
 *.local.parquet
@@ -39,10 +57,22 @@ benchmarks/data/
 benchmarks/generated/
 *.duckdb
 *.duckdb.wal
+*.duckdb.tmp/
 *.db
 *.db.wal
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*-wal
+*-shm
 
 # Temporary files
 tmp/
@@ -51,10 +81,19 @@ temp/
 *.bak
 *~
 
-# Environment and secrets
+# Environment, secrets and local configuration
 .env
 .env.*
 !.env.example
+# Package-manager config can hold registry tokens. None is needed today; if one becomes
+# necessary, add it explicitly with `!` after review.
+.npmrc
+.yarnrc
+.yarnrc.yml
+.pypirc
+*.local.json
+*.local.yml
+*.local.yaml
 *.pem
 *.key
 *.p12
@@ -88,6 +127,8 @@ Thumbs.db
 .claude/settings.local.json
 
 # Caches
+__pycache__/
+*.pyc
 .cache/
 .eslintcache
 .stylelintcache
@@ -96,3 +137,13 @@ Thumbs.db
 # Generated artifacts
 *.tgz
 stats.html
+
+# Browser-feasibility spike: vendored engine extensions (fetched by script, hashes in extensions.lock.json)
+# and generated benchmark data / raw runs
+spikes/browser-feasibility/public/duckdb-ext/
+spikes/browser-feasibility/data/
+spikes/browser-feasibility/results/raw/
+spikes/browser-feasibility/test-results/
+spikes/browser-feasibility/playwright-report/
+spikes/browser-feasibility/dist-harness/
+spikes/browser-feasibility/results/.bench.lock
