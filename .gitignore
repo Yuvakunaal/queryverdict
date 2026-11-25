@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+
+# Build output
+dist/
+dist-ssr/
+build/
+*.tsbuildinfo
+.vite/
+vite.config.*.timestamp-*
+
+# Test and coverage output
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Benchmark output (commit curated results deliberately, not raw runs)
+benchmarks/results/raw/
+
+# Local datasets: never commit user or large benchmark data
+*.local.csv
+*.local.json
+*.local.parquet
+# Use datasets/local/ for imports, exports/ for exported results and scratch/ for
+# experiments. Test fixtures must be small, synthetic, and outside these paths.
+datasets/local/
+datasets/private/
+datasets/*private*
+exports/
+scratch/
+benchmarks/data/
+benchmarks/generated/
+*.duckdb
+*.duckdb.wal
+*.db
+*.db.wal
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*~
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+.netrc
+id_rsa*
+id_ed25519*
+credentials.json
+service-account*.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Agent-local settings
+.claude/settings.local.json
+
+# Caches
+.cache/
+.eslintcache
+.stylelintcache
+.turbo/
+
+# Generated artifacts
+*.tgz
+stats.html
