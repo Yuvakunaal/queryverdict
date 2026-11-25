@@ -33,7 +33,7 @@ These must be validated for technical feasibility, compatibility, licensing, and
 |---|---|---|
 | P-001 | React + TypeScript | Confirm as UI framework |
 | P-002 | Vite build tool | Static build output compatible with GitHub Pages sub-path hosting; WASM and worker asset handling |
-| P-003 | DuckDB-WASM as the SQL engine | Licence; bundle size; behaviour without cross-origin isolation (GitHub Pages cannot set COOP/COEP headers); memory limits at the target dataset sizes; query cancellation; CSV/JSON/Parquet support; **network isolation (required to approve):** self-hosted engine and extension assets, no runtime third-party extension fetches, remote reads disabled or restricted, and a tested list of allowed requests |
+| P-003 | DuckDB-WASM as the SQL engine | Licence; bundle size; behaviour without cross-origin isolation (GitHub Pages cannot set COOP/COEP headers); memory limits at the target dataset sizes; query cancellation; CSV/JSON/Parquet support; **network isolation (required to approve):** self-hosted engine and extension assets, no runtime third-party extension fetches, remote reads disabled or restricted, and a tested list of allowed requests; whether Parquet/JSON readers and the SQL parser (`json_serialize_sql`) are built in or need an extension fetch. Experiments E1–E7 and E11 in [FEASIBILITY.md](FEASIBILITY.md) |
 | P-004 | Web Workers for off-main-thread execution | Data transfer costs between worker and UI; cancellation model |
 | P-005 | Monaco Editor | Bundle size; worker configuration under Vite; offline/self-hosted loading (no CDN dependency); compare with CodeMirror 6 |
 | P-006 | React Flow for visual SQL debugging | Licence (MIT core vs Pro features); performance with large plans |
@@ -43,7 +43,16 @@ These must be validated for technical feasibility, compatibility, licensing, and
 | P-010 | Feasibility spikes may install dependencies and write throwaway code before the implementation gate, but only with per-spike maintainer approval, on an `exp/` branch, never merged as production code ([CLAUDE.md](../CLAUDE.md)) | Maintainer approval of this process |
 | P-011 | Merge order for `main`: implementer verification, then Codex review, then required CI, then maintainer merge ([AGENTS.md §13](../AGENTS.md)) | Maintainer approval; specific CI checks to be defined in TESTING_STRATEGY |
 | P-012 | Clarified the finding definitions behind D-013. The four categories are unchanged. Measured fan-out or row loss is evidence. It is a suspicious pattern unless the conflicting requirement (e.g. a declared grain) is known, which makes it a confirmed issue ([AGENTS.md §8](../AGENTS.md)) | Maintainer approval; the confirmed-issue vs expectation-violation boundary to be settled in the PRD |
+| P-014 | Feasibility experiment plan E0–E11, with proposed acceptance thresholds ([FEASIBILITY.md](FEASIBILITY.md)). All experiments NOT RUN | Maintainer approval of the plan, the thresholds and each spike's scope |
+| P-015 | SQLite WASM as a fallback engine, used only if DuckDB-WASM fails E1 or E2 (proposed in [COMPETITOR_RESEARCH.md](COMPETITOR_RESEARCH.md)) | Only evaluated if the fallback is triggered |
 | P-013 | Runtime network policy: only same-origin static asset requests. No remote data reads or third-party extension fetches ([AGENTS.md §5](../AGENTS.md)). This puts D-004 into practice | Maintainer approval; whether optional, user-initiated remote URL imports should ever be allowed |
+
+## Awaiting maintainer decision
+
+- **Research recommendation** ([COMPETITOR_RESEARCH.md](COMPETITOR_RESEARCH.md)): CONDITIONAL GO for user discovery and a feasibility spike, and narrowing the MVP from a general SQL workspace to an evidence-first join/grain debugger. Not adopted. It would change the draft [PROJECT_VISION.md](PROJECT_VISION.md) and P-009.
+- **Query-first vs relations-first MVP.** The research makes query parsing conditional. The engineering evaluation ([FEASIBILITY.md §2.1](FEASIBILITY.md)) argues it is the core differentiator and should be tested first (E5).
+- **Order of work:** whether the technical spikes may run in parallel with the research's user-discovery gate.
+- **Shareable query links:** whether they are ever in scope, given the risk of data leaving the device through crafted SQL ([FEASIBILITY.md §4.2](FEASIBILITY.md)).
 
 ## Open (no proposal yet)
 
