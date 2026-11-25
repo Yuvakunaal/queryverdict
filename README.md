@@ -11,9 +11,10 @@ QueryVerdict is a planned free, open-source, browser-native SQL workspace for ex
 - [Project vision](docs/PROJECT_VISION.md)
 - [Progress](docs/PROGRESS.md)
 - [Decisions](docs/DECISIONS.md)
+- [Competitor research](docs/COMPETITOR_RESEARCH.md)
 - [Agent and contributor rules](AGENTS.md)
 
-Pending (not yet written): [PRD](docs/PRD.md) · [Architecture](docs/ARCHITECTURE.md) · [Feasibility](docs/FEASIBILITY.md) · [Competitor research](docs/COMPETITOR_RESEARCH.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Testing strategy](docs/TESTING_STRATEGY.md) · [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
+Pending (not yet written): [PRD](docs/PRD.md) · [Architecture](docs/ARCHITECTURE.md) · [Feasibility](docs/FEASIBILITY.md) · [Design system](docs/DESIGN_SYSTEM.md) · [Testing strategy](docs/TESTING_STRATEGY.md) · [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
 
 ## Contributing
 
