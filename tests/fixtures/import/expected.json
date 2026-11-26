@@ -1,0 +1,93 @@
+{
+  "bigints.csv": {
+    "columns": [
+      "k"
+    ],
+    "rows": [
+      [
+        "9007199254740993"
+      ],
+      [
+        "-9223372036854775808"
+      ],
+      [
+        "9223372036854775807"
+      ]
+    ]
+  },
+  "header_only.csv": {
+    "columns": [
+      "a",
+      "b"
+    ],
+    "rows": []
+  },
+  "people.csv": {
+    "columns": [
+      "id",
+      "name",
+      "city",
+      "note"
+    ],
+    "rows": [
+      [
+        "1",
+        "Ann",
+        "Paris, FR",
+        "She said \"hi\""
+      ],
+      [
+        "2",
+        "",
+        "Berlin",
+        null
+      ],
+      [
+        "3",
+        null,
+        "",
+        "plain"
+      ],
+      [
+        "4",
+        "O'Neil",
+        "Rome",
+        "two\nlines"
+      ]
+    ]
+  },
+  "people.parquet": {
+    "columns": [
+      "id",
+      "name",
+      "amount",
+      "big"
+    ],
+    "rows": [
+      [
+        "1",
+        "Ann",
+        "12345678901234567.89",
+        "9007199254740993"
+      ],
+      [
+        "2",
+        "",
+        "0.00",
+        "-9223372036854775808"
+      ],
+      [
+        "3",
+        null,
+        null,
+        null
+      ]
+    ],
+    "types": [
+      "BIGINT",
+      "VARCHAR",
+      "DECIMAL(20,2)",
+      "BIGINT"
+    ]
+  }
+}

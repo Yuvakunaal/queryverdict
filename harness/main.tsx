@@ -6,6 +6,7 @@ import { App } from '../src/app/App';
 import { ErrorBoundary } from '../src/app/ErrorBoundary';
 import { browserDarkSchemeQuery, createUiPrefsStore } from '../src/stores/uiPrefsStore';
 import { engineHarness, faults, FaultyDriver } from './engine';
+import './datasets';
 import '../src/styles/tokens.css';
 import '../src/styles/base.css';
 

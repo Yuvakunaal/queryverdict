@@ -35,6 +35,9 @@ export interface SessionOptions {
 
 type Body<T> = (lease: Lease) => Promise<T>;
 
+/** A cleanup the session performs if the operation ends without performing it. */
+type DeferredCleanup = { readonly kind: 'sql'; readonly sql: string } | { readonly kind: 'drop-file'; readonly name: string };
+
 interface OpRecord {
   readonly id: OperationId;
   readonly kind: OperationKind;
@@ -67,7 +70,8 @@ class LeaseImpl implements Lease {
   private readonly controller = new AbortController();
   /** The engine call in flight, if any, and whether cancelSent() can stop it. */
   inflight: { readonly settled: Promise<void>; readonly cancellable: boolean } | null = null;
-  readonly deferred: string[] = [];
+  /** Session-owned cleanups, run newest first when the operation ends without running them. */
+  readonly deferred: DeferredCleanup[] = [];
 
   constructor(
     readonly id: OperationId,
@@ -116,12 +120,30 @@ class LeaseImpl implements Lease {
 
   deferCleanup(sql: string): void {
     if (this.revoked) throw new LeaseRevokedError('The operation no longer owns the engine');
-    this.deferred.push(sql);
+    this.deferred.push({ kind: 'sql', sql });
+  }
+
+  deferDropFile(name: string): void {
+    if (this.revoked) throw new LeaseRevokedError('The operation no longer owns the engine');
+    this.deferred.push({ kind: 'drop-file', name });
+  }
+
+  forgetCleanup(sql: string): void {
+    this.removeDeferred((d) => d.kind === 'sql' && d.sql === sql);
+  }
+
+  private removeDeferred(match: (d: DeferredCleanup) => boolean): void {
+    for (let i = this.deferred.length - 1; i >= 0; i--) {
+      const d = this.deferred[i];
+      if (d && match(d)) {
+        this.deferred.splice(i, 1);
+        return;
+      }
+    }
   }
 
   async cleanup(sql: string): Promise<'ok' | 'failed'> {
-    const i = this.deferred.indexOf(sql);
-    if (i >= 0) this.deferred.splice(i, 1);
+    this.removeDeferred((d) => d.kind === 'sql' && d.sql === sql);
     try {
       await this.call((inst) => inst.run(sql, { maxRows: 1_000 }), true);
       return 'ok';
@@ -135,8 +157,9 @@ class LeaseImpl implements Lease {
     return this.call((i) => i.registerFile(name, file), false);
   }
 
-  dropFile(name: string): Promise<void> {
-    return this.call((i) => i.dropFile(name), false);
+  async dropFile(name: string): Promise<void> {
+    await this.call((i) => i.dropFile(name), false);
+    this.removeDeferred((d) => d.kind === 'drop-file' && d.name === name);
   }
 }
 
@@ -395,8 +418,9 @@ export class EngineSession {
     }
     let cleanupFailed = false;
     if (lease && instance) {
-      for (const sql of lease.deferred.splice(0)) {
-        const r = await within(instance.run(sql, { maxRows: 1_000 }).then(() => 'ok' as const, () => 'failed' as const), rec.bounds.cleanupMs);
+      for (const d of lease.deferred.splice(0).reverse()) {
+        const work = d.kind === 'sql' ? instance.run(d.sql, { maxRows: 1_000 }) : instance.dropFile(d.name);
+        const r = await within(work.then(() => 'ok' as const, () => 'failed' as const), rec.bounds.cleanupMs);
         if (r !== 'ok') {
           cleanupFailed = true;
           break;

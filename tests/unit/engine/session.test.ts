@@ -288,6 +288,49 @@ describe('cleanup (session-owned)', () => {
     expect(driver.current.calls.filter((c) => c === 'ROLLBACK')).toHaveLength(1);
   });
 
+  it('runs deferred cleanups newest first, including file unregistration (M03 import contract)', async () => {
+    const s = await started();
+    driver.current.handler = (sql) => (sql === 'CREATE TABLE slow' ? 'stall' : undefined);
+    const h = s.submit('import', async (l) => {
+      await l.registerFile('/qv-local/a.csv', new File(['a'], 'a.csv'));
+      l.deferDropFile('/qv-local/a.csv');
+      await l.query('BEGIN TRANSACTION', { maxRows: 1 });
+      l.deferCleanup('ROLLBACK');
+      return l.query('CREATE TABLE slow', { maxRows: 1 });
+    }, BOUNDS);
+    await vi.advanceTimersByTimeAsync(10);
+    h.cancel();
+    const { r } = await settle(h.result);
+    expect(r.terminal).toEqual({ status: 'cancelled', by: 'user', stop: 'cooperative' });
+    expect(driver.current.calls.slice(-2)).toEqual(['ROLLBACK', 'DROP FILE /qv-local/a.csv']);
+  });
+
+  it('forgetCleanup and an explicit dropFile remove deferred work; nothing runs twice', async () => {
+    const s = await started();
+    const h = s.submit('import', async (l) => {
+      await l.registerFile('/qv-local/b.csv', new File(['b'], 'b.csv'));
+      l.deferDropFile('/qv-local/b.csv');
+      await l.query('BEGIN TRANSACTION', { maxRows: 1 });
+      l.deferCleanup('ROLLBACK');
+      await l.query('COMMIT', { maxRows: 1 });
+      l.forgetCleanup('ROLLBACK');
+      await l.dropFile('/qv-local/b.csv');
+      return 'done';
+    }, BOUNDS);
+    const { r } = await settle(h.result);
+    expect(r.value).toBe('done');
+    const calls = driver.current.calls;
+    expect(calls.filter((c) => c === 'ROLLBACK')).toEqual([]);
+    expect(calls.filter((c) => c === 'DROP FILE /qv-local/b.csv')).toHaveLength(1);
+  });
+
+  it('a revoked lease cannot defer new cleanups', async () => {
+    const s = await started();
+    let leaked: Lease | null = null;
+    await settle(s.submit('import', async (l) => { leaked = l; return 1; }, BOUNDS).result);
+    expect(() => leaked!.deferDropFile('/qv-local/x')).toThrow(LeaseRevokedError);
+  });
+
   it('a stalled cleanup invalidates the engine instead of continuing in an unknown state', async () => {
     const s = await started();
     driver.current.handler = (sql) => (sql === 'ROLLBACK' ? 'stall' : undefined);
