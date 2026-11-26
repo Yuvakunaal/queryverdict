@@ -73,8 +73,15 @@ export interface Lease {
   query(sql: string, shape: QueryShape): Promise<Rows>;
   /** Checks whether `sql` can be prepared as a single statement without executing it. */
   prepareCheck(sql: string): Promise<{ readonly ok: true } | { readonly ok: false; readonly message: string }>;
-  /** Registers a cleanup statement the session runs (bounded) if the operation ends abnormally. */
+  /**
+   * Registers a cleanup statement the session runs (bounded) if the operation ends without
+   * running it itself. Deferred cleanups run newest first (like unwinding a stack).
+   */
   deferCleanup(sql: string): void;
+  /** Registers unregistration of a file the session performs (bounded) if the operation does not. */
+  deferDropFile(name: string): void;
+  /** Removes a deferred cleanup without running it (for example ROLLBACK after a successful COMMIT). */
+  forgetCleanup(sql: string): void;
   /** Runs a cleanup statement now and removes it from the deferred list. */
   cleanup(sql: string): Promise<'ok' | 'failed'>;
   registerFile(name: string, file: File): Promise<void>;
