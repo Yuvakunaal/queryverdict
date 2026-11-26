@@ -66,16 +66,26 @@ export function App() {
   const refreshFiles = useCallback(() => setFiles([...(sessionRef.current?.files.values() ?? [])].map((f) => ({ ...f }))), []);
 
   useEffect(() => {
-    const session = new EngineSession({ memoryLimit: '2GB', cancelDeadlineMs: 2000, log: pushLog });
+    // React StrictMode (dev only) mounts, unmounts and remounts: the first session is disposed
+    // during startup and rejects later. A disposed session must not update the UI, or its stale
+    // rejection would mark the live session as failed.
+    let active = true;
+    const log = (e: EngineEvent) => {
+      if (active) pushLog(e);
+      else setLog((l) => [...l.slice(-(LOG_CAP - 1)), { ...e, detail: `[disposed session] ${e.detail ?? ''}`.trim() }]);
+    };
+    const session = new EngineSession({ memoryLimit: '2GB', cancelDeadlineMs: 2000, log });
     sessionRef.current = session;
+    setInfo(null);
+    setStartError(null);
     const ready = session.start().then(
       (i) => {
-        setInfo(i);
+        if (active) setInfo(i);
         return i;
       },
       (e: unknown) => {
         // Fail-closed: no SQL or file input is enabled when startup or verification fails.
-        setStartError(String(e));
+        if (active) setStartError(String(e));
         throw e;
       },
     );
@@ -86,7 +96,10 @@ export function App() {
       registerText: async (name, text, m = 'view') => (await session.registerFile(new File([text], name), m)).file,
     };
     window.__qvBench = { start: (o) => void startBench(o), progress: null, result: null, guard: null };
-    return () => void session.dispose();
+    return () => {
+      active = false;
+      void session.dispose();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pushLog]);
 

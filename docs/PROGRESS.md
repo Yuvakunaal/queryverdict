@@ -4,9 +4,9 @@
 
 ## Current phase
 
-**Planning, with a maintainer-approved feasibility spike.** No production application code exists. A throwaway prototype, with its own dependencies, tests and benchmarks, exists only under `spikes/browser-feasibility/` on branch `spike/browser-feasibility` (P-010). Nothing has been deployed.
+**Planning. Phase 4 (experimental research) is conditionally complete**, subject to independent review of the checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md)). The next phase is Phase 5: product specifications and production architecture. No production application code exists. A throwaway prototype, with its own dependencies, tests and benchmarks, exists only under `spikes/browser-feasibility/`; the analysis-engine work is on branch `spike/sql-analysis` (P-010). Nothing has been deployed.
 
-Last updated: 2026-11-25
+Last updated: 2026-11-26
 
 ## Status summary
 
@@ -18,14 +18,14 @@ Last updated: 2026-11-25
 | Decisions log | Drafted (confirmed and provisional entries) |
 | PRD | PENDING |
 | Architecture | PENDING |
-| Feasibility study | Spike run 2026-11-25 in **Chrome only**, then corrected after Codex review (Step 3.6): fail-closed lockdown, bounded results, session state machine, registration fixes, benchmark acceptance. Per experiment: E0, E2, E4 and E6 run; E1, E3, E7, E8 and E11 partly run; E5, E9 and E10 not run. See [FEASIBILITY.md §10](FEASIBILITY.md) |
+| Feasibility study | Spike run 2026-11-25 in **Chrome only**, then corrected after Codex review (Step 3.6): fail-closed lockdown, bounded results, session state machine, registration fixes, benchmark acceptance. Per experiment: E0, E2, E3 (supported subset), E4, E5 and E6 run; E1, E7, E8 and E11 partly run; E9 and E10 not run. The SQL analysis engine is described in §11–§14; the experimental checkpoint after independent review is §14 and [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md) (5 open defects, QV-SA-001 to QV-SA-005). See [FEASIBILITY.md §10](FEASIBILITY.md) |
 | Competitor research | Research report drafted. CONDITIONAL GO recommendation pending maintainer review |
 | Design system | PENDING |
 | Testing strategy | PENDING |
 | Implementation plan | PENDING |
 | Licence | Not chosen; no LICENSE file |
 | Application code | Not started (production). Throwaway spike in `spikes/browser-feasibility/` |
-| Tests | Spike only, all passing on 2026-11-25: 41 Vitest, 5 Python unittest, 44 Playwright (Chrome 158) tests against the production and test-harness artifacts |
+| Tests | Spike only. Implementer runs (2026-11-25): 80 Vitest, 9 Python unittest, 79 Playwright (Chrome 158). Independent Codex runs (Step 4.4.4): type check and both builds passed; 80 Vitest; 9 Python; **59 selected** Chrome tests (full browser suite not independently run); 72 DuckDB comparisons without discrepancies |
 | CI | Not configured |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
@@ -147,10 +147,125 @@ Codex returned CONDITIONAL GO with 4 high- and 3 medium-severity findings. All 7
   - E3, E5, visible-window responsiveness and rendering.
   - No engine version change (the risk is documented).
 
+### 2026-11-25: Experimental SQL correctness analysis engine (Claude Code)
+
+Branch `spike/sql-analysis`. Spike code in `spikes/browser-feasibility/src/analysis/`, exposed only through the test-only harness. No UI work.
+
+- **Parser:** DuckDB's own (`json_serialize_sql` / `json_deserialize_sql`). JS parsers were rejected for dialect mismatch; `sql-parser-cst` was excluded as GPL.
+- **Supported subset:** a single `SELECT` with a left-deep chain of `INNER`/`LEFT`/`RIGHT`/`FULL` equi-joins (`ON` or `USING`, composite keys), non-recursive CTEs, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `LIMIT`. Everything else is reported `unsupported` with no conclusions.
+- **Algorithms:**
+  - exact join statistics from grouped key frequencies, without materialising the join;
+  - output cardinality reported separately from multiplied and dropped input rows;
+  - relationship classification (whole input and matched keys);
+  - NULL-key handling, unmatched keys, stage counts, outer-join rows removed by `WHERE` (measured);
+  - aggregate-inflation risk, CTE analysis;
+  - user expectations: relationship, no fan-out, no row loss, grain, metric preserved, row count;
+  - an execution budget.
+- **Verification:**
+  - 37 named and 200 seeded random cases match an independent Python nested-loop oracle **and** DuckDB's actual counts;
+  - 21 unsupported constructs are rejected;
+  - inconclusive and failure paths are tested;
+  - an exact 10^16 output is computed without executing the join;
+  - 3 deliberate mutations are all caught.
+  - Totals: 48 Vitest, 9 Python and 49 Playwright tests pass. The fixtures regenerate byte-for-byte. The production `dist/` contains no analysis or harness code.
+- **Performance:** analysis costs 4–13× the user query at 1–5 M rows (202 ms / 509 ms), because sample queries recompute the frequencies.
+- **Not done:** Safari and Firefox; the analyser on file datasets; subqueries, `DISTINCT`, window functions and set operations; materialising the frequencies once; analysis-specific cancellation.
+- **New provisional decisions:** P-026 to P-030. P-026 refines the presentation of the D-013 categories and needs approval.
+
+### 2026-11-25: Codex Step 4.4 analysis-engine review resolved (Claude Code)
+
+Codex verdict: NO-GO for public release; core frequency arithmetic verified within the tested subset. All 7 findings were reproduced on the unmodified analyser first.
+
+- **H1 RESOLVED:** lossless JSON for parser output and rewritten SQL. Regression tests on `BIGINT`/`HUGEINT`/`DECIMAL` literals.
+- **H2 RESOLVED by refusal and validation:** MVP scope accepts integer keys only. Invariants, a `SEMI JOIN` recount and an executed count are checked before anything is published. The collation reproduction is now inconclusive with no impossible numbers.
+- **H3 RESOLVED for application budgets:**
+  - unknown estimates block every dependent probe;
+  - input-row and distinct-key pre-checks;
+  - an analysis-wide deadline with cancellation;
+  - shape-validated results;
+  - temporary tables always dropped.
+- **H4 RESOLVED:** explicit NULL semantics; every expectation gets an outcome (violated / held / unchecked).
+- **M1 RESOLVED:** aggregate-inflation claims removed and listed as not checked.
+- **M2 RESOLVED:** outer-join explanations based on which relations `WHERE` references; no rewrite advice.
+- **M3 RESOLVED:**
+  - MVP field-level allowlist;
+  - experimental checks for `ORDER BY`/`LIMIT`/nested `WITH`/aliases/`COLLATE`;
+  - `query-failure` separated from `diagnostic-failure`;
+  - count-only probes labelled, and the original query is never claimed to execute.
+- **New scope:** a strict MVP scope (P-031, authoritative) alongside the experimental scope (never authoritative).
+- **Verification:** type check; 62 Vitest; 9 Python; 67 Playwright (17 new regression tests; 237 oracle cases in experimental scope; 70 MVP-eligible cases authoritative and matching; 188 refusals); 5 of 5 mutations caught; both builds; production artifact clean.
+- **Performance:** MVP analysis takes 194 ms / 399 ms at 1 M / 5 M rows, against 18 / 68 ms for a plain join count.
+- **Not run:** the 10^8-row-per-side test (retired; not rerun without approval), large-memory and browser-ceiling tests, Safari and Firefox, the analyser on file datasets.
+- **Decisions:** P-026 to P-030 revised; P-031 to P-034 added. All provisional.
+
+### 2026-11-25: Spike UI shows a stale startup error in dev mode (Claude Code)
+
+React StrictMode (dev only) mounts the app twice. The first engine session, disposed during startup, rejected late and set `startError`, which locked SQL and file input although the second session was ready. `App.tsx` now ignores results from a disposed session and tags its log lines `[disposed session]`. Verified in Chrome against the dev server (`SELECT 42` runs). The production build never double-mounts, so the e2e suite did not cover this; no automated dev-server test was added.
+
+### 2026-11-25: Second Codex analysis-engine review resolved, Phase 4 hardening (Claude Code)
+
+> **Corrected 2026-11-26 after independent review (Step 4.4.4):** the "RESOLVED" statuses below were the implementer's claims. Corrected: H-A and H-B PARTIALLY RESOLVED; M4 and M5 RESOLVED within the tested scope; M6 RESOLVED for count and identity, with a stale-publication limitation. See the 2026-11-26 entry.
+
+Codex verdict: NO-GO for public release (two high, three medium); 32 join scenarios verified against DuckDB. No diagnostic capability was added; the MVP scope is frozen ([FEASIBILITY.md §13](FEASIBILITY.md)).
+
+- **H-A RESOLVED:**
+  - exclusive session ownership for the whole analysis (`EngineSession.exclusive`);
+  - one transaction, always rolled back (DuckDB transaction semantics verified in the browser);
+  - only verified stable tables are eligible for authoritative reports: views, file-backed views, CTEs, generated columns and ambiguous names are refused;
+  - start/end key-multiset fingerprints, table identities and witness identity checks;
+  - generation binding.
+- **H-B RESOLVED for application-level bounds:**
+  - the `DISTINCT … LIMIT` pre-check was removed (it performed the full grouping);
+  - input rows, key columns, key width, estimated grouping state and the engine memory limit are qualified separately before any grouping;
+  - one deadline (including queue wait), batch-only cancellation, bounded grace, then worker termination and background recovery;
+  - late results ignored; bounded cleanup and rollback; bounded boots; a failed recovery leaves the session `failed`.
+- **M4 RESOLVED:** non-finite totals, differences or bounds give `unchecked`; tolerance is validated.
+- **M5 RESOLVED:** structured keys; quote-aware column parsing; optional probes fail independently without discarding validated evidence.
+- **M6 RESOLVED:** one outcome per declared expectation on every path, with index and identity; malformed expectations reported as invalid.
+- **Verification:**
+  - type check; 80 Vitest (18 new); 9 Python; 79 Playwright (12 new hardening tests); both builds; production artifact clean;
+  - 10 of 10 new mutation checks caught.
+- **Performance:** MVP analysis takes about 139 ms at 1 M and 600 ms at 5 M rows (40 statements), against 12 ms and 67 ms for a plain join count.
+- **Not run:** the 400 M-row deadline test (replaced by a 30 M-value memory-light fixture), large-memory and browser-ceiling tests, Safari and Firefox, the analyser on file datasets.
+- **Decisions:** P-031 to P-034 revised; P-035 to P-038 added. All provisional.
+
+### 2026-11-26: Experimental checkpoint after independent review, Step 4.4.4 (Claude Code)
+
+**Codex verdicts:**
+- experimental implementation: CONDITIONAL GO for isolated research;
+- commit readiness: NO until the documentation claims are corrected;
+- Phase 5 readiness: YES WITH CONDITIONS;
+- public release: NOT READY.
+
+**Documentation only.** No analyser behaviour changed.
+
+- **Corrected statuses** of the second-review findings:
+  - snapshot consistency and execution safeguards: PARTIALLY RESOLVED;
+  - non-finite metrics and quoted identifiers: RESOLVED within the tested scope;
+  - expectation outcomes: RESOLVED for count and identity, with a stale-publication limitation.
+- **Inline corrections** in FEASIBILITY.md §13, plus a new §14. The 2026-11-25 log entry is annotated.
+- **Defect register** in the new [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md):
+  - **QV-SA-001 (HIGH):** witness verification bypasses the execution budget.
+  - **QV-SA-002 (HIGH):** stale authoritative publication.
+  - **QV-SA-003 (MEDIUM):** stalled recovery reattachment.
+  - **QV-SA-004 (MEDIUM):** DOUBLE precision in metric tolerance.
+  - **QV-SA-005 (MEDIUM):** stalled callback retains the session lease.
+  - **Gating:** QV-SA-001 and QV-SA-002 block enabling the public analyser. QV-SA-003 and QV-SA-005 block production engine qualification. Metric preservation stays out of the public MVP.
+- **Evidence** recorded separately for Codex and for the implementer:
+  - **Codex:** type check, both builds, 80 Vitest, 9 Python, 59 selected Chrome tests, 72 DuckDB comparisons without discrepancies, artifact isolation, selected security tests, no external requests.
+  - The full browser suite has not been independently reproduced.
+- **Proposed public MVP boundary** recorded, including the implications of requiring DuckDB-managed tables: import memory overhead and table loss on worker termination.
+- **Decisions:** P-031, P-033, P-034, P-036 and P-038 revised; P-039 added. All provisional.
+- **Phase 4:** conditionally complete for experimental research, subject to independent review of this checkpoint's documentation.
+- **Hygiene:**
+  - no generated data, raw benchmarks, builds, vendored extensions, caches, binaries or credentials are in the proposed commits;
+  - third-party notice obligations are still unresolved, so no build artifact may be published.
+
 ## Next steps
 
-1. Codex re-reviews the Step 3.6 corrections ([FEASIBILITY.md §10](FEASIBILITY.md)).
-2. Close the gaps before confirming P-003/P-016–P-020: run in Safari and Firefox; test a real GitHub Pages deployment; collect DuckDB third-party notices.
-3. Choose a licence.
-4. Decide the open product questions (query-first vs relations-first; research recommendation), then run E5 (query parsing) and the E3 correctness corpus.
-5. Write the PRD, architecture, testing strategy, design system and implementation plan.
+1. Independent review of the Phase 4 checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md), [FEASIBILITY.md §14](FEASIBILITY.md)). Then the maintainer decides on committing the spike branch.
+2. **Phase 5:** product specification (PRD) and production architecture, including the Verdict report contract, the dataset import model and the production engine/session design that closes QV-SA-002, QV-SA-003 and QV-SA-005 by design ([SQL_ANALYSIS_FINDINGS.md §7, §9](SQL_ANALYSIS_FINDINGS.md)).
+3. Maintainer decisions on P-026 and P-031 to P-039.
+4. Close the gaps before confirming P-003/P-016–P-020: run in Safari and Firefox; test a real GitHub Pages deployment; collect DuckDB third-party notices.
+5. Choose a licence.
+6. Write the testing strategy, design system and implementation plan.

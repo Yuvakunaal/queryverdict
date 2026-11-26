@@ -3,7 +3,7 @@
 // does not include harness/ and is checked for harness markers by tests/e2e/security.spec.ts.
 import { defineConfig, mergeConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
-import base from './vite.config';
+import base from './vite.config.ts';
 
 export default mergeConfig(
   base,

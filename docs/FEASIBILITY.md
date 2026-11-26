@@ -149,9 +149,9 @@ Steps 1–7 decide whether the engine and hosting model are viable. Step 8 decid
 | P0 | E0 | Fixture generator and harness | Prerequisite for all | RUN |
 | P0 | E1 | Static deployment and engine boot without isolation | P-002, P-003 (hosting) | PARTLY RUN (Chrome, local) |
 | P0 | E2 | Network isolation and configuration lockdown | P-003, P-013, D-004 | RUN (Chrome) |
-| P0 | E3 | Join-audit correctness on DuckDB-WASM | Core algorithm, D-013/P-012 | PARTLY RUN |
+| P0 | E3 | Join-audit correctness on DuckDB-WASM | Core algorithm, D-013/P-012 | RUN for the supported subset (§11) |
 | P0 | E4 | Cancellation and recovery | P-003, P-004 | RUN (Chrome) |
-| P1 | E5 | Query parsing for a single-join `SELECT` | Differentiation, MVP scope | NOT RUN |
+| P1 | E5 | Query parsing for a single-join `SELECT` | Differentiation, MVP scope | RUN (§11) |
 | P1 | E6 | Ingestion paths and memory characterisation (50 MB–1 GB) | D-009 workloads, supported limits | RUN (Chrome) |
 | P1 | E7 | Browser matrix (Chromium, Firefox, Safari) | Supported browsers | PARTLY RUN (Chrome only) |
 | P1 | E11 | Licence and notice audit of the pinned artifacts | Licence choice, redistribution | PARTLY RUN |
@@ -190,7 +190,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** the listener never forwards anything. No real external host is contacted.
 - **Acceptance (proposed):** **zero** requests to anything but allowed same-origin assets; **zero** canary values seen by the listener; every escalation statement fails with an error the app can show; local file registration still works under the lock. CSV and Parquet must work without a runtime extension fetch, or with a same-origin, self-hosted extension that is checked against a recorded integrity hash. **Failure:** this blocks P-003 under P-013. Escalate to the maintainer.
 
-### E3. Join-audit correctness on DuckDB-WASM: PARTLY RUN (generator known answers only; corpus NOT RUN; §9.6)
+### E3. Join-audit correctness on DuckDB-WASM: RUN for the supported subset (§11; Chrome only)
 
 - **Question:** do the research's probe queries give exact answers in the pinned DuckDB-WASM, matching a directly materialised join?
 - **Inputs:** the E0 known-answer corpus, covering every case in the research's verification strategy: one-to-one; intended many-to-many; unwanted one-to-many; orphans on both sides; repeated NULL keys; composite keys with a partial NULL; empty relations; DECIMAL, DOUBLE and negative measures; fan-out with a net-zero sum; fan-out plus loss with unchanged row counts; LEFT JOIN with a NULL-rejecting WHERE; a nullable right value inside a real match; mismatched key types. Plus at least 500 seeded random fixtures (small: ≤ 1,000 rows each).
@@ -208,7 +208,7 @@ E0–E4 together are the proof of concept in §3. If E1 or E2 fails, stop and es
 - **Safeguards:** a watchdog closes the tab if a cycle exceeds 10 minutes. Stop after the first renderer crash.
 - **Acceptance (proposed):** (a) ≤ 200 ms in every cycle. A cooperative cancel or the fallback ends the work within 2 s in every cycle. (c) is measured and reported, with no threshold until baseline numbers exist. The UI never shows stale results. Memory after 20 cycles is no more than 10 % above memory after cycle 1. (d) is reported for each attach mode to decide the attach strategy.
 
-### E5. Query parsing for a single-join `SELECT`: NOT RUN
+### E5. Query parsing for a single-join `SELECT`: RUN, extended to left-deep chains and CTEs (§11; Chrome only)
 
 - **Question:** can the pinned engine's own parser (e.g. SQL-to-JSON serialisation, *availability in the WASM bundle to verify*) reliably extract the relations, aliases, join type, equi-join keys and the position of WHERE predicates from a simple query? Can it refuse everything else?
 - **Inputs:** a corpus of at least 60 queries: at least 20 inside the supported subset (single INNER/LEFT equi-join, optional WHERE, GROUP BY with SUM/COUNT; aliases, quoted identifiers, composite keys) and at least 40 outside it (CTEs, subqueries, multiple joins, OR/non-equality conditions, USING/NATURAL, RIGHT/FULL, window functions, DISTINCT ON, unions, invalid SQL).
@@ -806,3 +806,764 @@ Small and safe only. No 500 MB / 1 GB or memory-ceiling runs were repeated. The 
   - re-validating the serialised-SQL JSON format (E5);
   - re-running the whole test suite.
 - **Recommendation:** keep the current pin for the spike. Before production, evaluate `1.32.0` (or a later stable npm release) in a separately approved spike. **No version change was made.**
+
+## 11. SQL correctness analysis engine (E3 + E5 experimental implementation, 2026-11-25)
+
+> **Superseded in part by §12 (Codex Step 4.4 review: NO-GO for public release).** Corrected statements below are marked *[Corrected: §12]*. In particular: aggregate-inflation findings were removed; the outer-join/`WHERE` explanation was rewritten; the finding categories changed; the 10^8 × 10^8 test was retired; and the MVP scope is now §12.12 (P-031).
+
+An experimental, deterministic analysis engine (no LLM) for a documented subset of DuckDB SQL. Code: `spikes/browser-feasibility/src/analysis/`, on branch `spike/sql-analysis`. It is spike code: exposed only in the test-only harness build, not wired into any UI, and absent from the production `dist/`. **It does not verify SQL correctness in general.** It measures specific join and aggregation properties of a supported query on the loaded data snapshot.
+
+### 11.1 Parser choice
+
+| Option | Licence | Dialect | Decision |
+|---|---|---|---|
+| DuckDB's own parser (`json_serialize_sql` / `json_deserialize_sql`) | MIT (already bundled) | Exactly the execution dialect | **Chosen.** No new dependency; works under the lockdown (verified). Risk: the JSON format is internal to DuckDB, so it is tied to the pinned v1.5.4 and must be re-validated on upgrade |
+| `node-sql-parser` 5.4.0 | Apache-2.0 | Generic/MySQL/PostgreSQL | Not chosen: not DuckDB's dialect; 92 MB package |
+| `pgsql-ast-parser` 12.0.2 | MIT | PostgreSQL | Not chosen: dialect mismatch |
+| `libpg-query` 18.2.5 | MIT | PostgreSQL (WASM) | Not chosen: dialect mismatch |
+| `sql-parser-cst` 0.45.1 | **GPL-2.0-or-later** | Several | Excluded on licence |
+
+Licences come from npm registry metadata, read 2026-11-25. None of the alternatives was installed or evaluated in depth.
+
+Parsing alone is not treated as understanding. Join keys are resolved against the actual relation schemas, key types are compared, and every numeric claim is computed from the data.
+
+### 11.2 Supported SQL subset
+
+**Supported:**
+- one `SELECT` statement;
+- optional non-recursive CTEs, each itself in this subset;
+- `FROM` one named table, view or CTE, followed by a **left-deep** chain of `INNER`, `LEFT`, `RIGHT` or `FULL` joins;
+- each join condition is either `AND`-ed `column = column` equalities (composite keys allowed) or `USING (...)`;
+- optional `WHERE`, a single `GROUP BY` set, `HAVING`, `ORDER BY` and `LIMIT`;
+- any expressions in the `SELECT` list, provided they contain no subqueries or window functions.
+
+**Unsupported**, reported per construct with status `unsupported` and *no data conclusions*:
+- joins: comma joins and `CROSS`, `NATURAL`, `SEMI`, `ANTI`, `ASOF` and `POSITIONAL` joins; right-nested or bushy join trees;
+- join conditions: non-equality, `OR`, expressions, `IS NOT DISTINCT FROM`;
+- subqueries anywhere (`FROM`, `WHERE`, `SELECT`);
+- query shape: `UNION`/`INTERSECT`/`EXCEPT`, `DISTINCT` (it can mask fan-out), window functions, `QUALIFY`;
+- grouping: `GROUPING SETS`/`ROLLUP`/`CUBE`;
+- CTE forms: recursive CTEs, CTE column aliases;
+- `FROM` items: table functions (including `read_csv`), schema- or catalog-qualified names, `TABLESAMPLE`, time travel;
+- multiple statements and non-`SELECT` statements.
+
+**Inconclusive**, analysed partly with the reason stated:
+- join keys whose types differ, since implicit casts change matching;
+- keys that cannot be resolved to exactly one relation;
+- diagnostics that fail;
+- checks that would exceed the execution budget.
+
+**Execution failure:** syntax errors, queries that cannot bind (for example a missing table), and runtime failures.
+
+### 11.3 Algorithms and complexity
+
+**Join cardinality without materialising the join.** For each join, the engine:
+1. groups each side by its key: `L(k)` and `R(k)`, counting rows with any NULL key column separately (they never match);
+2. joins the two grouped tables, so the work is proportional to the number of distinct keys;
+3. computes, with `HUGEINT` in SQL and `BigInt` in TypeScript:
+   - matched pairs `P = Σ L(k)·R(k)`;
+   - rows matched on each side;
+   - unmatched rows = input rows − rows matched (this includes NULL-key rows);
+   - left rows multiplied `= Σ_{R(k)>1} L(k)`;
+   - left excess copies `= Σ_{R(k)>1} L(k)·(R(k)−1)`, and the same two quantities for the right side;
+   - distinct and duplicated keys, maximum multiplicities (overall and among matched keys).
+
+Output cardinality: `INNER = P`, `LEFT = P + Lu`, `RIGHT = P + Ru`, `FULL = P + Lu + Ru`.
+
+**Output cardinality and affected input rows are reported separately.** One join can multiply some rows and drop others with no net change in row count; a regression case asserts exactly this.
+
+**Relationship classification** (one-to-one, one-to-many, many-to-one, many-to-many), always labelled *observed in this snapshot*:
+- by key uniqueness of each whole input;
+- separately, among matched keys only, because duplicates on unmatched keys never multiply rows.
+
+**Fan-out and expansion:**
+- `join-expansion` means left input rows are multiplied.
+- `right-rows-repeated` is the normal repetition of a lookup row in a many-to-one join. It is observed, not suspicious, but it matters for measures taken from the right side.
+
+**Join chains:**
+- The first join uses base-relation frequencies.
+- Join *i* > 0 groups the **executed** intermediate (joins 0..*i*−1) by its key. That intermediate is aggregated in the engine, not returned to the page; the method is labelled.
+- A consistency check requires each join's computed output to equal the next join's executed left-input count. A mismatch is reported as an internal inconsistency.
+
+**Intermediate row counts:**
+- FROM and each join: frequency formula.
+- After `WHERE` and the final result: executed `count(*)`.
+- Each stage is labelled with its method.
+
+**`WHERE` removing outer-join rows.** A row preserved by a `LEFT` join has NULL in the right-side join key, and keys never match NULL. So:
+
+> rows removed = `count(FROM … WHERE key IS NULL)` − `count(FROM … WHERE (where) AND key IS NULL)`
+
+*[Corrected: §12.6 — the explanation now depends on which relations `WHERE` references, and gives no rewrite advice]* This is measured, not inferred from syntax. An intentional anti-join (`WHERE c.cid IS NULL`) removes none and produces no finding. The check is skipped, and reported as not checked, when a later `RIGHT` or `FULL` join makes NULL-extension ambiguous.
+
+**Aggregate inflation:** *[Corrected: §12.5 — these findings were removed; they claimed inflation without measuring the rows that actually contribute to the aggregate]*
+- **Suspicious** when `SUM`, `COUNT` or `AVG` (non-distinct) takes its argument from a relation whose rows some join measurably multiplies. `AVG` is reported as *weighted*, not inflated.
+- `COUNT(*)` is suspicious after any expansion.
+- `MIN`, `MAX` and `DISTINCT` aggregates are not flagged.
+
+**Metric expectation (`metric-preserved`):** compares the executed `SUM(column)` over the joined and filtered rows with the source total. The difference is exact for DECIMAL and INTEGER; an optional relative tolerance covers floating-point columns. It is attributed to the joins that multiply or drop that relation's rows. If `WHERE` references other relations, the source total is ambiguous and the result is **inconclusive**.
+
+**User-defined expectations.** These are the only route to an expectation violation:
+- `relationship`: a stricter observed relationship is allowed, a looser one is a violation;
+- `no-row-loss` on a given side;
+- `no-fan-out`, by side, defaulting to left;
+- `grain`: one result row per given output columns, executed;
+- `metric-preserved`;
+- `row-count` bounds.
+
+**CTEs:** each CTE body is analysed as its own query, with an execution budget and a maximum depth of 3.
+
+**Complexity and cost:**
+
+| Component | Time | Engine memory |
+|---|---|---|
+| First join's statistics | O(\|L\| + \|R\|) scans | O(distinct keys); never the joined rows |
+| Later join *i* | Cost of executing joins 0..*i*−1 into an aggregate | Join hash tables + key aggregate |
+| Samples (fan-out keys, unmatched keys) | 3 extra statements per join, recomputing frequencies | as above; output limited to 5 rows |
+| `WHERE`, final count, outer-join check, grain, metric | Executions of the query (streamed into `count`/`sum`) | Engine working memory |
+
+Executed checks are skipped once any computed intermediate exceeds an **execution budget**, by default 50 M rows. They are then reported as inconclusive, while frequency results still stand.
+
+### 11.4 Diagnostic categories
+
+*[Corrected: §12.8 — eight categories]* `observed` (measured property), `suspicious` (often a mistake but may be intended), `expectation-violation` (a user-defined expectation contradicted by evidence), `unsupported`, `inconclusive`, `execution-failure`.
+
+- Every report has a status: `analyzed`, `partially-analyzed`, `unsupported` or `execution-failed`.
+- It lists the checks performed and the checks not performed, records every diagnostic statement, and carries a disclaimer.
+- **There is no "pass" outcome.**
+- A row-count increase is reported as observed expansion, not as an error.
+
+This refines the four categories of D-013 / AGENTS.md §8 (logged as P-026 for approval):
+- "confirmed issue" and "expectation violation" are both represented as `expectation-violation`, which needs a declared expectation;
+- `observed`, `inconclusive` and `execution-failure` are added.
+
+### 11.5 Verification (actual results, Chrome 158, DuckDB-WASM v1.5.4, 2026-11-25)
+
+**Independent oracle:** `scripts/make_analysis_fixtures.py` computes every expected number by **nested-loop brute force** in Python, with SQL NULL and three-valued logic, deliberately without the frequency formula. The fixtures (`tests/fixtures/analysis/cases.json`, 384 KB) regenerate byte-for-byte from seed 20261125. Four Python unit tests pin the oracle itself to hand-computed answers.
+
+**Three-way comparison** (`tests/e2e/analysis.spec.ts`): engine result = Python brute force = DuckDB's actual `count(*)` of each join prefix and of the final query.
+
+| Suite | Result |
+|---|---|
+| 37 named cases | **pass.** Covers one-to-one; one-to-many (legitimate expansion); many-to-one; many-to-one with a violated expectation; many-to-many; duplicates only on unmatched keys; composite keys with partial NULL; repeated NULL keys; empty left / right / both under all four join types; unmatched rows under all four join types with `no-row-loss`; `LEFT JOIN` + null-rejecting `WHERE`; anti-join `IS NULL`; filter before the join (CTE) and after it; aggregate inflation; preserved aggregate; `INNER` loss lowering a `SUM`; net-zero metric under fan-out; fan-out plus loss with an unchanged row count; `COUNT(*)` after fan-out; a three-table chain; `USING`; grain violated and held; row count; `LIMIT` |
+| 200 seeded random cases | **pass.** 154 single-join and 46 two-join chains; all join types (INNER 62, LEFT 72, RIGHT 51, FULL 61 join instances); composite keys in 55 cases; NULL keys in 152 join instances; an empty side in 84; `WHERE` in 85 cases; outer-join rows removed by `WHERE` in 47 |
+| 21 unsupported constructs | **pass.** Each yields `unsupported`, an explanation, and no data findings, join results or stages |
+| Inconclusive and failures | **pass.** Key type mismatch (INTEGER vs BIGINT) → `partially-analyzed` with no join statistics. Missing table → `execution-failed` (bind). Syntax error → `execution-failed` |
+| Above 2^53 | *[Retired: §12.4 — not rerun without approval; exactness is now covered by unit tests]* **pass.** A 10^8 × 10^8 single-key join gives exactly `10000000000000000` output rows and `9999999900000000` excess copies, in about 4 s, without executing the join. The execution budget skips the final count and reports why |
+| Unit tests (`analysis-stats.test.ts`) | **7 pass.** Research worked example for all join types; the identity \|out\| − \|L\| = excess − unmatched; relationship rules; `no-fan-out` sides; exactness above 2^53 |
+
+**Mutation check.** Three deliberate engine bugs were each caught by both the named and the random suites, and the source was restored afterwards:
+- excess copies computed with `R(k)` instead of `R(k)−1`;
+- NULL keys allowed into the key frequencies;
+- the outer-join/`WHERE` comparison inverted.
+
+**Performance, one observation, warm, in-memory tables:** `orders` LEFT JOIN `customers` (100 k customers, 1 % duplicated keys), `GROUP BY` and a metric expectation:
+
+| Orders | Analysis (16 statements) | User query | `count(*)` of the join | Engine output = DuckDB |
+|---:|---:|---:|---:|---|
+| 1,000,000 | 202 ms | 30 ms | 16 ms | 1,010,000 = 1,010,000 |
+| 5,000,000 | 509 ms | 128 ms | 70 ms | 5,050,000 = 5,050,000 |
+
+So analysis currently costs about 4–13× the query. The frequency method's value is **exactness without executing huge joins** and **per-key attribution**, not speed at moderate sizes.
+
+### 11.6 Known limitations and risks
+
+- **Scope:** only the subset in §11.2. Real analyst SQL often uses subqueries, `DISTINCT`, window functions and set operations; all of those are unsupported today, which limits how much real SQL can be analysed.
+- **Semantics not modelled:**
+  - expressions in the `SELECT` list;
+  - `HAVING` beyond the final count;
+  - `ORDER BY`/`LIMIT` effects on aggregates;
+  - collations;
+  - floating-point join keys (they are treated like any other type);
+  - implicit casts, which make the result inconclusive.
+- **Chains:** later joins execute the preceding joins. They are aggregated rather than materialised, but still cost the join work and are subject to the execution budget.
+- **Performance:**
+  - the sample queries recompute frequencies; materialising them once into temporary tables would cut the cost;
+  - there is no cancellation path dedicated to analysis yet beyond the session's cancel;
+  - no large-file measurement was taken for the analyser.
+- **Parser format:** DuckDB's serialised-SQL JSON is internal. An engine upgrade must re-run this suite. The recogniser rejects unknown node shapes rather than guessing.
+- **Expectation semantics:** `metric-preserved` assumes the declared column's source total is the reference. If `WHERE` mixes relations, the result is inconclusive rather than guessed.
+- **Not tested:** Safari and Firefox; visible-window responsiveness during analysis; the analyser on the 50 MB–1 GB file datasets.
+
+### 11.7 Recommended trustworthy MVP analysis scope (proposal)
+
+*[Superseded: §12.12 and P-031]*
+
+1. **Supported queries:** a single `SELECT` with a left-deep chain of up to 3 equi-joins (`INNER`/`LEFT`, plus `RIGHT`/`FULL` reported without the outer-join/`WHERE` check when a later outer join follows), simple non-recursive CTEs, `WHERE`, `GROUP BY` with `SUM`/`COUNT`/`AVG`/`MIN`/`MAX`.
+2. **Always shown:**
+   - per-join observed cardinality, relationship (whole input and matched keys), expansion, repetition, unmatched and NULL-key rows, with 5 sample keys;
+   - stage row counts with their method;
+   - the unsupported or inconclusive reasons;
+   - the list of what was not checked.
+3. **Suspicious patterns only:** many-to-many matches; aggregates over multiplied rows; outer-join rows removed by `WHERE`.
+4. **Expectation violations only from declared expectations:** relationship, no fan-out, no row loss, grain, metric preserved, row count.
+5. **Never shown:** a pass or "correct" verdict; conclusions about unsupported SQL.
+6. **Before shipping:**
+   - materialise the frequency tables once per analysis (performance);
+   - make analysis cancellable and budgeted per statement;
+   - qualify on the P-024 data ceiling in Chrome, then Safari and Firefox;
+   - get maintainer approval of P-026 to P-030.
+
+
+## 12. Codex review of the analysis engine (Step 4.4) — resolution, 2026-11-25
+
+Codex verified the core join-frequency arithmetic within the tested subset, but returned **NO-GO for public release**. It raised four high-severity and three medium-severity findings, all reproduced here on the unmodified analyser before any change.
+
+**Principle applied throughout:** an unsupported or inconclusive result is preferable to an incorrect one.
+
+**Scope:** spike code on `spike/sql-analysis`. Exposed only in the test-only harness and absent from the production `dist/`. Chrome 158 only.
+
+### 12.1 H1: numeric precision lost when rewriting SQL — RESOLVED
+
+- **Root cause:** `JSON.parse` of DuckDB's serialised syntax tree turns every number into a JavaScript double. The literal `9007199254740993` became `9007199254740992` in every rewritten diagnostic statement.
+- **Correction:**
+  - `src/analysis/json.ts` is a lossless JSON parser and serialiser. Numeric tokens are kept as their exact source text, and serialising an unsafe JavaScript integer is refused.
+  - The engine parses DuckDB's output with it, and every rewritten statement is serialised with it.
+  - Every count and total crosses into TypeScript as SQL text and is parsed with `BigInt`. A missing count is an error, never zero.
+  - Results are now shape-validated, and truncated results are rejected (§12.9).
+- **Regression tests:**
+  - `BIGINT`: with values `…992`, `…992`, `…993`, `WHERE k = 9007199254740993` gives 1 row, while the wrong literal would give 2. The engine's stage count equals DuckDB, and no diagnostic contains the wrong literal.
+  - `HUGEINT` maximum value, and `DECIMAL(38,10)` with exact totals (`24691357802469135780.2469135782`).
+  - `BIGINT` keys up to 2^63−1 in MVP scope match DuckDB's join and `SEMI JOIN` counts.
+  - Unit tests: a lossless round trip of `BIGINT`, `HUGEINT` and `DECIMAL` literals; malformed JSON rejected.
+- **Mutation check:** replacing the lossless parser with `JSON.parse` fails the H1 test.
+
+### 12.2 H2: collation and impossible join statistics — RESOLVED (by refusal and validation)
+
+- **Root cause:** the frequency model assumes grouping by the key uses the same equality as the join. `VARCHAR` joined to `VARCHAR COLLATE NOCASE` compares case-insensitively, while grouping the plain column does not. The analyser reported −1 unmatched right rows and a wrong relationship.
+  - `DESCRIBE` and `duckdb_columns()` both report plain `VARCHAR`, so collation **cannot be detected from type names**.
+- **Correction:**
+  1. **MVP scope accepts only same-type integer keys.** Any other key type is `unsupported`.
+  2. **Invariants** (`checkInvariants`, §12.10) are checked on every join's statistics.
+  3. **Engine-semantics cross-check:** matched rows on each side are recounted with a `SEMI JOIN` that reuses the query's own join node. That is DuckDB's own matching, without enumerating pairs.
+  4. **Executed `count(*)`** of the join, when within the execution budget.
+  - Any disagreement makes the join `inconclusive` (`invariant-violated` or `semantic-mismatch`). Its statistics, derived values, relationship, stages and every dependent finding and expectation are suppressed.
+- **Regression tests:**
+  - The exact Codex reproduction is inconclusive: no stats, no negative numbers, no relationship claim, and the expectation unchecked. DuckDB's actual count of 2 is noted. MVP scope refuses it as a non-integer key.
+  - Both sides collated: either validated numbers equal DuckDB, or the result is inconclusive.
+  - Plain `VARCHAR` keys in experimental scope are still analysed, and validated as agreeing.
+  - A unit test shows the invariants flag the reproduction's statistics.
+- **Mutation check:** disabling both invariants and the `SEMI JOIN` check fails the reproduction.
+
+### 12.3 H3: fail-closed execution budget — RESOLVED for application-level budgets [Corrected: §13.3]
+
+- **Root cause:** the budget gate used the largest *known* join output. An unknown estimate (type mismatch, failed statistics) counted as 0, so executed probes still ran.
+- **Correction (fail-closed):**
+  - **Bounded pre-checks:** input rows per relation (`maxInputRows`, default 50 M) and distinct keys per side (`maxDistinctKeys`, default 5 M), using `LIMIT n+1` counts. They run before any grouping or temporary table.
+  - **Unknown means blocked.** An unknown, failed, invalid or over-budget join output marks everything downstream unknown:
+    - later joins report `depends-on-unknown`;
+    - executed probes (the `WHERE` and final count probes, the outer-join check, grain and metric expectations) run only if *every* join is validated and every computed output is within `executionBudgetRows` (default 50 M);
+    - the executed cross-check `count(*)` is skipped above the budget.
+  - **Analysis-wide deadline** (`sessionExecutor(session, { deadlineMs })`, default 30 s). When it expires, the running statement is cancelled through the session (cooperatively, or by terminating and recovering the worker with verification). The report is `budget-exhausted`, with no partial conclusions.
+  - **Witnesses and transfer:** at most 5 sample rows per query, and every diagnostic declares its shape. Results are capped at 8 MB of Arrow data, and a truncated result is an error.
+  - **No pair materialisation:** frequencies are grouped; matching is checked with `SEMI JOIN`; executed counts happen only within budget.
+  - **Cleanup:** frequency tables are temporary and dropped in `finally` with their own 5 s timeout. A worker that was terminated loses them anyway.
+- **Regression tests:**
+  - the Codex reproduction (unknown estimate, budget 1) runs no executed probe, and its `row-count` expectation is unchecked;
+  - an over-budget first join blocks the second join and every count-only probe;
+  - the input and distinct-key budgets fail closed before any temporary table exists;
+  - a real deadline (300 ms over a generated 400 M-row view) gives `budget-exhausted` and a usable session in state `ready`, with 0 temporary tables left;
+  - injected budget exhaustion and an injected diagnostic failure, both *after* the temporary tables were created, leave 0 behind.
+- **Mutation check:** forcing the gate open fails four tests.
+- **Limitation:** these are application-level budgets. They do not guarantee protection from every browser or WASM memory-exhaustion path. A single DuckDB operator can allocate before the deadline fires; DuckDB's `memory_limit` is the remaining engine-level control.
+
+### 12.4 H4: NULL treated as zero — RESOLVED [Outcome contract corrected: §13.6]
+
+- **Root cause:** the tolerance comparison used `coalesce(…, 0)`, so a NULL total equalled 0. In addition, invalid expectation targets were ignored (join index 5) or reported as `inconclusive`.
+- **Correction:**
+  - **NULL semantics are explicit:**
+    - a NULL total means no non-NULL values;
+    - NULL equals only NULL;
+    - tolerance applies only to two non-NULL totals;
+    - `nullAsZero: true` is an explicit opt-in.
+  - Exact comparison when the tolerance is 0, with the totals and difference reported as exact text.
+  - **Every expectation gets exactly one outcome:** `violated`, `held` (with evidence) or `unchecked` (with a reason). These outcomes are listed in `report.expectations`. Unchecked ones also appear as `expectation-unchecked` findings and make the report `partially-analyzed`. Targets that are invalid, nonexistent, non-numeric or outside the scope become `unchecked`.
+- **Regression tests:**
+  - NULL vs NULL holds;
+  - 0.00 vs NULL is a violation, both with and without tolerance;
+  - with `nullAsZero` it holds;
+  - an empty relation holds;
+  - 200.00 vs 100.00 holds at tolerance 2 and is a violation at 0.5;
+  - six invalid targets all report `unchecked`, plus one `held`;
+  - MVP-scope grain and metric expectations are `unchecked`, with the reason given.
+- The 10^8 × 10^8 browser test was **retired, not rerun**, per the maintainer's instruction. Exactness above 2^53 is covered by `BigInt` unit tests. The historical observation in §11.5 stands as recorded.
+
+### 12.5 M1: aggregate attribution — RESOLVED (claims removed)
+
+- **Root cause:** an aggregate was flagged as inflated whenever *some* join multiplied its source relation. That ignored `WHERE`, aggregate `FILTER`, `COUNT(expr)`/`COUNT(NULL)` and `DISTINCT`, all of which can remove the duplicated contributors.
+- **Correction:**
+  - `aggregate-over-fan-out`, `average-over-fan-out` and `count-over-expanded-join` were removed.
+  - Join-stage expansion is still reported as an observation of the **join output**.
+  - "Aggregate inflation" is listed under *not checked* in every report.
+  - The `metric-preserved` expectation, which measures totals, remains experimental.
+- **Regression tests:** the three Codex scenarios plus `COUNT(*)` give no aggregate claims and list aggregate inflation as not checked. All named and random cases assert that the removed codes never appear.
+
+### 12.6 M2: outer-join explanations — RESOLVED
+
+- **Root cause:** every `WHERE` removal of NULL-extended rows was explained as a condition on the other side's columns, with advice to move it into `ON` or use an `INNER JOIN`. That was wrong when `WHERE` filtered the *preserved* side.
+- **Correction:** the measured counts are unchanged; the explanation now depends on the set of relations that `WHERE` references, resolved structurally:
+  - only the preserved side → `observed: where-filters-preserved-side`;
+  - only the NULL-supplying side → `suspicious: where-removes-null-extended-rows`, which states only that those columns are NULL in the removed rows;
+  - mixed or unresolvable → `observed: where-removes-outer-join-rows`.
+  - **No rewrite advice.**
+  - A later `RIGHT` or `FULL` join leaves the check *not checked*.
+- **Regression tests:** each of the three classifications, with counts equal to DuckDB; no advice wording; a later `INNER` join measured at the full `FROM`; a later `RIGHT` join recorded as not checked.
+
+### 12.7 M3: unsupported syntax and failure classification — RESOLVED
+
+- **Root causes:**
+  - modifiers were never inspected, so `ORDER BY (SELECT 1)` and `LIMIT (SELECT 1)` were accepted;
+  - a nested `WITH` inside a CTE was accepted;
+  - `SELECT` aliases used in `WHERE`/`GROUP BY` broke rewritten statements, and the result was misreported as a user-query failure;
+  - a count-only wrapper made a query that fails at runtime (`'abc'::INTEGER`) look analysed and executed.
+- **Correction:**
+  - **MVP:** a field-level **allowlist** over the whole serialised statement. Unknown fields, for example from a future DuckDB version, are refused; only the parser's `query_location` metadata is accepted.
+  - **Experimental:** checks of `ORDER BY` expressions, `LIMIT`/`OFFSET` (literals only), nested `WITH`, `SELECT` aliases in `WHERE`/`GROUP BY`/`HAVING`, and `COLLATE`.
+  - **Failures are classified separately:**
+    - `query-failure` (`syntax-error`, `bind-failed`) only from parsing or binding the *original* query;
+    - `diagnostic-failure` for any failing diagnostic statement, with the message stating that this does not mean the query fails.
+  - **Count-only probes:** stages computed by count-only probes are labelled `count-only-probe`. Every report's first *not checked* item says the analyser never runs the original query, and the disclaimer says it does not show that the query executes.
+- **Regression tests:**
+  - six constructs are refused in both scopes, while DuckDB itself runs every one;
+  - the runtime-failing query has a labelled probe, the not-checked entry, and no "executed" wording, and MVP refuses it;
+  - an injected diagnostic failure gives `diagnostic-failed`, and an invalid column gives `query-failed`.
+
+### 12.8 Diagnostic categories (implemented)
+
+| Category | Meaning |
+|---|---|
+| `observed` | Measured property of the snapshot (join cardinality, expansion, repetition, unmatched/NULL keys, preserved-side filtering) |
+| `suspicious` | Many-to-many matches; `WHERE` removing NULL-extended rows using only NULL-supplying-side columns |
+| `expectation-violation` | A declared expectation contradicted by complete, validated evidence |
+| `expectation-unchecked` | A declared expectation that could not be evaluated (reason given) |
+| `unsupported` | Construct outside the scope; no data conclusions |
+| `inconclusive` | Invariant violation, semantic mismatch, budget, unknown upstream, unresolved or mismatched keys |
+| `diagnostic-failure` | A diagnostic statement failed (says it does not imply the query fails) |
+| `query-failure` | The original query cannot be parsed or bound |
+
+**Report status:**
+- `analyzed`;
+- `partially-analyzed` (any inconclusive finding or unchecked expectation);
+- `unsupported`, `query-failed`, `diagnostic-failed`, `budget-exhausted`.
+
+`authoritative: true` only for MVP-scope reports with status `analyzed` and every join validated. There is still no "pass".
+
+### 12.9 Diagnostic execution architecture [Superseded in part: §13.2, §13.3, §13.13]
+
+- **Shape-validated results:** every diagnostic declares its column count and its exact or maximum row count. Truncated, oversized or differently shaped results are rejected as `DiagnosticError`, never used as partial evidence.
+- **Exact values:** numbers are cast to `VARCHAR` in SQL and parsed with `BigInt`. Rows never pass through display formatting that could shorten them, because truncation is rejected.
+- **Frequencies computed once:** each side's key frequencies are materialised as one temporary table. The statistics query and the three witness queries reuse it, replacing four recomputations per join in the earlier version.
+- **Cost per MVP analysis:** about 30 small statements:
+  - parsing and binding;
+  - two describes;
+  - two input checks and two distinct-key checks;
+  - two totals and two temporary tables;
+  - one statistics query;
+  - two `SEMI JOIN` counts and one executed count;
+  - three witness queries;
+  - syntax-tree serialisation.
+- **Scans:** each base relation is scanned about 5 times (input check, distinct check, totals, grouping, `SEMI JOIN`), plus the executed count when within budget. Engine memory is O(distinct keys) for the frequency tables, plus the hash tables of the `SEMI JOIN` and the count.
+- **Main thread:** results are tiny, so Arrow decoding on the main thread is negligible.
+- **Privacy and cancellation:** everything runs through the locked-down `EngineSession`. Cancellation and deadline expiry use its verified recovery path.
+- **Measured** (Chrome 158, warm, in-memory tables; one observation each): LEFT JOIN with 100 k customers, 1 % of them duplicated.
+
+| Orders | MVP analysis (30 statements) | Experimental (31) | Plain `count(*)` of the join | Output matches |
+|---:|---:|---:|---:|---|
+| 1,000,000 | 194 ms | 140 ms | 18 ms | 1,010,000 |
+| 5,000,000 | 399 ms | 402 ms | 68 ms | 5,050,000 |
+
+### 12.10 Mathematical invariants (checked on every join)
+
+For each side:
+- NULL-key rows ≤ rows;
+- Σ key frequencies = rows − NULL-key rows;
+- matched rows ≤ non-NULL-key rows;
+- distinct keys ≤ non-NULL-key rows;
+- duplicated keys ≤ distinct keys;
+- (duplicated keys = 0) ⇔ (maximum multiplicity ≤ 1);
+- matched-key maximum ≤ overall maximum;
+- multiplied rows ≤ matched rows, and excess copies ≥ multiplied rows;
+- (multiplied = 0) ⇔ (excess = 0);
+- **matched pairs = matched rows + excess copies**.
+
+Across both sides:
+- every count ≥ 0;
+- matched keys ≤ distinct keys on both sides;
+- matched keys, pairs and rows are zero together;
+- left rows are multiplied ⇔ some matched key has R(k) > 1, and symmetrically.
+
+Each join is also validated against DuckDB: `SEMI JOIN` matched rows equal frequency matched rows, and the executed `count(*)` equals the computed output when within budget.
+
+### 12.11 Verification results (actual, 2026-11-25) [Superseded: §13.12]
+
+| Check | Result |
+|---|---|
+| Type check | pass |
+| Vitest | **62 passed** (incl. invariants, lossless JSON, MVP allowlist, expectation outcomes) |
+| Python unittest | **9 passed** (generator + oracle) |
+| Playwright, Chrome 158 | **67 passed**. Includes 17 Codex regression tests (`analysis-review.spec.ts`) and the analysis suite: 37 named + 200 random cases matching the Python oracle and DuckDB in experimental scope, with every join validated, no negative values and one outcome per expectation |
+| MVP sweep | 70 MVP-eligible cases are authoritative and match the oracle; all other 167 cases and 21 unsupported constructs are refused |
+| Mutation checks | 5 of 5 caught: excess formula, NULL keys in frequencies, validation disabled, budget gate open, lossless JSON removed |
+| Production build | contains no analysis or harness code |
+| Fixtures | regenerate byte-identically |
+
+**Not run** (by instruction or not yet approved): the 10^8-row-per-side test, large-memory stress, browser-ceiling tests, Safari and Firefox, the analyser on file datasets.
+
+### 12.12 Diagnostic support matrix [Superseded: §13.14]
+
+| Capability | MVP (authoritative) | Experimental (never authoritative) |
+|---|---|---|
+| Two named relations, one INNER/LEFT equi-join | ✔ | ✔ |
+| Single and composite keys | ✔ same-type integers only | ✔ any same type, validated; collations are caught by validation, not detected |
+| Duplicate-key and NULL-key statistics, matched/unmatched rows, output cardinality, excess copies, relationship | ✔ validated | ✔ validated |
+| Bounded witnesses (5 rows) | ✔ | ✔ |
+| Expectations: relationship, no-row-loss, no-fan-out, row-count | ✔ | ✔ |
+| Expectations: grain, metric-preserved | unchecked (out of scope) | ✔ executed, budget-gated |
+| RIGHT/FULL joins | unsupported | ✔ |
+| Join chains | unsupported | ✔ (later joins use executed intermediates, budget-gated) |
+| CTEs | unsupported | ✔ non-recursive, no nested `WITH` |
+| `WHERE`/`GROUP BY`/`HAVING`/`ORDER BY`/`LIMIT` | unsupported | ✔ count-only probes; outer-join/`WHERE` classification |
+| Aggregate inflation attribution | not checked | not checked |
+| Automatic SQL rewrites or advice | never | never |
+| Subqueries, set operations, windows, `DISTINCT`, `QUALIFY`, `ROLLUP`, recursive CTEs, comma/CROSS/NATURAL/SEMI/ANTI/ASOF joins, table functions, `COLLATE` | unsupported | unsupported |
+
+### 12.13 Unresolved release blockers [Superseded: §13.15]
+
+1. **Collation detection:** text keys are validated empirically but not detected. They stay outside MVP scope until collation is proven detectable, or text keys are qualified separately.
+2. **Memory:** the application budgets are not a hard guarantee against WASM or browser memory exhaustion (§12.3). The browser-ceiling behaviour is untested.
+3. **Scale:** the analyser has not been run on file-backed datasets at the P-024 ceiling (50 MB), nor in Safari or Firefox.
+4. **Parser format:** DuckDB's serialised-SQL JSON is internal. The MVP allowlist refuses unknown fields, so an engine upgrade fails safely to `unsupported`, but it must be re-qualified.
+5. **Real-world coverage:** how much real analyst SQL fits the MVP shape is unmeasured. The scope is deliberately narrow.
+6. **Maintainer decisions:** P-026 (categories, now eight) and P-031 to P-034 are provisional.
+7. **No independent re-review yet:** Codex should verify these corrections.
+
+## 13. Second Codex review of the analysis engine (Phase 4 hardening) — resolution, 2026-11-25
+
+> **Corrected after independent review (Step 4.4.4, 2026-11-26):** the statuses and several guarantees below were claimed by the implementer before Codex re-verified them. The corrected statuses, the evidence Codex reproduced, and five outstanding defects (QV-SA-001 to QV-SA-005) are recorded in §14 and in [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md). Where a statement in §13 conflicts with §14, §14 is correct.
+
+Codex independently verified 32 join scenarios against DuckDB (62 Vitest, 9 Python and 22 selected Chrome tests passed) but returned **NO-GO for public release**: two high-severity and three medium-severity findings. This cycle resolves them without expanding the diagnostic scope (§13.14). Spike code on `spike/sql-analysis`; harness-only, absent from the production `dist/`; Chrome 158 on the Apple M2 MacBook Air (8 GB).
+
+### 13.1 Status
+
+| Finding | Status |
+|---|---|
+| H-A Snapshot consistency and exclusive analysis ownership | ~~RESOLVED~~ **PARTIALLY RESOLVED** (§14: QV-SA-002, QV-SA-005) |
+| H-B Execution budgets and guaranteed terminal outcomes | ~~RESOLVED for application-level bounds~~ **PARTIALLY RESOLVED** (§14: QV-SA-001, QV-SA-003, QV-SA-005); no hard browser-memory guarantee (§13.10) |
+| M4 Non-finite metric comparisons | **RESOLVED within the tested scope** (finite-tolerance precision: QV-SA-004) |
+| M5 Quoted identifier handling | **RESOLVED within the tested scope** |
+| M6 Missing expectation outcomes | **RESOLVED for count and identity**; stale-publication limitation remains (QV-SA-002) |
+
+### 13.2 H-A: snapshot consistency and exclusive ownership — RESOLVED
+
+**Root cause.** Each diagnostic was a separate `session.run()` call. Any other queued operation could run between two of them, so frequencies, validation counts and witnesses could come from different data. The Codex reproduction changed the left key after the left frequency table was built: every *count* still agreed, but the witness (key 1) no longer existed. Views were accepted as inputs, so a `nextval()` view was re-evaluated on every scan.
+
+**DuckDB semantics, verified in the browser** (DuckDB-WASM 1.33.1-dev57.0 / DuckDB v1.5.4, single connection, Chrome 158; probe statements run through `EngineSession`):
+
+| Behaviour | Observed |
+|---|---|
+| `CREATE TEMP TABLE` inside `BEGIN … ROLLBACK` | rolled back with the transaction |
+| execution error inside a transaction (`'abc'::INTEGER`) | transaction **aborted**; every later statement fails until `ROLLBACK` |
+| binder error inside a transaction | transaction not aborted |
+| `BEGIN` while a transaction is open | error (`cannot start a transaction within a transaction`) |
+| `json_serialize_sql`, `DESCRIBE` inside a transaction | work |
+| `GENERATED ALWAYS AS (nextval(…))` / `(random())` columns | accepted by DuckDB; visible only in `duckdb_tables().sql` |
+| `ATTACH ':memory:'`, `USE`, `SET search_path` under the lockdown | allowed: name resolution can change |
+| `DISTINCT k … LIMIT 2` plan | `HASH_GROUP_BY` below `STREAMING_LIMIT` (full grouping; see H-B) |
+
+A transaction alone gives a stable snapshot only of DuckDB-managed tables. It says nothing about file-backed views (each scan re-reads the file) or volatile expressions (re-evaluated per scan). So stability is established by four layers, not by the transaction alone:
+
+1. **Exclusive ownership.** `EngineSession.exclusive(fn)` occupies one slot of the session's FIFO queue for the whole analysis. User SQL, file registration, removal, re-import and other analyses queue behind it. Ownership is released when `fn` settles, on every path (success, failure, cancel, deadline, replacement). The connection is private to the session, so the queue is the only path to the engine.
+2. **One transaction, always rolled back.** `analyzeInSession` runs `BEGIN TRANSACTION`, every diagnostic, then `ROLLBACK` (bounded; a failed or stalled rollback invalidates the session). The analyser's temporary tables go with the rollback. If a user transaction is already open, the analysis refuses (`inconclusive`, `transaction-unavailable`); it never rolls back a transaction it does not own.
+3. **Verified stable relations (MVP).** Each input name is looked up in `duckdb_tables()` and `duckdb_views()` across every attached database and schema. It must match exactly **one** catalog object, which must be a base table in the current database and schema (or a temporary table) without generated columns. Views (including file-backed views from "attach as view"), replacement scans, table functions, CTEs, ambiguous names and generated columns are refused with `unsupported-relation`. Imported datasets ("attach as table") and tables created by SQL qualify. Table OIDs are recorded and re-checked at the end.
+4. **Detection inside the batch (defence in depth).**
+   - *Key-multiset fingerprint* (rows, NULL-key rows, `sum(hash(keys))`, `bit_xor(hash(keys))`) of each join side at the start, compared at the end. A change withdraws **every** join statistic: status `inconclusive`, `snapshot-inconsistent`, all dependent expectations `unchecked`.
+   - *Witness identity:* every sampled key (fan-out, unmatched left, unmatched right; at most 15) is re-counted on both inputs and through the query's own join node, and must produce exactly the rows the frequency tables claim. Otherwise `witness-mismatch` and the join is withdrawn.
+   - *Generation binding:* a batch is bound to one engine generation. After recovery, replacement or disposal its statements return `stale`; a stale result ends the analysis (`session-replaced`) and is never authoritative.
+
+**Regression tests** (`tests/e2e/analysis-hardening.spec.ts`):
+- Codex reproduction: an `UPDATE` issued after the left frequency table exists runs only after the analysis returns (event log: `busy analysis` then `busy query`). The report is authoritative and describes one snapshot (witness key 1, counts 1 × 2). After the update the join returns (2, 2) and a new analysis reports witness key 2.
+- Interference that bypasses the queue (a write through the analysis batch itself, simulating a defect): after the left frequencies, counts still agree (`semiJoin`/`executedCount` agreed) but `witness-mismatch` withdraws the join. Just before the final fingerprint, `snapshot-inconsistent` withdraws everything.
+- Concurrent dataset removal and replacement (`dropFile`, `registerFile` of the same name) run after the analysis; the report describes the original data.
+- Simultaneous analyses are serialised; each is authoritative and coherent with the data at its turn (2 rows, then 5).
+- Volatile `nextval()` view, plain view and a table with a volatile generated column: refused in MVP scope. In experimental scope the volatile view is detected as inconsistent and never authoritative.
+- Ambiguous name (temporary table shadowing a table), tables in an attached database after `USE`, and file-backed views.
+- Cancellation between and during statements, session replacement while running and while queued, disposal while running.
+
+### 13.3 H-B: execution budgets and guaranteed terminal outcomes — [Corrected: PARTIALLY RESOLVED, §14]
+
+> **Correction (§14):**
+> - Witness verification runs join re-counts outside the execution-budget gate (QV-SA-001).
+> - A worker recovery whose dataset reattachment stalls can leave later SQL pending (QV-SA-003).
+> - A batch callback that never settles keeps the FIFO lease, so later operations stay queued, although `analyzeInSession` itself returns (QV-SA-005).
+>
+> The bounds below therefore apply to the caller of `analyzeInSession`, not to the liveness of the session as a whole.
+
+**Root cause.**
+- The "distinct-key budget" ran `SELECT DISTINCT … LIMIT n+1`. DuckDB plans the full `HASH_GROUP_BY` below the limit, so the check itself did the grouping it claimed to bound.
+- The executor awaited `session.cancel()` and then the running statement without a bound. A stalled RPC with an ineffective cancel left the caller waiting forever: the Codex stand-in was still pending after 80 ms with a 5 ms deadline.
+
+**Correction: output limits and work limits are separated.**
+- The `DISTINCT … LIMIT` pre-check and the `maxDistinctKeys` option are **removed**. Distinct counts are still reported, as statistics.
+- Before any grouping runs, each join is qualified on separate limits, and every quantity is reported in `report.resources`:
+  - input rows: a bounded `LIMIT maxInputRows + 1` scan, 50 M by default. For base tables the scan stops early; for views it bounds rows returned, not the work to produce them.
+  - number of key columns: at most 8.
+  - fixed key width: from the integer types (1–16 bytes).
+  - estimated grouping state per side: rows × (key bytes + 16-byte count + 64 bytes assumed per-group overhead), at most 512 MiB by default. This is an upper-bound estimate, not a measurement.
+  - DuckDB `memory_limit` in effect: the engine-enforced control.
+  - number of diagnostic statements.
+
+**Correction: terminal outcomes are bounded** (`executor.ts`, `analyzeInSession`, `EngineSession`).
+- **Deadline and cancellation:** one analysis-wide deadline, which also covers the wait for exclusive ownership. On expiry, only the batch's own active statement is cancelled. The cancel request gets `cancelGraceMs` (2 s by default); the statement then gets `cancelGraceMs` to settle. A cancel that is rejected, hangs, or returns without stopping execution leads to **worker termination** (`invalidate`): the worker is terminated synchronously and recovery runs in the background. The caller never waits on the worker.
+- **No late results:** after any terminal event the executor is dead. Late responses are ignored and every later statement is refused, so a timed-out statement can never contribute evidence.
+- **Bounded cleanup:** cleanup statements (`DROP`, `ROLLBACK`) are bounded by `cleanupMs` (5 s by default). They still run after a cancel, but only on the same engine. A cleanup that fails or stalls invalidates the session, because it could otherwise remain inside the analysis transaction.
+- **Batch-wide cancel:** `session.cancel()` during an exclusive batch cancels the whole batch, including between statements, where there is no active statement to interrupt.
+- **Bounded boots:** startup and recovery boots are bounded by `bootTimeoutMs` (30 s by default). A recovery that fails or times out leaves the session `failed`: no SQL until `start()` succeeds again. Recovery boots through the same fail-closed path as startup, so the lockdown is applied and verified again before SQL is accepted.
+- **Worst-case return time** for `analyzeInSession`: deadline + 2 × `cancelGraceMs` + `cleanupMs` + 1 s, which is 40 s with the defaults. If even that outer bound is reached (the batch hangs outside any statement), the worker is invalidated and `budget-exhausted` is returned.
+
+**Regression tests.**
+- **Stand-ins** (`tests/unit/analysis-executor.test.ts`, each with an asserted wall-time bound): stalled RPC with ineffective cancel (the Codex repro, now returning in under 85 ms with a 5 ms deadline and a 20 ms grace); cancel rejection; cancel that never returns; cooperative cancel; late response ignored and nothing run afterwards; stale engine; cancelled statement; truncated and wrongly shaped results; rejected RPC; stalled cleanup; cleanup after cancel; stalled queue (`queue-wait`); stalled worker during the batch; a batch hanging outside any statement (outer bound); an open user transaction; an unavailable session.
+- **Real browser:** a deadline over a swapped-in 30 M-value streaming aggregate (memory-light; replaces the retired 400 M-row view test), which is cancelled, rolled back and leaves the session `ready`. Invalidation with successful recovery: generation 2, lockdown re-verified, `SET enable_external_access = true` refused. Invalidation whose recovery fails its lockdown: state `failed`, SQL refused, the next analysis returns `session-unavailable`. The grouping-state budget refuses before any `GROUP BY` or `DISTINCT` runs.
+
+### 13.4 M4: non-finite metric comparisons — RESOLVED
+
+- **Root cause:** with a source total of `inf`, both `abs(j − s)` and the tolerance bound became `inf`, and `inf <= inf` reported `held`.
+- **Correction:**
+  - The comparison query also returns whether both totals are finite, and whether the difference and the tolerance bound are finite.
+  - Any non-finite value makes the expectation `unchecked`, with the totals as evidence. Non-finite values are not supported by any specification.
+  - Tolerance must be a finite number ≥ 0 and `nullAsZero` a boolean; otherwise the expectation is reported as invalid.
+  - NULL-versus-zero semantics (§12.4) and the exact comparison at tolerance 0 are unchanged.
+  - Metric preservation remains experimental and never authoritative.
+- **Tests:**
+  - +inf, −inf and NaN at tolerances 0.01, 0 and 1, including the Codex repro (`inf` vs `1.0`);
+  - inf vs inf;
+  - finite totals whose bound overflows;
+  - finite comparisons still `held`;
+  - four invalid tolerances;
+  - the existing H1/H4 exact `DECIMAL`/`HUGEINT` and NULL tests still pass.
+
+### 13.5 M5: quoted identifier handling — RESOLVED
+
+- **Root cause:** the outer-join probe rebuilt its marker column from the display string `r.k.x` with `split('.')`, so `r."k.x"` became three parts and the optional probe failed. That failure discarded the whole report as `diagnostic-failed`.
+- **Correction:**
+  - Join keys are kept as structured (relation, column) pairs and turned into SQL only through DuckDB's serialiser.
+  - User-supplied column references are parsed with SQL quoting rules (`parseColumnRef`: quoted dots, `""` escapes).
+  - Displayed keys are quoted when needed.
+  - Optional experimental probes (WHERE count, final count, outer-join check, grain and metric expectations) fail independently as `optional-check-failed` (`inconclusive`). Validated join evidence is kept, and the report is `partially-analyzed` and never authoritative.
+  - Because an execution error aborts the transaction, later optional checks are skipped and listed as not checked.
+- **Tests:** the Codex repro (`r."k.x"` LEFT JOIN with a filtering probe: statistics kept, finding counts match DuckDB); composite keys with spaces and escaped quotes; aliases with spaces; a reserved word (`"select"`) as a `USING` key; an injected probe failure that keeps identical statistics.
+
+### 13.6 M6: missing expectation outcomes — [Corrected: RESOLVED for count and identity, §14]
+
+> **Correction (§14):** every report carries exactly one outcome per expectation, with index and identity. A report finalised before a late cancellation or engine replacement can still be published with outcomes that are stale (QV-SA-002).
+
+- **Root cause:** early exits (unsupported, query failure, budget, diagnostic failure) built reports with `expectations: []`. The §12.4 statement "every expectation gets exactly one outcome" held only on the main path.
+- **Correction:** every report, on every path, is finalised through one function that returns exactly one outcome per declared expectation, in order.
+  - Each outcome carries `index` and the declared expectation object unchanged.
+  - Anything not evaluated is `unchecked`, with the reason of the path that ended the analysis.
+  - Malformed expectations are reported as `invalid expectation: …` on every path. Examples: an unknown kind, a non-integer join, a missing side, empty grain columns, `min > max`, an invalid tolerance.
+  - Every `unchecked` outcome also appears as an `expectation-unchecked` finding. An unchecked expectation is never interpreted as held.
+- **Tests:** eleven paths (syntax error, non-SELECT, unsupported construct, bind failure, view refused, non-integer key, input budget, deadline, diagnostic failure, open transaction, analysed), each with five expectations including two invalid ones: indices, identity and reasons are asserted. Stand-ins cover queue wait, outer bound and an unavailable session. The MVP sweep checks one unchecked outcome per expectation on all 167 refused fixture cases.
+
+### 13.7 Session ownership and lifecycle
+
+| Event during an analysis | What happens | Report |
+|---|---|---|
+| user SQL, import, removal, re-import, another analysis | queued behind the analysis (FIFO) | unaffected |
+| `session.cancel()` | whole batch cancelled; running statement cancelled cooperatively, else worker terminated | `cancelled`, not authoritative |
+| deadline | batch statement cancelled; bounded grace; else worker terminated | `budget-exhausted` with `terminal` |
+| `restart()` / recovery / `invalidate` | engine generation changes; remaining statements are `stale` | `diagnostic-failed` / `session-replaced` |
+| `dispose()` | engine gone; remaining statements are `stale` | `diagnostic-failed`, never hangs |
+| recovery fails | session `failed`, no SQL | later analyses: `session-unavailable` |
+
+Ownership is released when the batch function settles, on every path. Recovery loses in-memory tables: imported tables are marked `needs-reimport`, and tables created by SQL are lost (existing spike behaviour).
+
+### 13.8 Supported relation types
+
+| Relation | MVP (authoritative) | Experimental |
+|---|---|---|
+| Base table in the current database and schema (created by SQL or imported via "attach as table") | ✔ | ✔ |
+| Temporary table | ✔ | ✔ |
+| Table with generated columns | refused | analysed, not authoritative |
+| View (including file-backed "attach as view") | refused | analysed, not authoritative; volatility detected by fingerprint and witnesses, not prevented |
+| CTE | refused | ✔ non-recursive |
+| Replacement scan, file path, table function | refused | refused (`unsupported`) |
+| Name matching several catalog objects | refused | analysed, not authoritative |
+| Table in another schema or database | refused | analysed, not authoritative |
+
+### 13.9 Execution and cleanup deadlines
+
+| Bound | Default | Enforced by |
+|---|---|---|
+| Analysis deadline (including queue wait) | 30 s | executor, `analyzeInSession` |
+| Cancel request, then statement settle | 2 s each | executor (then worker termination) |
+| Session cooperative cancel | `cancelDeadlineMs` (2 s in tests) | `EngineSession` |
+| Cleanup statement (`DROP`, `ROLLBACK`) | 5 s | executor (then invalidation) |
+| Whole `analyzeInSession` call | deadline + 2 × grace + cleanup + 1 s | `analyzeInSession` (then invalidation) |
+| Engine boot (start, recovery) | 30 s | `EngineSession` (then `failed`) |
+
+### 13.10 Resource-budget limitations
+
+- **Not guarantees:**
+  - the grouping-state estimate is an upper-bound heuristic, not a measurement of DuckDB's allocator;
+  - the input bound limits rows, not the work behind a view;
+  - none of these is a guarantee against browser or WASM memory exhaustion.
+- **Engine control:** DuckDB's `memory_limit` is the engine-enforced control (reported in each report).
+- **What can still happen:**
+  - a single operator can allocate before the deadline fires;
+  - the browser tab can still be killed by the operating system above the engine limit.
+- **Not tested:** the browser ceiling. The 400 M-row view and the 10^8-row tests were **not rerun** (maintainer instruction).
+
+### 13.11 Authoritative versus non-authoritative reports
+
+A report is `authoritative` only when `nonAuthoritativeReasons` is empty, which requires all of the following:
+- MVP scope;
+- status `analyzed`, with no inconclusive finding and no unchecked expectation;
+- every diagnostic ran in one exclusive transactional batch on the current engine generation;
+- every relation is a verified stable table (§13.8);
+- every join has validated statistics (invariants, `SEMI JOIN`, executed count within budget), verified witnesses and a verified snapshot;
+- `ROLLBACK` succeeded;
+- the engine was not replaced before the report was returned. **[Not fully enforced: QV-SA-002. Cancellation or replacement after the last statement and before publication is not detected.]**
+
+Every other report lists its reasons. Experimental reports are never authoritative. `analyze(executor, …)` without the session batch (stand-ins, tests) is never authoritative.
+
+### 13.12 Verification results (actual, 2026-11-25) — implementer's own runs
+
+> These are Claude Code's own results; the independent Codex results are in §14.2. The full 79-test browser run has not been independently reproduced.
+
+| Check | Result |
+|---|---|
+| Type check | pass |
+| Vitest | **80 passed** (62 earlier, plus 18 new: executor stand-ins, `analyzeInSession` stand-ins, identifier parsing, expectation validation) |
+| Python unittest | **9 passed** |
+| Playwright, Chrome 158 | **79 passed**: all earlier suites (lifecycle, security, bounded results, benchmark guard, spike UI, 237-case oracle sweep, MVP sweep, 17 Step 4.4 regression tests), plus 12 new hardening tests |
+| MVP sweep | 70 eligible cases authoritative and matching the oracle; 167 cases and 21 constructs refused, each refusal with one `unchecked` outcome per expectation |
+| Mutation checks (new) | 10 of 10 caught: exclusive ownership removed; witness verification removed; end fingerprint ignored; views accepted; batch-wide cancel removed; both non-finite checks removed; identifier split from text; early-exit outcomes dropped; executor awaiting a stalled RPC; outer bound removed. (Removing only the totals check is still caught by the difference/bound check: defence in depth.) |
+| Production build | succeeds; contains no analysis or harness code |
+
+**Changed tests (not weakened):**
+- The distinct-key budget test became a grouping-state test that asserts that no `GROUP BY` or `DISTINCT` statement ran.
+- The 400 M-row deadline test became a 30 M-value memory-light fixture.
+- The MVP sweep's refusal check now also requires exactly one `unchecked` outcome per expectation.
+
+**Measured cost** (Chrome 158, M2, in-memory tables; LEFT JOIN of `n` orders to `n/10 + 1000` customers, `BIGINT` keys; 3 runs, warm runs shown). This table shape differs from §12.9, so the two are not directly comparable.
+
+| Orders | MVP analysis (40 statements) | Experimental (41) | Plain `count(*)` of the join |
+|---:|---:|---:|---:|
+| 1,000,000 | 138–139 ms (236 ms cold) | 150–159 ms | 12–13 ms |
+| 5,000,000 | 588–611 ms | 659–696 ms | 67–68 ms |
+
+### 13.13 Diagnostic execution architecture (current)
+
+`analyzeInSession` → `EngineSession.exclusive` → `BEGIN` → parse and recognise → bind → classify relations → resource qualification (no grouping) → per join: start fingerprint and totals, two temporary frequency tables, statistics, invariants, `SEMI JOIN`, executed count, witnesses, witness verification → end fingerprints and table identities → (experimental) optional probes → expectations → `ROLLBACK`.
+
+Each base relation is scanned about 7 times: input check, start fingerprint, grouping, `SEMI JOIN`, executed count, end fingerprint, plus witness re-counts pushed down to single keys.
+
+### 13.14 Diagnostic support matrix (scope frozen)
+
+| Capability | MVP (authoritative) | Experimental (never authoritative) |
+|---|---|---|
+| Inputs | exactly two verified stable tables (§13.8) | named tables, views, CTEs |
+| One INNER or LEFT JOIN on AND-ed equalities | ✔ same-type integer keys, single or composite | ✔ any same type, validated |
+| Duplicate and NULL keys, matched/unmatched rows, output cardinality, excess copies, relationship | ✔ validated, snapshot-consistent | ✔ validated |
+| Bounded witnesses (≤ 5 per kind) | ✔ identity-verified (verification currently bypasses the execution budget: QV-SA-001) | ✔ identity-verified (same defect) |
+| Expectations: relationship, no-row-loss, no-fan-out, row-count | ✔ | ✔ |
+| Expectations: grain, metric-preserved | unchecked | ✔ executed, budget-gated, non-finite refused |
+| RIGHT/FULL, join chains, CTEs, nested queries, `WHERE`/`GROUP BY`/`ORDER BY`/`LIMIT` | unsupported | ✔ (count-only probes; optional checks fail independently) |
+| Collated or coerced keys | unsupported | type mismatch refused; collation caught by validation only |
+| Post-join filter attribution | unsupported | ✔ outer-join/`WHERE` classification |
+| Aggregate inflation attribution, automatic SQL rewrites | never | never |
+
+These restrictions apply to Verdict diagnostics only, not to ordinary SQL execution in the workspace.
+
+### 13.15 Unresolved release-qualification requirements [Superseded: §14 and SQL_ANALYSIS_FINDINGS.md §8]
+
+1. **Independent re-review:** Codex re-verification of §13.
+2. **Memory:** no hard browser or WASM memory guarantee (§13.10); browser-ceiling behaviour untested.
+3. **Scale and browsers:** no run on file-backed datasets at the P-024 ceiling, nor in Safari or Firefox.
+4. **Text keys:** collation is still not detectable, so text keys stay outside MVP scope (§12.13 item 1).
+5. **Engine upgrades:** the parser JSON format, catalog functions (`duckdb_tables().sql` for generated columns) and transaction semantics (§13.2 table) are engine-internal and must be re-qualified on any engine upgrade. The behaviour table is a candidate for an automated check.
+6. **Fingerprint strength:** the key-multiset fingerprint is a 64-bit hash sum and XOR, not cryptographic. It is the third layer, behind exclusive ownership and the transaction, not the guarantee.
+7. **Real-world coverage:** how much analyst SQL fits the MVP shape is unmeasured.
+8. **Recovery data loss:** recovery loses tables created by SQL; product behaviour is not yet specified.
+9. **Maintainer decisions:** P-026 and P-031 to P-038 are provisional.
+
+## 14. Experimental checkpoint after independent review (Step 4.4.4), 2026-11-26
+
+**Phase 4 (experimental research): conditionally complete**, subject to an independent review of this checkpoint's documentation.
+
+- **Handoff document:** [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md) is the canonical source for the defect register, the proposed MVP boundary, production architecture requirements, acceptance criteria, release gates, sequencing and the reuse assessment. This section records only the checkpoint.
+
+### 14.1 Codex verdicts
+
+| Question | Verdict |
+|---|---|
+| Experimental implementation | CONDITIONAL GO for isolated research |
+| Commit readiness | NO until documentation claims are corrected (this checkpoint) |
+| Phase 5 readiness | YES WITH CONDITIONS |
+| Public release readiness | NOT READY |
+
+The analyser is not production-ready, and no production code depends on it.
+
+### 14.2 Evidence: independent (Codex) versus implementer (Claude Code)
+
+| | Codex, independent (Step 4.4.4) | Claude Code, own runs (§13.12) |
+|---|---|---|
+| Type check | passed | passed |
+| Builds (production, harness) | both passed | both passed |
+| Vitest | 80 passed | 80 passed |
+| Python unittest | 9 passed | 9 passed |
+| Chrome (Playwright) | **59 selected** tests passed; full suite not run | 79 passed (full suite, one run) |
+| DuckDB comparisons | 72 independent comparisons; no output-cardinality or matched-row discrepancies | 237-case oracle sweep; 70-case MVP sweep |
+| Production artifact | analyser and harness excluded | analyser and harness excluded |
+| Security and network | selected security tests passed; no external requests in the independent Chrome matrix | security suite passed as part of the 79-test run |
+| Mutation checks | not reported | 10 of 10 caught |
+
+**Unverified by anyone:**
+- Safari and Firefox;
+- an actual GitHub Pages deployment;
+- background-tab timer throttling;
+- production-scale memory behaviour, including the WASM ceiling;
+- the analyser on file datasets at the P-024 ceiling.
+
+The 400 M-row and 10^8-row experiments were retired, not rerun.
+
+### 14.3 Corrected statuses of the second-review findings
+
+| Finding | Status |
+|---|---|
+| H-A Snapshot consistency | PARTIALLY RESOLVED |
+| H-B Execution safeguards | PARTIALLY RESOLVED |
+| M4 Non-finite metric comparisons | RESOLVED within the tested scope |
+| M5 Quoted identifier handling | RESOLVED within the tested scope |
+| M6 Expectation outcome completeness | RESOLVED for count and identity; stale-publication limitation remains |
+
+### 14.4 Outstanding defects
+
+Full reproduction, correction and acceptance criteria are in [SQL_ANALYSIS_FINDINGS.md §5](SQL_ANALYSIS_FINDINGS.md).
+
+| ID | Severity | Defect | Gate |
+|---|---|---|---|
+| QV-SA-001 | HIGH | Witness verification bypasses the join execution budget (3 × 4 join: 12 rows materialised with a budget of 1) | blocks enabling the public Verdict analyser |
+| QV-SA-002 | HIGH | Authoritative report can survive cancellation or engine replacement before publication | blocks enabling the public Verdict analyser |
+| QV-SA-003 | MEDIUM | Stalled dataset reattachment during worker recovery can leave later SQL pending | blocks production engine qualification |
+| QV-SA-004 | MEDIUM | Experimental metric tolerance comparison loses exact precision (DOUBLE conversion) | metric preservation stays excluded from the public MVP |
+| QV-SA-005 | MEDIUM | A stalled batch (harness) callback retains the FIFO session lease | blocks production engine qualification |
+
+### 14.5 Proposed public MVP boundary
+
+- **In scope:** two stable DuckDB-managed tables; one INNER or LEFT JOIN on explicit same-type integer key equalities, single or composite.
+- **Measured:** join cardinality; duplicate and NULL key counts; matched and unmatched input rows; excess copies; relationship classification; bounded, snapshot-consistent witnesses; explicit, fully checked join-stage expectations.
+- **Outside the qualified public diagnostic scope:** file-backed and arbitrary views, CTEs, join chains, collated or coerced keys, advanced filter attribution and metric preservation.
+- **Diagnostics only:** these restrictions apply to Verdict diagnostics, not ordinary SQL execution.
+- **Implications of requiring DuckDB-managed tables** ([SQL_ANALYSIS_FINDINGS.md §6.1](SQL_ANALYSIS_FINDINGS.md)):
+  - import memory overhead inside the WASM heap;
+  - the P-024 ceiling must be re-measured as import plus analysis;
+  - total loss of in-memory tables on worker termination, which requires re-import and invalidates every report from the old generation.
+
+### 14.6 Repository hygiene for this checkpoint
+
+- Ignored and not proposed for commit: generated datasets (`data/`), raw benchmark output (`results/raw/`), builds (`dist/`, `dist-harness/`), vendored engine extensions (`public/`), caches and test output.
+- No binaries (`.wasm`, extensions, data files) are tracked or proposed.
+- `tests/fixtures/analysis/cases.json` (391 KB) is a deterministic synthetic fixture (seed 20261125), regenerated by `scripts/make_analysis_fixtures.py`.
+- No credentials or private files were found in the proposed changes.
+- **Redistribution:** third-party notice obligations for DuckDB-WASM, DuckDB, its bundled components and Arrow remain unresolved (§10.12). The proposed commits contain source and documentation only, so they redistribute none of those artifacts. No build artifact may be published until the notices are resolved.
