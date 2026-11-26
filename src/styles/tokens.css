@@ -1,0 +1,125 @@
+/* Design tokens (docs/DESIGN_SYSTEM.md §3–§4). Light is the default; dark applies when the
+   user chooses Dark, or chooses System (the default) and the OS prefers dark. The media query
+   makes System correct at first paint, before any script runs (the CSP forbids inline scripts). */
+
+:root {
+  color-scheme: light;
+  --canvas: #f5f5f0;
+  --surface: #ffffff;
+  --surface-raised: #f0f2f6;
+  --text: #172132;
+  --text-muted: #4c596d;
+  --border: #d8dde6;
+  --control-border: #77869b;
+  --action: #254db5;
+  --on-action: #ffffff;
+  --focus: #224dbc;
+  --info-bg: #eef2fd;
+  --info-text: #2449a8;
+  --warning-bg: #fbf0d9;
+  --warning-text: #714600;
+  --violation-bg: #fbeaea;
+  --violation-text: #932b38;
+  --neutral-bg: #edf0f4;
+  --neutral-text: #435169;
+  --success-bg: #e7f3eb;
+  --success-text: #245d42;
+  --sql-keyword: #294ab2;
+  --sql-string: #26604a;
+  --sql-literal: #885100;
+  --sql-comment: #526177;
+
+  /* Typography: system stacks until candidate fonts are cleared and self-hosted (§4). */
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  --text-h1: 1.5rem;        /* 24 */
+  --leading-h1: 1.875rem;   /* 30 */
+  --text-h2: 1.125rem;      /* 18 */
+  --leading-h2: 1.5rem;     /* 24 */
+  --text-ui: 0.875rem;      /* 14 */
+  --leading-ui: 1.25rem;    /* 20 */
+  --text-label: 0.8125rem;  /* 13 */
+  --leading-label: 1.125rem;/* 18 */
+  --text-meta: 0.75rem;     /* 12 */
+  --leading-meta: 1rem;     /* 16 */
+
+  /* Spacing scale (4 … 80 px). */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  /* Geometry. */
+  --rule: 1px;
+  --radius-control: 6px;
+  --radius-dialog: 10px;
+  --radius-panel: 14px;
+  --control-height: 2.125rem; /* 34 px, within the 32–36 px range */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+}
+
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #10141d;
+  --surface: #171d29;
+  --surface-raised: #202838;
+  --text: #eef2fa;
+  --text-muted: #b0bed2;
+  --border: #313d51;
+  --control-border: #77869b;
+  --action: #acc0ff;
+  --on-action: #142242;
+  --focus: #b5c8ff;
+  --info-bg: #233253;
+  --info-text: #b7c9ff;
+  --warning-bg: #3c301d;
+  --warning-text: #ffd88f;
+  --violation-bg: #442634;
+  --violation-text: #ffc5ca;
+  --neutral-bg: #273142;
+  --neutral-text: #cbd6e7;
+  --success-bg: #20382f;
+  --success-text: #a9e2be;
+  --sql-keyword: #acc0ff;
+  --sql-string: #a9e2be;
+  --sql-literal: #ffd88f;
+  --sql-comment: #a4b2c7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --canvas: #10141d;
+    --surface: #171d29;
+    --surface-raised: #202838;
+    --text: #eef2fa;
+    --text-muted: #b0bed2;
+    --border: #313d51;
+    --control-border: #77869b;
+    --action: #acc0ff;
+    --on-action: #142242;
+    --focus: #b5c8ff;
+    --info-bg: #233253;
+    --info-text: #b7c9ff;
+    --warning-bg: #3c301d;
+    --warning-text: #ffd88f;
+    --violation-bg: #442634;
+    --violation-text: #ffc5ca;
+    --neutral-bg: #273142;
+    --neutral-text: #cbd6e7;
+    --success-bg: #20382f;
+    --success-text: #a9e2be;
+    --sql-keyword: #acc0ff;
+    --sql-string: #a9e2be;
+    --sql-literal: #ffd88f;
+    --sql-comment: #a4b2c7;
+  }
+}

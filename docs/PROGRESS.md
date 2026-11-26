@@ -4,7 +4,7 @@
 
 ## Current phase
 
-**Planning. Phase 4 (experimental research) is conditionally complete**, subject to independent review of the checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md)). The next phase is Phase 5: product specifications and production architecture. No production application code exists. A throwaway prototype, with its own dependencies, tests and benchmarks, exists only under `spikes/browser-feasibility/`; the analysis-engine work is on branch `spike/sql-analysis` (P-010). Nothing has been deployed.
+**Implementation (Phase 7) started on 2026-11-27 on the maintainer's instruction** ("We are now beginning Phase 7, production implementation", current module M01), on branch `feat/application-foundation`. That instruction is recorded here as the move from planning to implementation required by CLAUDE.md and the implementation plan's status gate. The PRD's own status line still reads "Proposed" (AM-001 not yet formally recorded). **M01 Application Foundation is implemented.** Codex's independent review (Step 7.5) returned CHANGES REQUIRED; all six findings and the missing repository scan were corrected locally (entry of 2026-11-27 below). An independent re-review of those corrections is not yet recorded here. Nothing is committed. Research spikes remain under `spikes/` and are excluded from the production build.
 
 Last updated: 2026-11-27
 
@@ -24,9 +24,9 @@ Last updated: 2026-11-27
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | Not started (production). Throwaway spike in `spikes/browser-feasibility/` |
-| Tests | Spike only. Implementer runs (2026-11-25): 80 Vitest, 9 Python unittest, 79 Playwright (Chrome 158). Independent Codex runs (Step 4.4.4): type check and both builds passed; 80 Vitest; 9 Python; **59 selected** Chrome tests (full browser suite not independently run); 72 DuckDB comparisons without discrepancies |
-| CI | Not configured |
+| Application code | M01 Application Foundation implemented at the repository root (uncommitted; Step 7.5 corrections applied, re-review not yet recorded): toolchain, quality gates, artifact and notice checks, design tokens, accessible shell. No engine, datasets, SQL or Verdict yet. Spike in `spikes/browser-feasibility/` (excluded) |
+| Tests | **Production (M01 after Step 7.5 corrections, local, 2026-11-27):** 63 Vitest unit tests and 48 Playwright tests (16 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2) passing; repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices inventory clean. **Spike (research):** implementer runs 80 Vitest, 9 Python, 79 Playwright; independent Codex runs (Step 4.4.4) 80 Vitest, 9 Python, 59 selected Chrome tests, 72 DuckDB comparisons |
+| CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
 
@@ -283,10 +283,32 @@ Documentation only, at the maintainer's request (D-010 assigns these to ChatGPT;
 - **External verification:** 17 facts checked against primary sources by a research sub-agent (ARCHITECTURE §24); unverifiable items marked (dedicated-worker timer throttling, Safari practical WASM memory limit, Pages custom headers only observed absent).
 - **Not done:** no QV-SA defect is resolved; designs for QV-SA-001/002/003/005 are proposals until production tests and independent review. No browser qualification, benchmark or deployment was performed.
 
+### 2026-11-27: M01 Application Foundation implemented (Claude Code)
+
+Branch `feat/application-foundation` (no commits). Scope as in IMPLEMENTATION_PLAN.md § M01. Reviewed by Codex in Step 7.5; see the corrections entry below.
+
+- **Built:** root npm project with exact pins and lockfile; strict TypeScript (app config without Node types, tooling/test config); Vite production build under `/queryverdict/` with the production meta CSP (single source `scripts/csp.mjs`); separate test-only harness build (`dist-harness/`); ESLint flat config enforcing `src/core` boundaries (no React/UI/stores/app imports), no harness imports and no `dangerouslySetInnerHTML`; `scripts/check-artifact.mjs` (harness markers, external URLs, exact CSP, inline scripts, asset inventory); `scripts/notices.mjs` scaffold; `ReleaseProfile` defaults + validation; typed error classes; external store primitive; session-only theme store (System/Light/Dark, live OS changes); design tokens for both themes (System correct at first paint without script); accessible shell (skip link, landmarks, single status region "Engine not started", native-`<dialog>` settings with focus restore, error boundary); CI workflow (no deploy); `.gitignore` rules; README Development section (added on top of the maintainer's pre-existing README change, as instructed).
+- **Deviations approved by the maintainer during M01:** TypeScript 6.0.3 instead of 7.0.2 (P-057: typescript-eslint incompatibility); Firefox and WebKit installed for Playwright. Vitest 5.1.2 instead of 5.1.1 under P-044's re-pin clause (P-058: npm resolver crash). Dependency register: P-059.
+- **Verification (clean `npm ci`):** typecheck 0 errors; lint 0 problems; Vitest 33/33; build OK with `check-artifact` clean (3 files, 232,968 bytes; JS 226 KB, 70 KB gzip-9); harness build OK; notices: react, react-dom, scheduler (MIT); `npm audit` 0 vulnerabilities; Playwright 36/36 across Chrome, Firefox and WebKit (axe: 0 WCAG A/AA violations in both themes including the dialog; only same-origin GETs; no storage writes; exact CSP; 320 px reflow; harness marker absent from `dist/`).
+- **Not done / limitations:** CI not yet run on GitHub; no manual screen-reader pass (M14); no formatter (open item); README status and "Pending" lines predate this work and are stale (not in M01 scope); WebKit tests reach the skip link with Option+Tab (Safari platform behaviour).
+
+### 2026-11-27: M01 corrections after Codex Step 7.5 review (Claude Code)
+
+Codex verdict: CHANGES REQUIRED (1 high, 5 medium); it reproduced 33 unit and 36 browser tests passing but found defects the suites missed. All six were reproduced by new tests before or with the fix.
+
+- **HIGH, artifact gate accepted pages without an effective CSP:** the checker now parses HTML with `parse5` (P-060) and requires exactly one exact CSP meta element as a child of `<head>` before any resource element; rejects empty entry points, extra HTML files, inline scripts, event-handler attributes, `javascript:` URLs, `srcdoc`, missing module assets, and files outside the expected inventory. Browser tests now prove enforcement: on the production page an injected inline script does not run and a cross-origin image never reaches a recording listener; a negative control on the CSP-free harness page shows the same probe succeeding.
+- **MEDIUM, URL and marker gaps:** HTML resource attributes are resolved as URLs (protocol-relative and entity-encoded forms caught); JS is unescaped before a case-insensitive scan; the inert-URL allowlist is exact and JS-only; markers are matched case-insensitively in every file. Network capture asserts an explicit static-asset allowlist.
+- **MEDIUM, lint gaps:** resolved import-graph check (P-061) catches re-export indirection, literal dynamic imports and harness reachability; ESLint rejects non-literal dynamic imports, every listed raw-HTML sink and `eval`/`new Function`.
+- **MEDIUM, profile validation:** required fields checked explicitly; deadlines limited to the `setTimeout` range (2,147,483,647 ms); memory limit parsed and required to be above zero and below the 4 GiB WebAssembly ceiling.
+- **MEDIUM, focus:** the Settings dialog returns focus to an explicit trigger on every dismissal (WebKit does not focus buttons on click); the error boundary focuses its region after a successful retry (tested through a harness fixture).
+- **MEDIUM, notices:** inventory now walks `package-lock.json` locations, so nested versions are checked separately (with version and licence cross-checks).
+- **Also:** the repository hygiene scan assigned to M01 by TESTING_STRATEGY §5.10 was missing; added `scripts/check-repo.mjs` to CI (P-062). README status and documentation list reconciled.
+- **Verification (clean `npm ci`, 213 packages):** check:repo, typecheck, lint (+ boundary check) all exit 0; Vitest **63/63**; build OK, `check-artifact` clean (3 files, 234,335 bytes); harness build OK; notices 3 MIT locations; `npm audit` 0 vulnerabilities; Playwright **48/48** (16 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2).
+- **Still open (maintainer):** AM-001 and explicit approval of architecture, plan and testing strategy; confirmation of P-057…P-062; first remote CI run (pull request). Not done: manual screen-reader, real-zoom, forced-colours and real Safari checks (M14/M15).
+
 ## Next steps
 
-1. Independent Codex review of [ARCHITECTURE.md](ARCHITECTURE.md), [TESTING_STRATEGY.md](TESTING_STRATEGY.md), [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) and [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md).
-2. Maintainer decisions: PRD approval (AM-001); amendments AM-002…AM-022; P-043…P-056; licence choice (gates any deployment).
-3. Resolve the pre-existing uncommitted `README.md` change.
-4. Record the move from planning to implementation in this file, then start M01 on `feat/application-foundation` using the M01 task brief.
-5. Close the gaps before confirming P-003/P-016–P-020 (Safari, Firefox, real Pages, notices) through M02's walking skeleton and M15.
+1. Record an independent re-review of the M01 Step 7.5 corrections, then maintainer-approved commit, push, pull request (first CI run) and merge.
+2. Commit `docs/SPEC_AMENDMENTS.md`, which `main` already links to but which PR #6 did not include.
+3. Maintainer decisions still open: approval of the PRD (AM-001), ARCHITECTURE, IMPLEMENTATION_PLAN, TESTING_STRATEGY, DESIGN_SYSTEM and UI_SPECIFICATION (all still *Proposed*); amendments AM-002…AM-022; provisional decisions P-043…P-062; licence (gates any deployment).
+4. Next module: **M02 Database Engine and Session** (IMPLEMENTATION_PLAN.md § M02) after M01 is merged.

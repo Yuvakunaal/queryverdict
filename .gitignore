@@ -147,3 +147,10 @@ spikes/browser-feasibility/test-results/
 spikes/browser-feasibility/playwright-report/
 spikes/browser-feasibility/dist-harness/
 spikes/browser-feasibility/results/.bench.lock
+
+# Production application (M01): build outputs and generated artifacts
+/dist-harness/
+/build/
+/public/duckdb-ext/
+/playwright-report/
+/test-results/
