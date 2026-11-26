@@ -14,6 +14,8 @@ Results are in [docs/FEASIBILITY.md §9](../../docs/FEASIBILITY.md#9-spike-resul
 | `src/engine/session.ts` | Session state machine: fail-closed startup, FIFO operation queue, registration with rollback, streamed queries and imports, cancel → bounded recovery, disposal |
 | `src/engine/bounded.ts`, `format.ts` | Result budgets enforced before display conversion (rows, columns, cell characters, display characters, Arrow bytes) |
 | `src/bench/` | In-page benchmark runner (per-record verdicts), browser-side metrics, input guards (`guards.ts`) |
+| `src/analysis/` | **Experimental SQL correctness analysis engine** (docs/FEASIBILITY.md §11–§13): `ast.ts` (subset recogniser on DuckDB's parser JSON, quote-aware identifiers), `stats.ts` (exact BigInt join arithmetic), `executor.ts` (bounded diagnostic execution and terminal outcomes), `json.ts` (lossless JSON), `analyze.ts` (pipeline; `analyzeInSession` runs it with exclusive session ownership in one rolled-back transaction). Exposed only in the harness build |
+| `scripts/make_analysis_fixtures.py`, `tests/fixtures/analysis/cases.json` | Independent brute-force oracle and deterministic analysis fixtures (37 named, 200 random, 21 unsupported) |
 | `harness/`, `vite.harness.config.ts` | **Test-only** build (`dist-harness/`): unlocked negative-control engine and fault injection. Never deployed |
 | `scripts/lib/acceptance.mjs` | Record classification and run acceptance (completion ≠ acceptance) |
 | `src/App.tsx` | Minimal UI: file input, schema, preview, SQL, run/cancel, event log, manual benchmark panel |
@@ -49,6 +51,7 @@ The engine lockdown cannot be disabled in this app: startup fails closed if any 
 ```sh
 npm run test:unit      # Vitest + Python generator tests
 npm run test:e2e       # builds dist/ and dist-harness/, serves both, runs Playwright in Chrome
+python3 scripts/make_analysis_fixtures.py   # regenerate analysis fixtures (deterministic; commit the result)
 ```
 
 ## Benchmarks

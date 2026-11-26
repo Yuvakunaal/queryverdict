@@ -8,6 +8,8 @@ import * as duckdb from '@duckdb/duckdb-wasm';
 import { BUNDLES } from '../src/engine/bundles';
 import { EngineSession } from '../src/engine/session';
 import { lockdownStatements, requiredSettings, LOCAL_FILE_DIR } from '../src/engine/lockdown';
+import { analyze, analyzeInSession } from '../src/analysis/analyze';
+import { batchExecutor, BudgetExhaustedError, DiagnosticError } from '../src/analysis/executor';
 
 async function rawUnlockedQuery(sql: string): Promise<{ ok: boolean; message: string }> {
   const bundle = await duckdb.selectBundle(BUNDLES);
@@ -46,9 +48,14 @@ declare global {
       LOCAL_FILE_DIR: string;
       rawUnlockedQuery: typeof rawUnlockedQuery;
       pageFetch: typeof pageFetch;
+      analyze: typeof analyze;
+      analyzeInSession: typeof analyzeInSession;
+      batchExecutor: typeof batchExecutor;
+      BudgetExhaustedError: typeof BudgetExhaustedError;
+      DiagnosticError: typeof DiagnosticError;
     };
   }
 }
 
-window.__qvHarness = { EngineSession, lockdownStatements, requiredSettings, LOCAL_FILE_DIR, rawUnlockedQuery, pageFetch };
+window.__qvHarness = { EngineSession, lockdownStatements, requiredSettings, LOCAL_FILE_DIR, rawUnlockedQuery, pageFetch, analyze, analyzeInSession, batchExecutor, BudgetExhaustedError, DiagnosticError };
 document.body.dataset.harnessReady = 'true';

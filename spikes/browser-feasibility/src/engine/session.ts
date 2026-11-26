@@ -25,6 +25,14 @@
 //   CREATE OR REPLACE) and rolls back the registered file if relation creation fails.
 // - Recovery re-attaches file-backed views; imported tables are marked `needs-reimport`
 //   (never silently dropped or reported as present).
+// - Exclusive batches (exclusive()): one queue slot owns the engine for a whole multi-statement
+//   operation (the SQL analyser). User SQL, registrations, removals, re-imports and other batches
+//   queue behind it. A batch is bound to one engine generation: after recovery, replacement or
+//   dispose its statements return `stale`. cancel() during a batch cancels the whole batch, also
+//   between statements. invalidate() terminates the worker at once and recovers in the
+//   background (a fresh, verified engine), so a caller never waits on a stalled worker.
+// - Startup and recovery boots are bounded (bootTimeoutMs); a boot that does not finish is
+//   abandoned and the session is `failed` (no SQL) until start() succeeds again.
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { BUNDLES, bundleName, extensionRepositoryUrl } from './bundles';
 import { collectBounded, limits as mkLimits, streamLeftUnread, type BoundedResult, type Limits } from './bounded';
@@ -33,7 +41,7 @@ import { escalationProbes, LOCAL_FILE_DIR, lockdownStatements, sqlIdent, sqlStri
 export type FileFormat = 'csv' | 'json' | 'parquet';
 export type AttachMode = 'view' | 'table';
 export type SessionState = 'idle' | 'starting' | 'ready' | 'busy' | 'cancelling' | 'recovering' | 'failed' | 'disposed';
-export type OpKind = 'query' | 'register' | 'drop' | 'reimport';
+export type OpKind = 'query' | 'register' | 'drop' | 'reimport' | 'analysis';
 export type DatasetStatus = 'attached' | 'needs-reimport' | 'failed';
 
 export interface RegisteredFile {
@@ -92,6 +100,8 @@ export interface SessionOptions {
   memoryLimit: string | null;
   cancelDeadlineMs: number;
   log?: (e: EngineEvent) => void;
+  /** Upper bound for one engine boot (start or recovery). Default 30 s. */
+  bootTimeoutMs?: number;
   /**
    * TEST-ONLY fault injection: replaces the lockdown statements. It can only make startup FAIL:
    * the effective-state verification is independent of the statements. Used by the harness build.
@@ -129,6 +139,7 @@ interface Engine {
 }
 
 interface ActiveOp {
+  id: number;
   kind: OpKind;
   generation: number;
   /** Whether the current phase can be cancelled cooperatively (streamed statement in flight). */
@@ -138,6 +149,28 @@ interface ActiveOp {
 }
 
 const sleep = (ms: number) => new Promise<'timeout'>((r) => setTimeout(() => r('timeout'), ms));
+
+/** A multi-statement operation that owns the engine exclusively (see exclusive()). */
+export interface ExclusiveBatch {
+  /** Engine generation the batch is bound to. */
+  readonly generation: number;
+  /**
+   * Runs one statement on the batch's engine; `stale` once the engine was replaced or the batch
+   * ended, `cancelled` once the batch was cancelled. Cleanup statements (`{ cleanup: true }`, e.g.
+   * ROLLBACK) still run after a cancel, but never on a replaced engine.
+   */
+  run(sql: string, lim?: Partial<Limits>, opts?: { cleanup?: boolean }): Promise<RunOutcome>;
+  /** Cancels this batch (its active statement and every later one). Bounded by cancelDeadlineMs. */
+  cancel(): Promise<CancelReport>;
+  /** Terminates the worker now and recovers in the background. Never waits on the worker. */
+  invalidate(reason: string): void;
+  /** True while the batch owns the session and its engine is still the current one. */
+  isCurrent(): boolean;
+}
+
+interface BatchHolder {
+  cancelRequested: boolean;
+}
 
 export function detectFormat(fileName: string): FileFormat | null {
   const n = fileName.toLowerCase();
@@ -174,6 +207,8 @@ export class EngineSession {
   private queueTail: Promise<unknown> = Promise.resolve();
   private recovery: Promise<void> | null = null;
   private active: ActiveOp | null = null;
+  private holder: BatchHolder | null = null;
+  private opSeq = 0;
   private disposed = false;
   state: SessionState = 'idle';
   stateDetail = '';
@@ -239,7 +274,11 @@ export class EngineSession {
     const stillWanted = () => {
       if (this.disposed || token !== this.bootToken) throw new SessionDisposedError('Session disposed during startup');
     };
-    const guard = <T>(p: Promise<T>): Promise<T> => Promise.race([p, this.disposal]);
+    const bootMs = this.opts.bootTimeoutMs ?? 30_000;
+    let bootTimer: ReturnType<typeof setTimeout> | undefined;
+    const bootDeadline = new Promise<never>((_, reject) => (bootTimer = setTimeout(() => reject(new Error(`Engine boot did not finish within ${bootMs} ms`)), bootMs)));
+    bootDeadline.catch(() => undefined);
+    const guard = <T>(p: Promise<T>): Promise<T> => Promise.race([p, this.disposal, bootDeadline]);
     try {
       const bundle = await guard(duckdb.selectBundle(BUNDLES));
       stillWanted();
@@ -284,9 +323,11 @@ export class EngineSession {
         bootMs: performance.now() - t0,
       };
       this.candidateWorker = null;
+      clearTimeout(bootTimer);
       this.log('engine-ready', `gen ${generation}, ${info.bundle}, ${info.duckdbVersion}, verified, ${Math.round(info.bootMs)} ms`);
       return { worker, db, conn, generation, info };
     } catch (e) {
+      clearTimeout(bootTimer);
       abandon();
       this.log('engine-rejected', errorText(e));
       throw e;
@@ -316,7 +357,7 @@ export class EngineSession {
   }
 
   /** Runs a statement through the streaming API so it can be cancelled; the result is bounded. */
-  private async streamed(engine: Engine, kind: OpKind, sql: string, lim: Limits): Promise<RunOutcome> {
+  private async streamed(engine: Engine, kind: OpKind, sql: string, lim: Limits, id = ++this.opSeq): Promise<RunOutcome> {
     const t0 = performance.now();
     let abort!: (m: CancelMethod) => void;
     const aborted = new Promise<{ aborted: CancelMethod }>((r) => (abort = (m) => r({ aborted: m })));
@@ -326,7 +367,7 @@ export class EngineSession {
       if (streamLeftUnread(res)) await engine.conn.cancelSent().catch(() => false);
       return res;
     })();
-    this.active = { kind, generation: engine.generation, cancellable: true, done: work.then(() => undefined, () => undefined), abort };
+    this.active = { id, kind, generation: engine.generation, cancellable: true, done: work.then(() => undefined, () => undefined), abort };
     try {
       const r = await Promise.race([work, aborted]);
       const ms = performance.now() - t0;
@@ -349,7 +390,7 @@ export class EngineSession {
     let abort!: (m: CancelMethod) => void;
     const aborted = new Promise<never>((_, rej) => (abort = (m) => rej(new OperationCancelledError(m))));
     const work = fn();
-    this.active = { kind, generation: engine.generation, cancellable: false, done: work.then(() => undefined, () => undefined), abort };
+    this.active = { id: ++this.opSeq, kind, generation: engine.generation, cancellable: false, done: work.then(() => undefined, () => undefined), abort };
     try {
       return await Promise.race([work, aborted]);
     } finally {
@@ -362,6 +403,52 @@ export class EngineSession {
   /** Executes SQL (queued) and keeps at most `limits` of the result. */
   run(sql: string, lim: Partial<Limits> = {}): Promise<RunOutcome> {
     return this.enqueue('query', (engine) => this.streamed(engine, 'query', sql, mkLimits(lim))).catch((e: unknown): RunOutcome => ({ status: 'error', error: errorText(e), ms: 0 }));
+  }
+
+  /**
+   * Runs `fn` with exclusive ownership of the engine: it occupies one queue slot for its whole
+   * duration, so no other operation (user SQL, registration, removal, re-import, another batch)
+   * can run in between. Ownership is released when `fn` settles, on every path.
+   */
+  exclusive<T>(fn: (batch: ExclusiveBatch) => Promise<T>): Promise<T> {
+    return this.enqueue('analysis', async (engine) => {
+      const holder: BatchHolder = { cancelRequested: false };
+      let open = true;
+      let current: number | null = null;
+      this.holder = holder;
+      const isCurrent = () => open && !this.disposed && this.engine === engine && engine.generation === this.generation;
+      const batch: ExclusiveBatch = {
+        generation: engine.generation,
+        isCurrent,
+        run: async (sql, lim = {}, opts = {}) => {
+          if (holder.cancelRequested && !opts.cleanup) return { status: 'cancelled', ms: 0, method: 'cooperative' };
+          if (!isCurrent()) return { status: 'stale', ms: 0 };
+          const id = ++this.opSeq;
+          current = id;
+          try {
+            return await this.streamed(engine, 'analysis', sql, mkLimits(lim), id);
+          } finally {
+            current = null;
+          }
+        },
+        cancel: async () => {
+          holder.cancelRequested = true;
+          const op = this.active;
+          if (current === null || !op || op.id !== current) return { method: 'none', cooperative: 'not-attempted', operation: 'analysis', stopMs: 0, engineReadyMs: null, reattachMs: null };
+          return this.cancelOp(op, true);
+        },
+        invalidate: (reason) => {
+          holder.cancelRequested = true;
+          if (this.engine === engine && !this.disposed) this.invalidateEngine(reason);
+        },
+      };
+      try {
+        return await fn(batch);
+      } finally {
+        open = false;
+        if (this.holder === holder) this.holder = null;
+      }
+    });
   }
 
   async describe(relation: string): Promise<RunOutcome> {
@@ -467,10 +554,22 @@ export class EngineSession {
    * cancelDeadlineMs, the worker is terminated and the engine recovered.
    */
   async cancel(): Promise<CancelReport> {
+    // During an exclusive batch, cancel applies to the whole batch (also between statements).
+    if (this.holder) this.holder.cancelRequested = true;
     const op = this.active;
+    if (!op || !this.engine || this.disposed) return { method: 'none', cooperative: 'not-attempted', operation: this.holder ? 'analysis' : null, stopMs: 0, engineReadyMs: null, reattachMs: null };
+    return this.cancelOp(op, false);
+  }
+
+  /**
+   * Cancels one operation. Cooperative first; if that is rejected, times out or does not stop the
+   * operation within cancelDeadlineMs, the worker is terminated and the engine recovered. With
+   * `background`, recovery is started but not awaited (the caller is bounded by the deadline).
+   */
+  private async cancelOp(op: ActiveOp, background: boolean): Promise<CancelReport> {
     const engine = this.engine;
     const t0 = performance.now();
-    if (!op || !engine || this.disposed) return { method: 'none', cooperative: 'not-attempted', operation: null, stopMs: 0, engineReadyMs: null, reattachMs: null };
+    if (!engine || this.disposed || this.active !== op) return { method: 'none', cooperative: 'not-attempted', operation: op.kind, stopMs: 0, engineReadyMs: null, reattachMs: null };
     this.setState('cancelling', op.kind);
     const deadline = this.opts.cancelDeadlineMs;
     let cooperative: CancelReport['cooperative'] = 'not-attempted';
@@ -493,14 +592,28 @@ export class EngineSession {
       }
     }
     const stopMs = performance.now() - t0;
+    const reason = `cancel: ${cooperative}, operation did not stop within ${deadline} ms`;
+    if (background) {
+      if (this.engine === engine && !this.disposed) this.invalidateEngine(reason, op);
+      return { method: 'terminate', cooperative, operation: op.kind, stopMs, engineReadyMs: null, reattachMs: null };
+    }
     try {
-      const r = await this.recoverNow(`cancel: ${cooperative}, operation did not stop within ${deadline} ms`, op);
+      const r = await this.recoverNow(reason, op);
       return { method: 'terminate', cooperative, operation: op.kind, stopMs, engineReadyMs: r.engineReadyMs, reattachMs: r.reattachMs };
     } catch (e) {
       // The worker was terminated either way; report how the session ended up.
       this.log('cancel-recovery-failed', errorText(e));
       return { method: this.disposed ? 'disposed' : 'terminate', cooperative, operation: op.kind, stopMs, engineReadyMs: null, reattachMs: null };
     }
+  }
+
+  /**
+   * Terminates the current worker synchronously and starts recovery without awaiting it. Until
+   * recovery has booted and verified a new engine, the session accepts no SQL; if recovery fails
+   * the session is `failed`.
+   */
+  private invalidateEngine(reason: string, op: ActiveOp | null = this.active): void {
+    this.recoverNow(reason, op).catch((e: unknown) => this.log('invalidate-recovery-failed', errorText(e)));
   }
 
   /** Forced recovery (also used by tests): terminate the worker, boot and verify a new engine. */
