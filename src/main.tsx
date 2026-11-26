@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { createEngineRuntime } from './app/bootstrap';
 import { DEFAULT_PROFILE, validateProfile } from './core/profile/profile';
 import { ConfigurationError } from './core/util/errors';
 import { browserDarkSchemeQuery, createUiPrefsStore } from './stores/uiPrefsStore';
@@ -23,9 +24,11 @@ if (problems.length) {
   );
 } else {
   const prefs = createUiPrefsStore(browserDarkSchemeQuery());
+  const runtime = createEngineRuntime(DEFAULT_PROFILE);
+  runtime.start();
   createRoot(root).render(
     <StrictMode>
-      <App prefs={prefs} />
+      <App prefs={prefs} runtime={runtime} />
     </StrictMode>,
   );
 }

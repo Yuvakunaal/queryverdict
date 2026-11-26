@@ -5,11 +5,19 @@
 // Each location is checked separately, so two versions of one package are two entries.
 // For each: the installed package.json must exist and match the lockfile version, the declared
 // licence must be allowlisted (and agree with the lockfile), and a licence file must be present.
-// Writes build/notices.json. Limitations: binaries vendored outside node_modules (DuckDB WASM,
-// extensions; M02) are not covered yet, and a declared licence is not a substitute for reading
-// the licence text in the release review.
+// Writes build/notices.json.
+//
+// Known, reviewed problems can be listed in scripts/notices-exceptions.json with a resolution
+// plan. They are reported but do not fail an ordinary run; `--release` fails on any exception,
+// because an unresolved obligation blocks distribution. Unknown problems and stale exceptions
+// always fail. Vendored binaries outside node_modules (DuckDB extensions, scripts/extensions.lock.json)
+// are listed as unresolved until their notices are collected (M15). A declared licence is not a
+// substitute for reading the licence text in the release review.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+
+const EXCEPTIONS_PATH = fileURLToPath(new URL('./notices-exceptions.json', import.meta.url));
+const EXTENSION_LOCK_PATH = fileURLToPath(new URL('./extensions.lock.json', import.meta.url));
 import { fileURLToPath } from 'node:url';
 
 /** Provisional allowlist; to be finalised with the project licence (M15). */
@@ -52,7 +60,9 @@ export function inventory(rootDir) {
       continue;
     }
     const pkg = readJson(pkgPath);
-    const licence = typeof pkg.license === 'string' ? pkg.license : null;
+    // npm's deprecated `licenses` array is still used by some packages (for example json-bignum).
+    const legacy = Array.isArray(pkg.licenses) ? pkg.licenses.map((/** @type {{ type?: string }} */ l) => l?.type).filter(Boolean) : [];
+    const licence = typeof pkg.license === 'string' ? pkg.license : legacy.length === 1 ? String(legacy[0]) : null;
     const files = readdirSync(dir).filter((f) => /^(licen[cs]e|notice|copying)/i.test(f));
     packages.push({ location, name, version: pkg.version, licence, files });
     const id = `${location} (${name}@${pkg.version})`;
@@ -66,17 +76,46 @@ export function inventory(rootDir) {
   return { packages, errors };
 }
 
+/**
+ * Splits problems into tracked (reviewed exceptions) and untracked, and reports stale exceptions.
+ * @param {string[]} errors
+ * @param {Record<string, { problem: string, resolution: string, releaseBlocking: boolean }>} exceptions
+ */
+export function applyExceptions(errors, exceptions) {
+  const tracked = [];
+  const untracked = [];
+  const used = new Set();
+  for (const e of errors) {
+    const key = Object.keys(exceptions).find((k) => e.startsWith(`${k} (`) && e.endsWith(`: ${exceptions[k]?.problem}`));
+    if (key) {
+      tracked.push({ error: e, ...exceptions[key] });
+      used.add(key);
+    } else untracked.push(e);
+  }
+  const stale = Object.keys(exceptions).filter((k) => !used.has(k)).map((k) => `${k}: exception no longer matches any problem (remove it)`);
+  return { tracked, untracked, stale };
+}
+
 const isCli = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
+  const release = process.argv.includes('--release');
   const { packages, errors } = inventory('.');
+  const exceptions = existsSync(EXCEPTIONS_PATH) ? JSON.parse(readFileSync(EXCEPTIONS_PATH, 'utf8')) : {};
+  const { tracked, untracked, stale } = applyExceptions(errors, exceptions);
+  const vendored = existsSync(EXTENSION_LOCK_PATH)
+    ? Object.keys(JSON.parse(readFileSync(EXTENSION_LOCK_PATH, 'utf8'))).map((p) => ({ path: `duckdb-ext/${p}`, status: 'notices unresolved (DuckDB core third-party components; FEASIBILITY §10.12)', releaseBlocking: true }))
+    : [];
   const out = resolve('build/notices.json');
   mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify({ generatedFrom: 'package-lock.json production locations', packages, errors }, null, 2) + '\n');
+  writeFileSync(out, JSON.stringify({ generatedFrom: 'package-lock.json production locations', packages, tracked, untracked, stale, vendored }, null, 2) + '\n');
   for (const p of packages) console.log(`  ${p.location}  ${p.name}@${p.version}  ${p.licence}  [${p.files.join(', ') || 'no licence file'}]`);
-  if (errors.length) {
-    console.error(`notices: ${errors.length} problem(s)`);
-    for (const e of errors) console.error(`  - ${e}`);
+  for (const t of tracked) console.warn(`  tracked (release-blocking): ${t.error}; resolution: ${t.resolution}`);
+  for (const v of vendored) console.warn(`  vendored binary (release-blocking): ${v.path}: ${v.status}`);
+  const failures = [...untracked, ...stale, ...(release ? [...tracked.map((t) => `unresolved: ${t.error}`), ...vendored.map((v) => `unresolved: ${v.path}`)] : [])];
+  if (failures.length) {
+    console.error(`notices: ${failures.length} problem(s)${release ? ' (release mode)' : ''}`);
+    for (const e of failures) console.error(`  - ${e}`);
     process.exit(1);
   }
-  console.log(`notices: ${packages.length} runtime package location(s) inventoried in build/notices.json`);
+  console.log(`notices: ${packages.length} runtime package location(s) inventoried; ${tracked.length + vendored.length} release-blocking item(s) tracked (build/notices.json)`);
 }

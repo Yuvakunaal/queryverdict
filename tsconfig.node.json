@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -18,5 +18,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["tests", "scripts", "vite.config.ts", "vite.harness.config.ts", "vitest.config.ts", "playwright.config.ts", "eslint.config.js"]
+  "include": ["src/vite-env.d.ts", "harness", "tests", "scripts", "vite.config.ts", "vite.harness.config.ts", "vitest.config.ts", "playwright.config.ts", "eslint.config.js"]
 }

@@ -13,7 +13,7 @@ test.describe('application shell', () => {
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Workspace' })).toBeVisible();
-    await expect(page.getByRole('status')).toHaveText('Engine not started');
+    await expect(page.getByRole('status')).toHaveText('Engine ready', { timeout: 30_000 }); // M02: the engine boots with verified lockdown
     expect(await page.locator('[role="status"]').count()).toBe(1);
   });
 

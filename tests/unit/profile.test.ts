@@ -56,3 +56,12 @@ describe('ReleaseProfile', () => {
     expect(parseMemoryLimit('2 TB')).toBeNull();
   });
 });
+
+describe('typed errors', () => {
+  it('carry explicit names and codes that survive minification', async () => {
+    const { LeaseRevokedError, PolicyError, EngineError } = await import('../../src/core/util/errors');
+    expect([new LeaseRevokedError().name, new LeaseRevokedError().code]).toEqual(['LeaseRevokedError', 'lease-revoked']);
+    expect(new PolicyError('x').name).toBe('PolicyError');
+    expect([new EngineError('bind', 'x').name, new EngineError('bind', 'x').phase]).toEqual(['EngineError', 'bind']);
+  });
+});

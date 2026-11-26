@@ -4,8 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { CSP } from '../../scripts/csp.mjs';
 import { APP, HARNESS, captureRequests, startListener } from './helpers';
 
-/** The only requests the shell may make: the page and its hashed static assets (Codex 7.5). */
-const STATIC_ASSET = /^http:\/\/127\.0\.0\.1:4173\/queryverdict\/(?:|index\.html|assets\/[A-Za-z0-9._-]+\.(?:js|css))$/;
+/** The only requests the app may make: the page, its hashed assets and the vendored engine extensions. */
+const STATIC_ASSET = /^http:\/\/127\.0\.0\.1:4173\/queryverdict\/(?:|index\.html|assets\/[A-Za-z0-9._-]+\.(?:js|css|wasm)|duckdb-ext\/v1\.5\.4\/wasm_(?:eh|mvp)\/(?:json|parquet)\.duckdb_extension\.wasm)$/;
 
 /**
  * Tries an inline script and a cross-origin image request from the page. Returns whether the
@@ -44,6 +44,7 @@ test.describe('privacy and isolation', () => {
     await page.getByRole('button', { name: 'Settings' }).click();
     await page.getByRole('radio', { name: 'Dark' }).check();
     await page.keyboard.press('Escape');
+    await expect(page.getByRole('status')).toHaveText('Engine ready', { timeout: 30_000 });
     await page.waitForLoadState('networkidle');
     expect(requests.length).toBeGreaterThan(0);
     expect(requests.map((r) => r.url()).filter((u) => !STATIC_ASSET.test(u))).toEqual([]);

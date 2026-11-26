@@ -16,7 +16,8 @@
 //    strings in JS (XML namespace URIs, React's error-documentation prefix).
 // Static scanning cannot establish what arbitrary JavaScript does at runtime: the browser
 // network-capture and CSP-enforcement tests are the behavioural checks (tests/e2e/privacy.spec.ts).
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
@@ -40,9 +41,30 @@ export const JS_INERT_URLS = {
   prefixes: ['https://react.dev/errors/'],
 };
 
-/** Files allowed in the build. Later modules extend this list explicitly (for example .wasm). */
-export const ALLOWED_ASSET = /^assets\/[A-Za-z0-9._-]+\.(js|css)$/;
+/**
+ * Inert URL-like strings allowed only inside specific third-party bundle files (M02), each with
+ * its reason. Exact strings only; never applied to HTML or other files. The browser network
+ * capture (tests/e2e/engine-network.spec.ts) is the behavioural check that none is requested.
+ */
+export const SCOPED_INERT_URLS = [
+  {
+    files: /^assets\/duckdb-browser-(eh|mvp)\.worker-[A-Za-z0-9_-]+\.js$/,
+    exact: ['ws://', 'wss://', 'https://', 'https://github.com/emn178/js-sha256'],
+    reason: 'DuckDB-WASM worker: Emscripten SOCKFS scheme comparisons, S3 URL construction for remote reads (blocked by the engine lockdown, ES-02), and a licence banner',
+  },
+  {
+    files: /^assets\/index-[A-Za-z0-9_-]+\.js$/,
+    exact: ['https://github.com/duckdb/duckdb-wasm.git'],
+    reason: '@duckdb/duckdb-wasm embeds its package.json (repository field) in its browser bundle',
+  },
+];
 
+/** Files allowed in the build: hashed JS/CSS/WASM assets and the vendored engine extensions. */
+export const ALLOWED_ASSET = /^assets\/[A-Za-z0-9._-]+\.(js|css|wasm)$/;
+/** Vendored DuckDB extensions (scripts/vendor-extensions.mjs); each must match the hash lock. */
+export const EXTENSION_ASSET = /^duckdb-ext\/(v\d+\.\d+\.\d+\/wasm_(eh|mvp)\/(parquet|json)\.duckdb_extension\.wasm)$/;
+
+const LOCK_PATH = fileURLToPath(new URL('./extensions.lock.json', import.meta.url));
 const RESOURCE_ATTRS = new Set(['src', 'href', 'srcset', 'action', 'formaction', 'poster', 'data', 'xlink:href', 'background', 'manifest', 'ping', 'cite', 'longdesc', 'imagesrcset']);
 const ORIGIN = 'https://qv-artifact-check.invalid';
 const SITE = new URL(BASE_PATH, ORIGIN);
@@ -210,7 +232,18 @@ export function checkArtifact(dir) {
   const present = new Set(rels);
 
   if (!present.has('index.html')) errors.push('index.html is missing');
+  /** @type {Record<string, { sha256: string }>} */
+  const lock = existsSync(LOCK_PATH) ? JSON.parse(readFileSync(LOCK_PATH, 'utf8')) : {};
   for (const rel of rels) {
+    const ext = EXTENSION_ASSET.exec(rel);
+    if (ext) {
+      const key = ext[1] ?? '';
+      const want = lock[key]?.sha256;
+      const got = createHash('sha256').update(readFileSync(join(root, rel))).digest('hex');
+      if (!want) errors.push(`${rel}: vendored extension not listed in scripts/extensions.lock.json`);
+      else if (got !== want) errors.push(`${rel}: SHA-256 ${got} does not match the lock (${want})`);
+      continue;
+    }
     if (rel !== 'index.html' && !ALLOWED_ASSET.test(rel)) errors.push(`${rel}: unexpected file in the build (not index.html or an allowed asset)`);
   }
 
@@ -226,9 +259,10 @@ export function checkArtifact(dir) {
     } else if (/\.(m?js|css)$/i.test(rel)) {
       const text = unescapeJs(bytes.toString('utf8'));
       const isJs = /\.m?js$/i.test(rel);
-      for (const m of text.matchAll(/\b(?:https?|wss?|ftp):\/\/[^\s"'`)<>\\]*/gi)) {
+      const scoped = SCOPED_INERT_URLS.filter((s) => s.files.test(rel)).flatMap((s) => s.exact);
+      for (const m of text.matchAll(/\b(?:https?|wss?|ftp):\/\/[^\s"'`)<>\\{}]*/gi)) {
         const url = m[0];
-        if (isJs && isJsInert(url)) continue;
+        if (isJs && (isJsInert(url) || scoped.includes(url))) continue;
         errors.push(`${rel}: contains external URL ${url}`);
       }
       if (!isJs && /url\(\s*['"]?\s*\/\//i.test(text)) errors.push(`${rel}: CSS refers to a protocol-relative URL`);
