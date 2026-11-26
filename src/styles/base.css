@@ -1,0 +1,223 @@
+/* Base styles and shell layout (docs/DESIGN_SYSTEM.md §4–§5, docs/UI_SPECIFICATION.md §4, §7). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui);
+  line-height: var(--leading-ui);
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  button {
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link: hidden until focused, then visible at the top-left corner. */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -100px;
+  z-index: 10;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  color: var(--action);
+  border: var(--rule) solid var(--control-border);
+  border-radius: var(--radius-control);
+}
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  background: var(--surface);
+  border-bottom: var(--rule) solid var(--border);
+}
+
+.wordmark {
+  margin: 0;
+  font-size: var(--text-h2);
+  line-height: var(--leading-h2);
+  font-weight: 600;
+}
+
+.app-main {
+  flex: 1;
+  padding: var(--space-6);
+}
+.app-main:focus {
+  outline: none;
+}
+.app-main h1 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-h1);
+  line-height: var(--leading-h1);
+  font-weight: 600;
+}
+.muted {
+  color: var(--text-muted);
+}
+
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.25rem;
+  padding: var(--space-2) var(--space-6);
+  background: var(--surface);
+  border-top: var(--rule) solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+}
+
+/* Buttons (§5): primary, secondary, quiet, destructive. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  min-width: 1.5rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: var(--rule) solid var(--control-border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--surface-raised);
+}
+.btn[data-variant='primary'] {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--on-action);
+}
+.btn[data-variant='quiet'] {
+  border-color: transparent;
+  background: transparent;
+}
+.btn[data-variant='quiet']:hover {
+  background: var(--surface-raised);
+}
+.btn[data-variant='destructive'] {
+  color: var(--violation-text);
+  background: var(--violation-bg);
+  border-color: var(--violation-text);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Dialog (§5): native <dialog> provides focus containment and Escape. */
+.dialog {
+  width: min(28rem, calc(100vw - 2 * var(--space-4)));
+  padding: 0;
+  border: var(--rule) solid var(--control-border);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+}
+.dialog::backdrop {
+  background: rgb(16 20 29 / 0.45);
+}
+.dialog-body {
+  padding: var(--space-6);
+}
+.dialog-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-h2);
+  line-height: var(--leading-h2);
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+.radio-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.radio-group legend {
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 1.75rem;
+}
+.radio-option input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--action);
+}
+
+.error-panel {
+  margin: var(--space-6);
+  padding: var(--space-4);
+  border: var(--rule) solid var(--violation-text);
+  border-radius: var(--radius-control);
+  background: var(--violation-bg);
+  color: var(--violation-text);
+}
+
+@media (max-width: 480px) {
+  .app-header,
+  .app-main,
+  .status-strip {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}

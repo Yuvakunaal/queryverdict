@@ -1,0 +1,22 @@
+{
+  // Tooling, configuration files, scripts and tests (Node + DOM for Playwright page code).
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["tests", "scripts", "vite.config.ts", "vite.harness.config.ts", "vitest.config.ts", "playwright.config.ts", "eslint.config.js"]
+}
