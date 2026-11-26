@@ -4,7 +4,7 @@
 
 ## Current phase
 
-**Implementation (Phase 7).** M01 Application Foundation (PR #7) and M02 Database Engine and Session (PR #8) are merged. **M03 File Ingestion and Dataset Registry is implemented on `feat/file-ingestion` and awaiting independent Codex review**; nothing is committed. M03 was started on the maintainer's M03 implementation instruction, recorded here as its authorisation. The governing specifications are still marked *Proposed*; M03 implements them as specified, reports one correction to the architecture (P-069) and lists its decisions for approval (P-068…P-072). Research spikes remain under `spikes/` and are excluded from the production build.
+**Implementation (Phase 7).** M01 (PR #7) and M02 (PR #8) are merged. M03 File Ingestion and Dataset Registry is committed on `feat/file-ingestion` (PR #9, open, not merged). **M08 Verdict Analysis Engine (headless) is implemented on `feat/verdict-engine` and awaiting independent Codex review**; nothing of M08 is committed. M08 was started on the maintainer's M08 implementation instruction of 2026-11-26. Because M08 depends on M03 and PR #9 is unmerged, the maintainer chose (2026-11-26) to fast-forward `feat/verdict-engine` onto `origin/feat/file-ingestion` and to use the P-069 transaction check in Verdict. The governing specifications are still *Proposed*; M08 implements them and lists its decisions for approval (P-073…P-078). Research spikes remain under `spikes/` (and the `spike/sql-analysis` branch) and are excluded from the production build.
 
 Last updated: 2026-11-26 (system clock; earlier entries are dated 2026-11-27)
 
@@ -24,8 +24,8 @@ Last updated: 2026-11-26 (system clock; earlier entries are dated 2026-11-27)
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | M01 (PR #7) and M02 (PR #8) merged. M03 implemented on `feat/file-ingestion` (uncommitted, awaiting Codex review): transactional CSV/Parquet import into managed tables, admission limits, safe naming, catalog-reconciled dataset registry with removal and re-import. No explorer UI, editor, results or Verdict yet |
-| Tests | **Production (M03 branch, local, 2026-11-26):** 144 Vitest unit tests (51 engine and 27 dataset tests on a scripted stand-in engine) and 186 Playwright tests (62 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2), including ES-01…ES-12 and 23 M03 import/registry tests against the real engine; repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices clean; M03 mutation checks: missing ROLLBACK and missing file unregistration caught (one equivalent mutant reported). M02: 12 of 12 session mutation checks caught. **Spike (research):** implementer runs 80 Vitest, 9 Python, 79 Playwright; independent Codex runs (Step 4.4.4) 80 Vitest, 9 Python, 59 selected Chrome tests, 72 DuckDB comparisons |
+| Application code | M01 (PR #7) and M02 (PR #8) merged; M03 committed, PR #9 open. M08 implemented on `feat/verdict-engine` (uncommitted, awaiting Codex review): headless Verdict analyser (lossless parser adapter, strict recogniser, catalog eligibility, single budget gate, validated join probes, expectations, findings, publication fence, report store), wired into the runtime without UI. No explorer UI, editor, results grid or Verdict UI yet |
+| Tests | **Production (M08 branch, local, 2026-11-26):** 298 Vitest unit tests (154 Verdict), 7 Python oracle tests, and 333 Playwright tests (111 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2), including 49 Verdict browser tests per browser (155 oracle cases, parser corpus, adversarial, snapshot, budget and fence suites); repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices clean; fixtures regenerate byte-identically; Verdict mutation checks 24 of 24 caught. Earlier modules: M03 import/registry and M02 session mutation checks caught.|
 | CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
@@ -331,8 +331,50 @@ Branch `feat/file-ingestion` (fast-forwarded to `main` at PR #8; no commits; awa
 - **Not done / not verified:** real Safari; real GitHub Pages; very large files and memory behaviour (no large-memory runs, by instruction); the kept automated cancel tests hold `CREATE` in a harness fault rather than cancelling a long-running statement; unreadable-File re-import in a real browser (stand-in engine only); background-tab timing.
 - **Decisions for approval:** P-068 (CSV options; decimals as text), P-069 (transaction-detection correction), P-070 (lease extension), P-071 (registry contract), P-072 (naming).
 
+### 2026-11-26: M08 Verdict Analysis Engine (headless) implemented (Claude Code)
+
+Branch `feat/verdict-engine` (fast-forwarded onto `origin/feat/file-ingestion`, maintainer decision; no M08 commits; awaiting Codex review). Scope as in IMPLEMENTATION_PLAN.md § M08.
+
+- **Built (`src/core/verdict/`):**
+  - `parser-adapter.ts`: versioned for v1.5.4; lossless.
+  - `recognise.ts`: strict per-field allowlist.
+  - `relations.ts`: catalog eligibility inside the lease.
+  - `qualify.ts`: keys, types, input rows and the grouping estimate, all before grouping.
+  - `budget.ts`: the single gate.
+  - `probes.ts`: tagged probes through the lease.
+  - `stats.ts`: ported.
+  - `expectations.ts`, `findings.ts`.
+  - `report.ts`: the draft and the publication fence.
+  - `service.ts`: one `verdict` operation; deadline including queue wait.
+  - Also: `src/core/util/lossless-json.ts` (ported, hardened against duplicate and prototype keys); `src/stores/reportStore.ts` (current or historical); runtime wiring in `src/app/bootstrap.ts` (no UI); `harness/verdict.ts` with driver-level statement trace, inject-before and after-statement hooks.
+- **Oracle and fixtures:**
+  - `tests/oracle/` holds an independent nested-loop Python oracle that also derives witnesses, finding codes and expectation outcomes, with its own unit tests.
+  - `scripts/fixtures/make_verdict_fixtures.py` generates 155 cases (35 named plus 120 seeded random, seed 20261125). They cover INNER and LEFT, composite keys, NULL components, empty sides, skew, keys beyond 2^53 up to UHUGEINT, quoted identifiers, USING, self-joins and invalid expectations.
+  - The parser corpus has 17 accepted, 54 refused and 3 failure queries, recorded from the engine and re-verified in all three browsers.
+- **Results:**
+  - All 155 cases match the oracle and DuckDB's own `count(*)` exactly, in three browsers.
+  - The QV-SA-001 and QV-SA-002 regressions pass, with evidence in SQL_ANALYSIS_FINDINGS §5.0 (fixed in production, pending independent review).
+  - 24 of 24 Verdict mutants are caught. Seven first versions did not typecheck; they were rewritten and rerun and were never counted as caught.
+- **Defects found and fixed during M08:**
+  - the recogniser's shape check reported only the first mismatch (now all);
+  - a refused witness plan could have recorded cheap witnesses as approved (`deny` added).
+  - FROM-first syntax was reclassified as accepted, because the parse tree is identical.
+- **Observations for the maintainer:**
+  - **M02 latent hazard:** `Lease.cleanup(sql)` removes the deferred entry *before* running it, so a statement interrupted during an explicit `cleanup()` would not be retried by the session. No M02, M03 or M08 code path calls `cleanup()` (Verdict leaves `ROLLBACK` to the session), so nothing is affected today. Recommend a fix and regression test in a follow-up.
+  - The unqualified-engine refusal in the parser adapter is unit-tested only, because M02 boot already refuses unqualified engines.
+- **Not done / not verified:**
+  - real Safari; real GitHub Pages;
+  - performance at the qualification ceiling (no large workloads, by instruction);
+  - the manual field-16 checks (reading three reports end to end against PRD §4 wording);
+  - background-tab timing;
+  - an independent review of the oracle.
+- **Decisions for approval:** P-073 (architecture), P-074 (budget semantics), P-075 (witness probes), P-076 (findings and statuses), P-077 (recogniser boundary, self-joins, P-069 in Verdict), P-078 (expectation validation).
+
 ## Next steps
 
-1. Independent Codex review of M03 (`feat/file-ingestion`); then maintainer-approved commit, push, pull request (CI) and merge.
-2. Maintainer decisions: P-068…P-072 (P-069 also needs an ARCHITECTURE amendment and affects M08); still open: P-063…P-067; AM-001 and approval of the PRD, ARCHITECTURE, IMPLEMENTATION_PLAN, TESTING_STRATEGY, DESIGN_SYSTEM, UI_SPECIFICATION; AM-002…AM-022; P-043…P-062; licence and AM-022 (gate any deployment).
-3. Next module after merge, per the plan order: **M08** (only on the maintainer's instruction).
+1. Merge M03 (PR #9) after its review, then rebase `feat/verdict-engine` onto `main`.
+2. Independent Codex review of M08 (`feat/verdict-engine`). In particular, verify the QV-SA-001/002 evidence before any status changes. Then a maintainer-approved commit, PR and merge.
+3. Maintainer decisions:
+   - for M08: P-073…P-078; P-069 (an ARCHITECTURE §10.3/§12.4 amendment, now also used by Verdict); the M02 `Lease.cleanup` hazard;
+   - still open: P-063…P-068, P-070…P-072; AM-001…AM-022; specification approvals; licence and AM-022.
+4. Next module per the plan: **M04** (only on the maintainer's instruction).

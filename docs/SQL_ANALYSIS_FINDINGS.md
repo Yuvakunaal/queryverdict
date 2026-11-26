@@ -125,6 +125,28 @@ Identifiers are stable. A defect is closed only by a regression test meeting its
 | QV-SA-004 | MEDIUM | Metric tolerance comparison loses precision by converting to DOUBLE | Any metric-preservation feature (excluded from the public MVP) |
 | QV-SA-005 | MEDIUM | Stalled batch callback retains the FIFO session lease | Production engine qualification |
 
+### 5.0 Production status (M08, 2026-11-26) — pending independent review
+
+The production Verdict analyser (`src/core/verdict/`, M08 on `feat/verdict-engine`) was rebuilt from the verified algorithms with the corrections below. **Neither defect is marked resolved:** the status is *fixed in production, pending independent review*, as IMPLEMENTATION_PLAN M08 field 18 requires. All evidence is from the implementer's runs (Claude Code) on the reference machine, in Playwright builds of Chrome 158, Firefox 159 and WebKit 27.2 (not real Safari).
+
+| ID | Production status | Correction | Evidence (tests in this repository) |
+|---|---|---|---|
+| QV-SA-001 | **Fixed in production, pending independent review** | One `BudgetGate` (`budget.ts`) approves every probe before it runs. The executed count and every witness recount through the join are priced from the key frequencies and accounted cumulatively against `executionPairRows`; witness recounts are planned together and refused all-or-nothing. Recounts read key-filtered inputs, so their pair count is bounded structurally. A refusal leaves the report `budget-exhausted` and non-authoritative (P-074, P-075) | `tests/e2e/verdict-budget.spec.ts`: exact Codex reproduction (left 3 × key 1, right 4 × key 1, budget 1). The **harness driver's statement trace** contains no `executed-count` and no `witness-join` statement; the only statements through the join node are the bind `DESCRIBE` and the two SEMI JOIN recounts; refusals are logged with cost 12 pairs each; `spent.pairRows = 0`; witnesses `not-run`; the expectation is `unchecked`. Within budget (24) both run and the report is authoritative. Also covered: cumulative witness refusal (each witness fits alone, the plan does not), over-limit inputs and grouping estimate refused before any grouping statement, truncated probe output rejected, and the deadline including queue wait. Unit: `tests/unit/verdict/budget.test.ts`. Mutants M01, M02, M13, M19, M20 and M21 caught |
+| QV-SA-002 | **Fixed in production, pending independent review** | The body produces only a draft. `ROLLBACK` is session-owned and runs before the operation settles. The fence (`report.ts publish`) decides authority after settlement, in the same synchronous step as the store hand-off, against the live session: generation, epoch, state, the handle's cancel flag, the deadline and the terminal. Interrupted or stale runs publish no measurements and no held or violated outcome (P-073) | `tests/e2e/verdict-fence.spec.ts`, injected at the real boundary. Cancel during the final `ROLLBACK`; a `ROLLBACK` that never completes (cleanup bound, engine replaced); dispose during `ROLLBACK`; restart and cancel after `ROLLBACK` but before the lease is released; engine replacement, data change, cancel and dispose after settlement but before the store hand-off; a late diagnostic response after the deadline (worker terminated, late result discarded). Each gives a non-authoritative `cancelled`/`stale`/`budget-exhausted` report with `join: null` and every expectation `unchecked`; the store holds exactly that report. The uninterrupted control is authoritative, and published reports turn historical on epoch or generation change. Unit: `tests/unit/verdict/fence.test.ts` (13 interruption kinds). Mutants M03, M04, M05, M15 and M22 caught |
+| QV-SA-003, QV-SA-005 | Unchanged by M08 (addressed in M02; pending independent review) | — | — |
+| QV-SA-004 | Not applicable: metric preservation is outside P0, and the recogniser and expectation validation refuse it (T-ENG-015) | — | `tests/unit/verdict/expectations.test.ts` |
+
+**Snapshot evidence (H-A, QV-ENG-005):**
+- *The Codex snapshot reproduction* (left key 1; right 1, 1, 2, 2; a user `UPDATE` setting the left key to 2 submitted between probes): the `UPDATE` waits in the queue and reaches the engine only after the analysis's `ROLLBACK`. The report is coherent for key 1 (output 2; witnesses fan-out key 1 and unmatched right key 2) and authoritative, and the next analysis sees key 2.
+- *Writes slipped inside the lease (simulated defect)* are caught by the first responsible layer and withdraw every measurement:
+  - invariants, for a write between the frequency tables;
+  - the SEMI JOIN recount, for a write after the statistics;
+  - the executed count, for a write after the SEMI JOIN;
+  - witness identity, where every count agreed but a witness key changed;
+  - end fingerprints;
+  - table identity, for a table replaced with identical data.
+- Mutants M06, M07, M08, M14, M16, M17 and M18 are caught.
+
 ### QV-SA-001 — HIGH — Witness verification bypasses the join execution budget
 
 - **Reproduction:** a 3 × 4 join on one key (12 output rows) with `executionBudgetRows = 1`.
