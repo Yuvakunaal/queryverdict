@@ -2,7 +2,7 @@
 
 **Your query passed. Did your data?**
 
-> **Status: early implementation.** Only the application foundation exists (an empty shell with quality gates). There is no usable application yet: no SQL engine, datasets or diagnostics.
+> **Status: early implementation.** The application foundation and the locked-down local SQL engine session exist. There is no usable application yet: no SQL editor, datasets, results or diagnostics.
 
 QueryVerdict is a planned free, open-source, browser-native SQL workspace for exploring datasets, running SQL, visually debugging queries, and detecting silent data-correctness problems such as join fan-out, unexpected row loss, duplicates, and NULLs. Your data will stay on your device: no backend, no account, no install.
 
@@ -20,7 +20,7 @@ QueryVerdict is a planned free, open-source, browser-native SQL workspace for ex
 
 ## Development
 
-The production application is at the repository root (the research spike in `spikes/` is separate and excluded). It currently contains only the application foundation (M01): an accessible shell, design tokens and quality gates. There is no SQL engine yet.
+The production application is at the repository root (the research spike in `spikes/` is separate and excluded). It currently contains the application foundation (M01) and the DuckDB-WASM engine session (M02): fail-closed engine startup with a verified lockdown, a cancellable operation queue and bounded recovery. There is no SQL editor or dataset import yet.
 
 Requirements: Node.js 24 (see `.nvmrc`) and npm.
 
@@ -31,14 +31,16 @@ npm run typecheck         # strict TypeScript (app and tooling configs)
 npm run lint              # ESLint + resolved import-boundary check
 npm run check:repo        # forbidden files, oversized files, known credential formats
 npm test                  # unit tests (Vitest)
-npm run build             # type-check, production build to dist/, artifact check
+npm run vendor            # download + SHA-256-verify DuckDB extensions into public/duckdb-ext/ (build time only)
+npm run build             # type-check, vendor extensions, production build to dist/, artifact check
 npm run preview           # serve dist/ at http://127.0.0.1:4173/queryverdict/
 npm run build:harness     # test-only harness build to dist-harness/ (never deployed)
 npm run test:e2e          # browser tests (Playwright: Chromium, Firefox, WebKit)
 npm run notices           # runtime licence inventory (from package-lock.json) to build/notices.json
+                          # (--release fails on any unresolved redistribution obligation)
 ```
 
-Browser tests need Playwright's browsers: `npx playwright install chromium firefox webkit` (locally the Chromium project uses an installed Google Chrome instead; CI installs Playwright's Chromium).
+The first build downloads two DuckDB extensions (parquet, json) from extensions.duckdb.org and checks them against `scripts/extensions.lock.json`; at runtime the app loads them only from its own origin. Browser tests need Playwright's browsers: `npx playwright install chromium firefox webkit` (locally the Chromium project uses an installed Google Chrome instead; CI installs Playwright's Chromium).
 
 ## Contributing
 
