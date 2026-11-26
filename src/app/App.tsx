@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { Button } from '../ui/Button';
 import { StatusRegion } from '../ui/StatusRegion';
 import type { UiPrefsStore } from '../stores/uiPrefsStore';
+import { statusText } from '../stores/engineStore';
+import type { EngineRuntime } from './bootstrap';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SettingsDialog } from './SettingsDialog';
 
@@ -9,8 +11,9 @@ import { SettingsDialog } from './SettingsDialog';
  * Application shell (docs/IMPLEMENTATION_PLAN.md M01): header, skip link, main landmark and the
  * persistent status region. Workspace features arrive in later modules.
  */
-export function App({ prefs }: { prefs: UiPrefsStore }) {
+export function App({ prefs, runtime }: { prefs: UiPrefsStore; runtime: EngineRuntime }) {
   const { theme, resolvedTheme } = useSyncExternalStore(prefs.subscribe, prefs.getSnapshot);
+  const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const main = useRef<HTMLElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
@@ -39,7 +42,10 @@ export function App({ prefs }: { prefs: UiPrefsStore }) {
         </ErrorBoundary>
       </main>
       <footer className="status-strip">
-        <StatusRegion message="Engine not started" />
+        <StatusRegion message={statusText(engine)} />
+        {engine.state.kind === 'failed' ? (
+          <Button onClick={() => runtime.start()}>Retry</Button>
+        ) : null}
       </footer>
       <SettingsDialog open={settingsOpen} theme={theme} onThemeChange={prefs.setTheme} onClose={closeSettings} returnFocus={settingsButton} />
     </div>

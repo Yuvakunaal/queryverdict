@@ -2,7 +2,10 @@
 // everything it imports are excluded from the production artifact (scripts/check-artifact.mjs).
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { App } from '../src/app/App';
 import { ErrorBoundary } from '../src/app/ErrorBoundary';
+import { browserDarkSchemeQuery, createUiPrefsStore } from '../src/stores/uiPrefsStore';
+import { engineHarness, faults, FaultyDriver } from './engine';
 import '../src/styles/tokens.css';
 import '../src/styles/base.css';
 
@@ -30,7 +33,18 @@ function ErrorBoundaryFixture() {
 }
 
 const root = document.getElementById('root');
-if (root) {
+const view = new URLSearchParams(location.search).get('view');
+if (root && view === 'app-faulty') {
+  // The production App on a runtime whose first boot fails a lockdown statement (Retry test).
+  faults.failStatement = 'SET enable_external_access = false';
+  const runtime = engineHarness.createEngineRuntime(engineHarness.DEFAULT_PROFILE, new FaultyDriver());
+  runtime.start();
+  createRoot(root).render(
+    <StrictMode>
+      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} />
+    </StrictMode>,
+  );
+} else if (root) {
   createRoot(root).render(
     <StrictMode>
       <ErrorBoundaryFixture />

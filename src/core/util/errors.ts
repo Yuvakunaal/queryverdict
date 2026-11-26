@@ -13,12 +13,25 @@ export type ErrorCode =
   | 'refused'
   | 'configuration';
 
+const ERROR_NAMES: Record<ErrorCode, string> = {
+  policy: 'PolicyError',
+  'lease-revoked': 'LeaseRevokedError',
+  deadline: 'DeadlineError',
+  'queue-wait': 'QueueWaitError',
+  'stale-generation': 'StaleGenerationError',
+  import: 'ImportError',
+  engine: 'EngineError',
+  refused: 'RefusedError',
+  configuration: 'ConfigurationError',
+};
+
 export class QueryVerdictError extends Error {
   readonly code: ErrorCode;
   constructor(code: ErrorCode, message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.code = code;
-    this.name = new.target.name;
+    // Explicit names: constructor names are minified in production builds.
+    this.name = ERROR_NAMES[code];
   }
 }
 

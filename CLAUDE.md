@@ -20,7 +20,7 @@ Claude Code is the **primary implementation engineer**. ChatGPT owns research, r
 
 ## Working rules
 
-- **Current phase: planning.** Do not install dependencies, scaffold the app, or write application source code until the maintainer approves the move to implementation and PROGRESS.md says so.
+- **Current phase: production implementation** (Phase 7, started 2026-11-27 on the maintainer's instruction and recorded in PROGRESS.md). Implement only the module the maintainer assigns, within its IMPLEMENTATION_PLAN.md scope. Do not start the next module without the maintainer's instruction. Specifications marked *Proposed* are not approved: report conflicts with them instead of resolving them yourself.
 - **Feasibility spikes** are the only exception, and each one needs its own explicit maintainer approval. The approval states the question, scope and allowed dependencies. Spikes run on an `exp/` branch in an isolated directory, and their code is throwaway: never merged into `main` as production code. Findings go in [docs/FEASIBILITY.md](docs/FEASIBILITY.md) with method and environment. An approved spike does not approve the move to implementation.
 - Do not commit or push unless the maintainer explicitly asks.
 - Do not edit files while another agent is working on the repository.

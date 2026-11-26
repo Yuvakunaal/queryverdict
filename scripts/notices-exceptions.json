@@ -1,0 +1,7 @@
+{
+  "node_modules/@duckdb/duckdb-wasm": {
+    "problem": "no licence file in the package",
+    "resolution": "The npm package (1.33.1-dev57.0) ships no LICENSE file although it declares MIT. Before any distribution, include the MIT text from github.com/duckdb/duckdb-wasm (Copyright 2018-2025 Stichting DuckDB Foundation) and the DuckDB core notices in THIRD_PARTY_NOTICES (M15; FEASIBILITY §10.12, ARCHITECTURE §24 V6).",
+    "releaseBlocking": true
+  }
+}

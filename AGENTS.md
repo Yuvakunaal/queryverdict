@@ -4,7 +4,7 @@ These rules apply to **every** coding agent working on QueryVerdict (Claude Code
 
 ## 1. Project status
 
-QueryVerdict is in the **planning stage**. No application code exists yet. Check [docs/PROGRESS.md](docs/PROGRESS.md) for the current state before assuming anything exists.
+QueryVerdict is in **production implementation** (Phase 7, started 2026-11-27 on the maintainer's instruction), one module at a time per [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Only the M01 application foundation exists so far. The governing specifications are still marked *Proposed* until the maintainer records their approval. Check [docs/PROGRESS.md](docs/PROGRESS.md) for the current state before assuming anything exists.
 
 ## 2. Roles
 

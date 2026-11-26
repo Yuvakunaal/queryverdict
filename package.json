@@ -9,19 +9,21 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run typecheck && vite build && node scripts/check-artifact.mjs dist",
-    "build:harness": "vite build --config vite.harness.config.ts",
+    "build": "npm run typecheck && node scripts/vendor-extensions.mjs && vite build && node scripts/check-artifact.mjs dist",
+    "build:harness": "node scripts/vendor-extensions.mjs && vite build --config vite.harness.config.ts",
     "preview": "vite preview --port 4173 --strictPort",
     "preview:harness": "vite preview --config vite.harness.config.ts --port 4174 --strictPort",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "lint": "eslint . && node scripts/check-boundaries.mjs",
     "check:repo": "node scripts/check-repo.mjs",
+    "vendor": "node scripts/vendor-extensions.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check:artifact": "node scripts/check-artifact.mjs dist",
     "notices": "node scripts/notices.mjs"
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "1.33.1-dev57.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

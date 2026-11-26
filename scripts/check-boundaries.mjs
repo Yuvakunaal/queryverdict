@@ -13,8 +13,8 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-/** Packages src/core may depend on. M02 adds the engine package here, explicitly. */
-export const CORE_ALLOWED_PACKAGES = /** @type {string[]} */ ([]);
+/** Packages src/core may depend on: only the engine (M02, P-016). */
+export const CORE_ALLOWED_PACKAGES = /** @type {string[]} */ (['@duckdb/duckdb-wasm']);
 
 const EXTENSIONS = ['.ts', '.tsx', '.mts', '.js', '.mjs', '.css'];
 

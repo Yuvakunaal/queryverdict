@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { inventory } from '../../scripts/notices.mjs';
+import { readFileSync } from 'node:fs';
+import { applyExceptions, inventory } from '../../scripts/notices.mjs';
 
 const dirs: string[] = [];
 afterEach(() => {
@@ -23,11 +24,27 @@ function project(lock: Record<string, Record<string, unknown>>, installed: Recor
 }
 
 describe('notices inventory', () => {
-  it('lists the real runtime closure with allowlisted licences and licence files', () => {
+  it('real closure: every problem is a reviewed, release-blocking exception (M02 engine)', () => {
     const { packages, errors } = inventory('.');
-    expect(errors).toEqual([]);
-    expect(packages.map((p) => p.name)).toEqual(['react', 'react-dom', 'scheduler']);
-    for (const p of packages) expect(p.files.length).toBeGreaterThan(0);
+    const names = packages.map((p) => p.name);
+    for (const n of ['react', 'react-dom', 'scheduler', '@duckdb/duckdb-wasm', 'apache-arrow', 'json-bignum']) expect(names).toContain(n);
+    const exceptions = JSON.parse(readFileSync('scripts/notices-exceptions.json', 'utf8'));
+    const { tracked, untracked, stale } = applyExceptions(errors, exceptions);
+    expect([untracked, stale]).toEqual([[], []]);
+    expect(tracked.map((t) => t.error)).toEqual(['node_modules/@duckdb/duckdb-wasm (@duckdb/duckdb-wasm@1.33.1-dev57.0): no licence file in the package']);
+    expect(tracked.every((t) => t.releaseBlocking)).toBe(true);
+  });
+
+  it('reads the deprecated licenses array (json-bignum declares MIT that way)', () => {
+    expect(inventory('.').packages.find((p) => p.name === 'json-bignum')?.licence).toBe('MIT');
+  });
+
+  it('exceptions match only their exact problem; unknown problems and stale exceptions are reported', () => {
+    const ex = { 'node_modules/x': { problem: 'no licence file in the package', resolution: 'r', releaseBlocking: true }, 'node_modules/gone': { problem: 'p', resolution: 'r', releaseBlocking: true } };
+    const r = applyExceptions(['node_modules/x (x@1): no licence file in the package', 'node_modules/x (x@1): licence GPL-3.0 is not allowlisted'], ex);
+    expect(r.tracked.map((t) => t.error)).toEqual(['node_modules/x (x@1): no licence file in the package']);
+    expect(r.untracked).toEqual(['node_modules/x (x@1): licence GPL-3.0 is not allowlisted']);
+    expect(r.stale).toEqual(['node_modules/gone: exception no longer matches any problem (remove it)']);
   });
 
   it('checks every installed location, including a nested second version (Codex 7.5)', () => {
