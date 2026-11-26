@@ -23,9 +23,22 @@ export interface Faults {
   ignoreCancel: boolean;
   /** registerFile never completes. */
   stallRegister: boolean;
+  /**
+   * Statements matching this pattern are held before reaching the real engine until cancel() is
+   * called (then they fail with an interrupt, as a cooperatively cancelled statement does) or
+   * release() runs. Everything before them really ran, so transaction state is genuine.
+   */
+  hold: RegExp | null;
 }
 
-export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false };
+export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false, hold: null };
+
+/** Virtual files currently registered with any harness engine (registerFile minus dropFile). */
+export const registeredFiles = new Set<string>();
+/** Every virtual path ever registered, in order (tests probe them after cleanup). */
+export const registrationLog: string[] = [];
+/** Statements currently held by faults.hold, and a way to let them proceed. */
+export const held: { sql: string; release: () => void }[] = [];
 
 class FaultyInstance implements EngineInstance {
   constructor(private readonly inner: EngineInstance) {}
@@ -34,17 +47,50 @@ class FaultyInstance implements EngineInstance {
   run(sql: string, shape: QueryShape): Promise<Rows> {
     if (faults.failStatement === sql) return Promise.reject(new Error('Invalid Input Error: injected lockdown failure'));
     if (faults.skipStatement === sql) return Promise.resolve([]);
+    if (faults.hold?.test(sql)) {
+      return new Promise<Rows>((resolve, reject) => {
+        const entry = {
+          sql,
+          release: () => {
+            held.splice(held.indexOf(entry), 1);
+            this.inner.run(sql, shape).then(resolve, reject);
+          },
+          interrupt: () => {
+            held.splice(held.indexOf(entry), 1);
+            reject(new Error('INTERRUPT Error: Interrupted!'));
+          },
+        };
+        this.holding.push(entry);
+        held.push(entry);
+      });
+    }
     return this.inner.run(sql, shape);
   }
+  private holding: { interrupt: () => void }[] = [];
   cancel(): Promise<boolean> {
-    return faults.ignoreCancel ? Promise.resolve(true) : this.inner.cancel();
+    if (faults.ignoreCancel) return Promise.resolve(true);
+    const waiting = this.holding.splice(0);
+    if (waiting.length) {
+      for (const w of waiting) w.interrupt();
+      return Promise.resolve(true);
+    }
+    return this.inner.cancel();
   }
   prepareCheck(sql: string) { return this.inner.prepareCheck(sql); }
   registerFile(name: string, file: File): Promise<void> {
-    return faults.stallRegister ? new Promise<void>(() => undefined) : this.inner.registerFile(name, file);
+    if (faults.stallRegister) return new Promise<void>(() => undefined);
+    registrationLog.push(name);
+    return this.inner.registerFile(name, file).then(() => void registeredFiles.add(name));
   }
-  dropFile(name: string) { return this.inner.dropFile(name); }
-  terminate() { this.inner.terminate(); }
+  dropFile(name: string) {
+    return this.inner.dropFile(name).then(() => void registeredFiles.delete(name));
+  }
+  terminate() {
+    // The worker and everything registered with it are gone.
+    for (const w of this.holding.splice(0)) w.interrupt();
+    registeredFiles.clear();
+    this.inner.terminate();
+  }
 }
 
 export class FaultyDriver implements EngineDriver {
@@ -98,14 +144,14 @@ export async function rawValueTypes(query: string): Promise<{ name: string; type
 }
 
 export const engineHarness = {
-  faults, newSession, sql, rawValueTypes, classifyStatement, escalationProbes, lockdownStatements, verifyLockdown,
+  faults, held, registeredFiles, registrationLog, newSession, sql, rawValueTypes, classifyStatement, escalationProbes, lockdownStatements, verifyLockdown,
   EngineSession, DuckDBDriver, FaultyDriver, createEngineRuntime, DEFAULT_PROFILE, BOUNDS,
 };
 export type EngineHarness = typeof engineHarness;
 
 declare global {
   interface Window {
-    __qvHarness?: { engine: EngineHarness };
+    __qvHarness?: { engine: EngineHarness; datasets?: import('./datasets').DatasetsHarness };
   }
 }
 window.__qvHarness = { engine: engineHarness };
