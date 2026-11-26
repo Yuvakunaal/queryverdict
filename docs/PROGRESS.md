@@ -6,7 +6,7 @@
 
 **Planning. Phase 4 (experimental research) is conditionally complete**, subject to independent review of the checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md)). The next phase is Phase 5: product specifications and production architecture. No production application code exists. A throwaway prototype, with its own dependencies, tests and benchmarks, exists only under `spikes/browser-feasibility/`; the analysis-engine work is on branch `spike/sql-analysis` (P-010). Nothing has been deployed.
 
-Last updated: 2026-11-26
+Last updated: 2026-11-27
 
 ## Status summary
 
@@ -17,12 +17,12 @@ Last updated: 2026-11-26
 | Project vision | Drafted |
 | Decisions log | Drafted (confirmed and provisional entries) |
 | PRD | Phase 5 production requirements drafted in [PRD.md](PRD.md). Maintainer approval pending |
-| Architecture | PENDING |
+| Architecture | Proposed production architecture drafted in [ARCHITECTURE.md](ARCHITECTURE.md) (2026-11-27). Maintainer approval and Codex review pending |
 | Feasibility study | Spike run 2026-11-25 in **Chrome only**, then corrected after Codex review (Step 3.6): fail-closed lockdown, bounded results, session state machine, registration fixes, benchmark acceptance. Per experiment: E0, E2, E3 (supported subset), E4, E5 and E6 run; E1, E7, E8 and E11 partly run; E9 and E10 not run. The SQL analysis engine is described in §11–§14; the experimental checkpoint after independent review is §14 and [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md) (5 open defects, QV-SA-001 to QV-SA-005). See [FEASIBILITY.md §10](FEASIBILITY.md) |
 | Competitor research | Research report drafted. CONDITIONAL GO recommendation pending maintainer review |
 | Design system | Proposed [design system](DESIGN_SYSTEM.md), [UI specification](UI_SPECIFICATION.md) and three static mockups. Design and architecture review pending |
-| Testing strategy | PENDING |
-| Implementation plan | PENDING |
+| Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
+| Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
 | Application code | Not started (production). Throwaway spike in `spikes/browser-feasibility/` |
 | Tests | Spike only. Implementer runs (2026-11-25): 80 Vitest, 9 Python unittest, 79 Playwright (Chrome 158). Independent Codex runs (Step 4.4.4): type check and both builds passed; 80 Vitest; 9 Python; **59 selected** Chrome tests (full browser suite not independently run); 72 DuckDB comparisons without discrepancies |
@@ -273,11 +273,20 @@ Codex verdict: NO-GO for public release (two high, three medium); 32 join scenar
 - Added illustrative landing, SQL workspace and Visual Verdict PNG concepts. The sample uses one supported join. Profiling beyond join-key evidence and multi-stage visual debugging remain future work.
 - The architecture remains pending. No product UI, engine integration or deployment was implemented or tested.
 
+### 2026-11-27: Production architecture, testing strategy and implementation plan drafted (Claude Code)
+
+Documentation only, at the maintainer's request (D-010 assigns these to ChatGPT; reassignment recorded as AM-017). No production code, dependencies, builds or deployments.
+
+- **Actual state found:** ARCHITECTURE, IMPLEMENTATION_PLAN and TESTING_STRATEGY were still PENDING placeholders on `main` (the commit titled "finalize production requirements and architecture", `95ef88c`, changed only the PRD). The PRD (PR #4) and design (PR #5) are merged, but the PRD's status line still reads "Proposed" (AM-001). Findings from the 2026-11-26 PRD and design reviews were not incorporated in the merged documents. A pre-existing uncommitted `README.md` change is in the working tree (not made in this task; left untouched).
+- **Created:** [ARCHITECTURE.md](ARCHITECTURE.md) (system, directory, module boundaries, dependencies, engine/session operation model with revocable lease, data epoch, managed-table ingestion, statement policy, Verdict pipeline with single budget gate and publication fence, security, deployment, QV-ENG-001…015 traceability, external verification record); [TESTING_STRATEGY.md](TESTING_STRATEGY.md); [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) (module evaluation, order, 22-field specifications and task briefs for M01–M06, M08–M10, M12–M15; M07 and M11 split/deferred); [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) (AM-001…AM-022, not applied).
+- **Decisions:** P-043…P-056 added (all provisional).
+- **External verification:** 17 facts checked against primary sources by a research sub-agent (ARCHITECTURE §24); unverifiable items marked (dedicated-worker timer throttling, Safari practical WASM memory limit, Pages custom headers only observed absent).
+- **Not done:** no QV-SA defect is resolved; designs for QV-SA-001/002/003/005 are proposals until production tests and independent review. No browser qualification, benchmark or deployment was performed.
+
 ## Next steps
 
-1. Independent review of the Phase 4 checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md), [FEASIBILITY.md §14](FEASIBILITY.md)). Then the maintainer decides on committing the spike branch.
-2. **Phase 5:** review the proposed [PRD](PRD.md) and define production architecture for the Verdict report contract, dataset import model and engine/session safeguards ([SQL_ANALYSIS_FINDINGS.md §7, §9](SQL_ANALYSIS_FINDINGS.md)).
-3. Maintainer decisions on P-026 and P-031 to P-039.
-4. Close the gaps before confirming P-003/P-016–P-020: run in Safari and Firefox; test a real GitHub Pages deployment; collect DuckDB third-party notices.
-5. Choose a licence.
-6. Write the testing strategy and implementation plan. Review the proposed design alongside the architecture.
+1. Independent Codex review of [ARCHITECTURE.md](ARCHITECTURE.md), [TESTING_STRATEGY.md](TESTING_STRATEGY.md), [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) and [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md).
+2. Maintainer decisions: PRD approval (AM-001); amendments AM-002…AM-022; P-043…P-056; licence choice (gates any deployment).
+3. Resolve the pre-existing uncommitted `README.md` change.
+4. Record the move from planning to implementation in this file, then start M01 on `feat/application-foundation` using the M01 task brief.
+5. Close the gaps before confirming P-003/P-016–P-020 (Safari, Firefox, real Pages, notices) through M02's walking skeleton and M15.
