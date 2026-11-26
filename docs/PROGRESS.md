@@ -20,7 +20,7 @@ Last updated: 2026-11-26
 | Architecture | PENDING |
 | Feasibility study | Spike run 2026-11-25 in **Chrome only**, then corrected after Codex review (Step 3.6): fail-closed lockdown, bounded results, session state machine, registration fixes, benchmark acceptance. Per experiment: E0, E2, E3 (supported subset), E4, E5 and E6 run; E1, E7, E8 and E11 partly run; E9 and E10 not run. The SQL analysis engine is described in §11–§14; the experimental checkpoint after independent review is §14 and [SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md) (5 open defects, QV-SA-001 to QV-SA-005). See [FEASIBILITY.md §10](FEASIBILITY.md) |
 | Competitor research | Research report drafted. CONDITIONAL GO recommendation pending maintainer review |
-| Design system | PENDING |
+| Design system | Proposed [design system](DESIGN_SYSTEM.md), [UI specification](UI_SPECIFICATION.md) and three static mockups. Design and architecture review pending |
 | Testing strategy | PENDING |
 | Implementation plan | PENDING |
 | Licence | Not chosen; no LICENSE file |
@@ -267,6 +267,12 @@ Codex verdict: NO-GO for public release (two high, three medium); 32 join scenar
 - The proposed data workflow imports CSV and Parquet as managed tables. It keeps file-backed attachments and advanced SQL diagnostics outside P0. The 50 MB combined target and browser coverage remain unverified for production.
 - Documentation only. No production code, browser qualification or deployment was performed.
 
+### 2026-11-26: Workspace design proposed
+
+- Documented visual tokens, light/dark/system themes, workspace flows, accessibility, responsive layout and UI acceptance linked to the PRD.
+- Added illustrative landing, SQL workspace and Visual Verdict PNG concepts. The sample uses one supported join. Profiling beyond join-key evidence and multi-stage visual debugging remain future work.
+- The architecture remains pending. No product UI, engine integration or deployment was implemented or tested.
+
 ## Next steps
 
 1. Independent review of the Phase 4 checkpoint documentation ([SQL_ANALYSIS_FINDINGS.md](SQL_ANALYSIS_FINDINGS.md), [FEASIBILITY.md §14](FEASIBILITY.md)). Then the maintainer decides on committing the spike branch.
@@ -274,4 +280,4 @@ Codex verdict: NO-GO for public release (two high, three medium); 32 join scenar
 3. Maintainer decisions on P-026 and P-031 to P-039.
 4. Close the gaps before confirming P-003/P-016–P-020: run in Safari and Firefox; test a real GitHub Pages deployment; collect DuckDB third-party notices.
 5. Choose a licence.
-6. Write the testing strategy, design system and implementation plan.
+6. Write the testing strategy and implementation plan. Review the proposed design alongside the architecture.
