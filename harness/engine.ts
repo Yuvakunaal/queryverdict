@@ -29,9 +29,19 @@ export interface Faults {
    * release() runs. Everything before them really ran, so transaction state is genuine.
    */
   hold: RegExp | null;
+  /**
+   * Before the first statement matching `match` reaches the engine, run `sql` on the same
+   * connection (a write slipped INSIDE an operation's lease: a simulated defect). One-shot.
+   */
+  injectBefore: { match: RegExp; sql: string } | null;
+  /** After the first statement matching `match` completes (before its caller sees it), run `action`. One-shot. */
+  after: { match: RegExp; action: () => unknown } | null;
 }
 
-export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false, hold: null };
+export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false, hold: null, injectBefore: null, after: null };
+
+/** Every statement sent to a harness engine, in order (the independent probe trace). */
+export const statementLog: string[] = [];
 
 /** Virtual files currently registered with any harness engine (registerFile minus dropFile). */
 export const registeredFiles = new Set<string>();
@@ -47,6 +57,27 @@ class FaultyInstance implements EngineInstance {
   run(sql: string, shape: QueryShape): Promise<Rows> {
     if (faults.failStatement === sql) return Promise.reject(new Error('Invalid Input Error: injected lockdown failure'));
     if (faults.skipStatement === sql) return Promise.resolve([]);
+    statementLog.push(sql);
+    const inject = faults.injectBefore;
+    if (inject?.match.test(sql)) {
+      faults.injectBefore = null;
+      statementLog.push(`/*injected*/ ${inject.sql}`);
+      return this.inner.run(inject.sql, { maxRows: 1_000 }).then(() => this.run2(sql, shape));
+    }
+    return this.run2(sql, shape);
+  }
+  private run2(sql: string, shape: QueryShape): Promise<Rows> {
+    const after = faults.after;
+    if (after?.match.test(sql)) {
+      faults.after = null;
+      return this.run3(sql, shape).then(async (rows) => {
+        await after.action();
+        return rows;
+      });
+    }
+    return this.run3(sql, shape);
+  }
+  private run3(sql: string, shape: QueryShape): Promise<Rows> {
     if (faults.hold?.test(sql)) {
       return new Promise<Rows>((resolve, reject) => {
         const entry = {
@@ -144,14 +175,14 @@ export async function rawValueTypes(query: string): Promise<{ name: string; type
 }
 
 export const engineHarness = {
-  faults, held, registeredFiles, registrationLog, newSession, sql, rawValueTypes, classifyStatement, escalationProbes, lockdownStatements, verifyLockdown,
+  faults, held, registeredFiles, registrationLog, statementLog, newSession, sql, rawValueTypes, classifyStatement, escalationProbes, lockdownStatements, verifyLockdown,
   EngineSession, DuckDBDriver, FaultyDriver, createEngineRuntime, DEFAULT_PROFILE, BOUNDS,
 };
 export type EngineHarness = typeof engineHarness;
 
 declare global {
   interface Window {
-    __qvHarness?: { engine: EngineHarness; datasets?: import('./datasets').DatasetsHarness };
+    __qvHarness?: { engine: EngineHarness; datasets?: import('./datasets').DatasetsHarness; verdict?: import('./verdict').VerdictHarness };
   }
 }
 window.__qvHarness = { engine: engineHarness };
