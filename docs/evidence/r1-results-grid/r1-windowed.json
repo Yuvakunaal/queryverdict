@@ -1,0 +1,292 @@
+{
+  "machine": "Apple M2 MacBook Air, 8 GB RAM",
+  "viewport": "1440x900",
+  "runs": 3,
+  "chromium": {
+    "version": "158.0.8127.37",
+    "F1_1000x10_short": {
+      "cells": 361,
+      "detailButtons": 0,
+      "domNodes": 609,
+      "paintedMs": [
+        316,
+        224,
+        154
+      ],
+      "paintedMedian": 224,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 104,
+      "renderLongTasks": [
+        [
+          104
+        ],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 167,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 33
+    },
+    "F2_1000x200_short": {
+      "cells": 721,
+      "detailButtons": 0,
+      "domNodes": 1387,
+      "paintedMs": [
+        267,
+        298,
+        329
+      ],
+      "paintedMedian": 298,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 113,
+      "renderLongTasks": [
+        [
+          99
+        ],
+        [
+          111
+        ],
+        [
+          113
+        ]
+      ],
+      "renderMaxFrameGap": 117,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 42
+    },
+    "F3_1000x4_500chars": {
+      "cells": 141,
+      "detailButtons": 140,
+      "domNodes": 1341,
+      "paintedMs": [
+        153,
+        132,
+        145
+      ],
+      "paintedMedian": 145,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 0,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 33
+    },
+    "F4_1000x200_10chars": {
+      "cells": 541,
+      "detailButtons": 0,
+      "domNodes": 1083,
+      "paintedMs": [
+        235,
+        252,
+        237
+      ],
+      "paintedMedian": 237,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 62,
+      "renderLongTasks": [
+        [
+          59
+        ],
+        [
+          62
+        ],
+        [
+          55
+        ]
+      ],
+      "renderMaxFrameGap": 0,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 36
+    }
+  },
+  "firefox": {
+    "version": "159.0",
+    "F1_1000x10_short": {
+      "cells": 361,
+      "detailButtons": 0,
+      "domNodes": 609,
+      "paintedMs": [
+        116,
+        131,
+        123
+      ],
+      "paintedMedian": 123,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 0,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 30
+    },
+    "F2_1000x200_short": {
+      "cells": 721,
+      "detailButtons": 0,
+      "domNodes": 1387,
+      "paintedMs": [
+        233,
+        235,
+        247
+      ],
+      "paintedMedian": 235,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 68,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 67,
+      "typingMaxMs": 57
+    },
+    "F3_1000x4_500chars": {
+      "cells": 141,
+      "detailButtons": 140,
+      "domNodes": 1341,
+      "paintedMs": [
+        133,
+        157,
+        149
+      ],
+      "paintedMedian": 149,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 51,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 33
+    },
+    "F4_1000x200_10chars": {
+      "cells": 541,
+      "detailButtons": 0,
+      "domNodes": 1083,
+      "paintedMs": [
+        414,
+        356,
+        338
+      ],
+      "paintedMedian": 356,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 133,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 61
+    }
+  },
+  "webkit": {
+    "version": "27.2",
+    "F1_1000x10_short": {
+      "cells": 361,
+      "detailButtons": 0,
+      "domNodes": 609,
+      "paintedMs": [
+        156,
+        160,
+        120
+      ],
+      "paintedMedian": 156,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 0,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 51
+    },
+    "F2_1000x200_short": {
+      "cells": 721,
+      "detailButtons": 0,
+      "domNodes": 1387,
+      "paintedMs": [
+        270,
+        269,
+        267
+      ],
+      "paintedMedian": 269,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 106,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 46
+    },
+    "F3_1000x4_500chars": {
+      "cells": 141,
+      "detailButtons": 140,
+      "domNodes": 1341,
+      "paintedMs": [
+        159,
+        159,
+        161
+      ],
+      "paintedMedian": 159,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 61,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 37
+    },
+    "F4_1000x200_10chars": {
+      "cells": 541,
+      "detailButtons": 0,
+      "domNodes": 1082,
+      "paintedMs": [
+        263,
+        281,
+        259
+      ],
+      "paintedMedian": 263,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 76,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 44
+    }
+  }
+}

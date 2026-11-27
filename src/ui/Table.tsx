@@ -33,6 +33,13 @@ export function Cell({ cell }: { cell: CellText }): ReactNode {
       </span>
     );
   }
+  if (cell.kind === 'unsupported') {
+    return (
+      <span className="token" data-token="unsupported" title={cell.reason}>
+        {cell.type} not shown<span className="visually-hidden">: {cell.reason}</span>
+      </span>
+    );
+  }
   if (cell.text === '') {
     return (
       <span className="token" data-token="empty">

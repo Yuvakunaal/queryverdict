@@ -3,8 +3,9 @@
 // session's job (lockdown.ts); this file only creates and wraps the engine.
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { BUNDLES, DUCKDB_WASM_PACKAGE_VERSION, bundleName, extensionRepositoryUrl } from './bundles';
-import { ShapeError, type EngineDriver, type EngineInstance } from './driver';
-import type { Cell, QueryShape, Rows } from './types';
+import { ShapeError, StreamStopError, type EngineDriver, type EngineInstance } from './driver';
+import type { BatchConsumer, Cell, QueryShape, Rows } from './types';
+import { utf8Text, type ArrowData } from '../results/arrow';
 
 /** Database open configuration shared by the driver and the engine-semantics suite. */
 export const DUCKDB_OPEN_CONFIG: duckdb.DuckDBConfig = { path: ':memory:', query: { castBigIntToDouble: false }, allowUnsignedExtensions: false };
@@ -86,7 +87,10 @@ class DuckDBInstance implements EngineInstance {
         }
         const row: Cell[] = [];
         for (let c = 0; c < batch.numCols; c++) {
-          const cell = toCell(batch.getChildAt(c)?.get(r));
+          // Strings are decoded here, not by Arrow's reader, so a leading U+FEFF is kept.
+          const data = batch.data.children[c] as unknown as ArrowData | undefined;
+          const isText = data !== undefined && (data.type.typeId === 5 || data.type.typeId === 20) && data.offset === 0;
+          const cell = isText ? (data.getValid(r) ? (utf8Text(data, r) ?? toCell(batch.getChildAt(c)?.get(r))) : null) : toCell(batch.getChildAt(c)?.get(r));
           if (shape.maxBytes !== undefined && cell !== null) {
             textBytes += utf8Bytes(cell);
             if (textBytes > shape.maxBytes) throw await overBudget('converted text');
@@ -98,6 +102,22 @@ class DuckDBInstance implements EngineInstance {
     }
     if (shape.exactRows !== undefined && rows.length !== shape.exactRows) throw new ShapeError(`expected ${shape.exactRows} rows, got ${rows.length}`);
     return rows;
+  }
+
+  async stream(sql: string, consume: BatchConsumer): Promise<void> {
+    const reader = await this.conn.send(sql, true);
+    for await (const batch of reader) {
+      // The batch is already on the page (DuckDB-WASM transfers whole batches; P-020). Its size
+      // is reported before any value in it is converted.
+      if (!consume(batch, batch.data.byteLength)) {
+        // Stop the rest of the result in the engine. `false` means nothing was pending (the
+        // result was already complete); a rejected request leaves the connection's state unknown.
+        // The lease bounds how long this may take (P-094).
+        const stopped = await this.conn.cancelSent().then(() => true, () => false);
+        if (!stopped) throw new StreamStopError('the engine did not confirm that the result stream stopped');
+        return;
+      }
+    }
   }
 
   cancel(): Promise<boolean> {

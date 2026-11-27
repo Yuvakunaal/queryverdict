@@ -67,6 +67,13 @@ export interface QueryShape {
 }
 
 export type Cell = string | null;
+
+/**
+ * Receives one Arrow record batch of a streamed result (structurally typed: see
+ * src/core/results/arrow.ts) and the size of its buffers in bytes, before any value in it is
+ * converted. Returns false to stop: no further batch is requested and the statement is cancelled.
+ */
+export type BatchConsumer = (batch: unknown, bytes: number) => boolean;
 export type Rows = readonly (readonly Cell[])[];
 
 /** Capability passed to an operation body. Every method rejects after revocation. */
@@ -77,6 +84,11 @@ export interface Lease {
   readonly signal: AbortSignal;
   /** Runs one statement (cooperatively cancellable) and returns text rows of the declared shape. */
   query(sql: string, shape: QueryShape): Promise<Rows>;
+  /**
+   * Runs one statement (cooperatively cancellable) and streams its result batches to `consume`,
+   * which bounds what it keeps; returning false stops the stream (M06 bounded results).
+   */
+  stream(sql: string, consume: BatchConsumer): Promise<void>;
   /** Checks whether `sql` can be prepared as a single statement without executing it. */
   prepareCheck(sql: string): Promise<{ readonly ok: true } | { readonly ok: false; readonly message: string }>;
   /**

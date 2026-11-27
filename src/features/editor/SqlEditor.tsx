@@ -17,15 +17,20 @@
 // one transaction, which keeps undo history; ordinary typing never round-trips through React.
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands';
-import { Annotation, Compartment, EditorSelection, EditorState, Prec } from '@codemirror/state';
-import { drawSelection, EditorView, highlightActiveLineGutter, keymap, lineNumbers, placeholder, type Command } from '@codemirror/view';
+import { Annotation, Compartment, EditorSelection, EditorState, Prec, RangeSet, RangeSetBuilder, StateField } from '@codemirror/state';
+import { drawSelection, EditorView, GutterMarker, gutterLineClass, highlightActiveLineGutter, keymap, lineNumbers, placeholder, type Command } from '@codemirror/view';
 import { editorAppearance } from './editorTheme';
 import { minimalChange } from './textDiff';
+import { statementAt } from '../../core/query/sqlText';
 
 export interface CursorPosition {
   readonly line: number;
   readonly column: number;
   readonly selected: number;
+  /** Document offsets of the main selection (from = to when it is a caret) and the caret. */
+  readonly from: number;
+  readonly to: number;
+  readonly head: number;
 }
 
 export interface SqlEditorProps {
@@ -75,11 +80,45 @@ const acrossWrap = (forward: boolean): Command => (view) => {
   return true;
 };
 
+/**
+ * Marks the lines of the statement Run SQL would execute for the caret (P-097): a decorative bar
+ * in the gutter; the hint and the shortcuts dialog say the same in words. Not shown while text is
+ * selected (the selection is what runs) or for very long documents (the split is linear).
+ */
+class StatementLine extends GutterMarker {
+  override elementClass = 'cm-statement-line';
+}
+const statementLine = new StatementLine();
+const MARK_STATEMENT_UP_TO = 200_000;
+
+function statementLines(state: EditorState): RangeSet<GutterMarker> {
+  const main = state.selection.main;
+  if (!main.empty || state.doc.length > MARK_STATEMENT_UP_TO || state.selection.ranges.length > 1) return RangeSet.empty;
+  const span = statementAt(state.doc.toString(), main.head);
+  if (!span) return RangeSet.empty;
+  const builder = new RangeSetBuilder<GutterMarker>();
+  const last = state.doc.lineAt(span.end).number;
+  for (let n = state.doc.lineAt(span.start).number; n <= last; n++) {
+    const line = state.doc.line(n);
+    builder.add(line.from, line.from, statementLine);
+  }
+  return builder.finish();
+}
+
+const currentStatement = StateField.define<RangeSet<GutterMarker>>({
+  create: statementLines,
+  update: (value, tr) => (tr.docChanged || tr.selection ? statementLines(tr.state) : value),
+  provide: (f) => gutterLineClass.from(f),
+});
+
 /** Marks transactions that apply an external `value`, so they are not reported back as edits. */
 const external = Annotation.define<boolean>();
 
 function attrs(p: Pick<SqlEditorProps, 'ariaLabel' | 'describedBy' | 'contentId' | 'readOnly'>): Record<string, string> {
   return {
+    // Explicit, so accessibility checkers see the scrolling editor as keyboard-focusable; the
+    // contenteditable is already the editor's single tab stop, so Tab order does not change.
+    tabindex: '0',
     'aria-label': p.ariaLabel,
     ...(p.describedBy ? { 'aria-describedby': p.describedBy } : {}),
     ...(p.contentId ? { id: p.contentId } : {}),
@@ -90,7 +129,7 @@ function attrs(p: Pick<SqlEditorProps, 'ariaLabel' | 'describedBy' | 'contentId'
 function cursorOf(state: EditorState): CursorPosition {
   const main = state.selection.main;
   const line = state.doc.lineAt(main.head);
-  return { line: line.number, column: main.head - line.from + 1, selected: Math.abs(main.to - main.from) };
+  return { line: line.number, column: main.head - line.from + 1, selected: Math.abs(main.to - main.from), from: main.from, to: main.to, head: main.head };
 }
 
 export function SqlEditor(props: SqlEditorProps) {
@@ -126,6 +165,7 @@ export function SqlEditor(props: SqlEditorProps) {
         extensions: [
           actions,
           lineNumbers(),
+          currentStatement,
           highlightActiveLineGutter(),
           history(),
           drawSelection(),

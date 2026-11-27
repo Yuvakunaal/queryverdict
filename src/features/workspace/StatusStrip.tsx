@@ -6,6 +6,8 @@ export interface StatusStripProps {
   readonly engine: EngineSnapshot;
   /** The single status region's text: the latest engine change or announcement (P-082). */
   readonly message: string;
+  /** A BEGIN ran in Run SQL and no COMMIT or ROLLBACK followed (a hint, ARCHITECTURE §11.2). */
+  readonly transactionMayBeOpen?: boolean;
   onRetry(): void;
 }
 
@@ -23,13 +25,18 @@ function toneOf(kind: EngineSnapshot['state']['kind']): Tone {
  * one persistent status region, Retry while the engine has failed, and the session scope. Shows no
  * resource figures: measured counters arrive with operation details in M10.
  */
-export function StatusStrip({ engine, message, onRetry }: StatusStripProps) {
+export function StatusStrip({ engine, message, transactionMayBeOpen, onRetry }: StatusStripProps) {
   const tone = toneOf(engine.state.kind);
   return (
     <footer className="status-strip">
       <span className="engine-glyph" data-tone={tone} aria-hidden="true" />
       <StatusRegion message={message} />
       {engine.state.kind === 'failed' ? <Button className="btn-small" onClick={onRetry}>Retry</Button> : null}
+      {transactionMayBeOpen ? (
+        <span className="status-tx" title="Imports, removals and Analyze are refused while a transaction is open. Run COMMIT or ROLLBACK.">
+          Transaction may be open
+        </span>
+      ) : null}
       <span className="status-scope">Session only · nothing is saved</span>
     </footer>
   );

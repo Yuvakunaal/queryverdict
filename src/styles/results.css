@@ -1,0 +1,215 @@
+/* Query results (M06; UI_SPECIFICATION §4; DESIGN_SYSTEM §4–§5). Existing tokens only. A dense,
+   column-separated grid that scrolls inside the Results view (never the page): sticky headers
+   and row numbers, monospace values, long values ellipsised with a detail button. */
+
+.result-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.result-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--rule) solid var(--border);
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+}
+.result-bar p,
+.result-notes {
+  margin: 0;
+}
+.result-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+.result-counts {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.result-meta {
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  line-height: var(--leading-meta);
+}
+.result-notes {
+  padding-left: var(--space-4);
+  color: var(--warning-text);
+  font-size: var(--text-meta);
+  line-height: var(--leading-meta);
+}
+.result-historical {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+}
+.status-tx {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  white-space: nowrap;
+}
+
+/* Errors: the engine's message as plain text, labelled by phase. */
+.result-error {
+  max-width: 56rem;
+  padding: var(--space-3);
+  border: var(--rule) solid var(--violation-text);
+  border-radius: var(--radius-control);
+  background: var(--violation-bg);
+  color: var(--violation-text);
+  font-size: var(--text-label);
+}
+.result-error p {
+  margin: 0;
+}
+.result-error .muted {
+  margin-top: var(--space-2);
+  color: var(--violation-text);
+}
+.result-error-message {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Grid */
+.result-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface);
+}
+.result-scroll:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+.result-table {
+  /* Widths come from the <colgroup> (computed once per result), so windowed rows never shift them. */
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+}
+.result-table th,
+.result-table td {
+  padding: 0 var(--space-3);
+  border-right: var(--rule) solid var(--border);
+  white-space: nowrap;
+}
+/* One fixed row height: the windowing arithmetic relies on it (values stay on one line). */
+.result-table tbody tr[data-row] > * {
+  height: 1.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.result-table .row-number-col {
+  width: 4.5rem;
+}
+/* `ch` in the column widths resolves against the <col>'s own font: the values' monospace font,
+   the same one the measuring span uses, so the window arithmetic matches the layout. */
+.result-table col {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+}
+.result-table tr.spacer > td,
+.result-table .spacer {
+  padding: 0;
+  border: 0;
+}
+/* Measures the width of one monospace character at the grid's size (column windowing). */
+.result-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  pointer-events: none;
+}
+.result-table thead th {
+  top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
+  border-bottom: var(--rule) solid var(--control-border);
+}
+/* Row numbers stay visible while scrolling sideways. */
+.result-table .row-number {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.result-table thead .row-number {
+  z-index: 2;
+  background: var(--surface-raised);
+}
+.result-table tbody tr:hover > .row-number {
+  background: var(--surface-raised);
+}
+.cell-long {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.cell-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cell-detail {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: var(--rule) solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.cell-detail:hover {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+.token[data-token='unsupported'] {
+  font-style: normal;
+}
+.cell-detail-text {
+  max-height: 50vh;
+  margin: 0;
+  padding: var(--space-3);
+  overflow: auto;
+  border: var(--rule) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 899px) {
+  .result-view {
+    height: auto;
+  }
+  .result-scroll {
+    max-height: 70vh;
+  }
+}

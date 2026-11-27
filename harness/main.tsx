@@ -10,10 +10,12 @@ import { EditorFixture } from './editor';
 import { engineHarness, faults, FaultyDriver } from './engine';
 import './datasets';
 import './verdict';
+import './query';
 import '../src/styles/tokens.css';
 import '../src/styles/base.css';
 import '../src/styles/explorer.css';
 import '../src/styles/workspace.css';
+import '../src/styles/results.css';
 
 /** Module-level fault switch, flipped by the fixture buttons (test-only). */
 const fault = { broken: false };

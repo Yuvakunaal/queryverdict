@@ -3,12 +3,12 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { createEngineRuntime } from '../src/app/bootstrap';
 import { BUNDLES } from '../src/core/engine/bundles';
-import type { EngineDriver, EngineInstance } from '../src/core/engine/driver';
+import { StreamStopError, type EngineDriver, type EngineInstance } from '../src/core/engine/driver';
 import { DUCKDB_OPEN_CONFIG, DuckDBDriver } from '../src/core/engine/duckdb-driver';
 import { escalationProbes, lockdownStatements, verifyLockdown } from '../src/core/engine/lockdown';
 import { EngineSession } from '../src/core/engine/session';
 import { classifyStatement } from '../src/core/engine/statements';
-import type { Lease, OperationBounds, QueryShape, Rows } from '../src/core/engine/types';
+import type { BatchConsumer, Lease, OperationBounds, QueryShape, Rows } from '../src/core/engine/types';
 import { DEFAULT_PROFILE } from '../src/core/profile/profile';
 
 /** Faults toggled by tests; read at the moment each call happens. */
@@ -36,9 +36,14 @@ export interface Faults {
   injectBefore: { match: RegExp; sql: string } | null;
   /** After the first statement matching `match` completes (before its caller sees it), run `action`. One-shot. */
   after: { match: RegExp; action: () => unknown } | null;
+  /**
+   * An early stream stop fails: 'reject' as if the engine rejected the cancel request, 'hang' as
+   * if it never answered. (The rest of the result is drained so the engine stays usable.)
+   */
+  streamStop: 'ok' | 'reject' | 'hang';
 }
 
-export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false, hold: null, injectBefore: null, after: null };
+export const faults: Faults = { boot: 'none', failStatement: null, skipStatement: null, ignoreCancel: false, stallRegister: false, hold: null, injectBefore: null, after: null, streamStop: 'ok' };
 
 /** Every statement sent to a harness engine, in order (the independent probe trace). */
 export const statementLog: string[] = [];
@@ -96,6 +101,41 @@ class FaultyInstance implements EngineInstance {
       });
     }
     return this.inner.run(sql, shape);
+  }
+  /** Streamed statements: logged, held (faults.hold) and failed (faults.failStatement) like run(). */
+  stream(sql: string, consume: BatchConsumer): Promise<void> {
+    if (faults.failStatement === sql) return Promise.reject(new Error('Invalid Input Error: injected failure'));
+    statementLog.push(sql);
+    if (faults.hold?.test(sql)) {
+      return new Promise<void>((resolve, reject) => {
+        const entry = {
+          sql,
+          release: () => {
+            held.splice(held.indexOf(entry), 1);
+            this.inner.stream(sql, consume).then(resolve, reject);
+          },
+          interrupt: () => {
+            held.splice(held.indexOf(entry), 1);
+            reject(new Error('INTERRUPT Error: Interrupted!'));
+          },
+        };
+        this.holding.push(entry);
+        held.push(entry);
+      });
+    }
+    const mode = faults.streamStop;
+    if (mode === 'ok') return this.inner.stream(sql, consume);
+    let stopped = false;
+    return this.inner
+      .stream(sql, (batch, bytes) => {
+        if (!stopped && !consume(batch, bytes)) stopped = true;
+        return true; // drain: the injected failure is in the stop, not in the engine
+      })
+      .then(() => {
+        if (!stopped) return;
+        if (mode === 'reject') throw new StreamStopError('injected: the engine rejected the stop request');
+        return new Promise<void>(() => undefined); // injected: the stop is never answered
+      });
   }
   private holding: { interrupt: () => void }[] = [];
   cancel(): Promise<boolean> {
@@ -182,7 +222,7 @@ export type EngineHarness = typeof engineHarness;
 
 declare global {
   interface Window {
-    __qvHarness?: { engine: EngineHarness; datasets?: import('./datasets').DatasetsHarness; verdict?: import('./verdict').VerdictHarness };
+    __qvHarness?: { engine: EngineHarness; datasets?: import('./datasets').DatasetsHarness; verdict?: import('./verdict').VerdictHarness; query?: import('./query').QueryHarness };
   }
 }
 window.__qvHarness = { engine: engineHarness };

@@ -1,7 +1,7 @@
 // Scripted stand-in engine for deterministic session tests (docs/TESTING_STRATEGY.md §3, §5.7).
-import { ShapeError, type EngineDriver, type EngineInstance } from '../../../src/core/engine/driver';
+import { ShapeError, StreamStopError, type EngineDriver, type EngineInstance } from '../../../src/core/engine/driver';
 import { requiredSettings } from '../../../src/core/engine/lockdown';
-import type { QueryShape, Rows } from '../../../src/core/engine/types';
+import type { BatchConsumer, QueryShape, Rows } from '../../../src/core/engine/types';
 
 export const REPO = 'http://127.0.0.1:4173/queryverdict/duckdb-ext';
 export const never = <T>() => new Promise<T>(() => undefined);
@@ -42,6 +42,30 @@ export class FakeInstance implements EngineInstance {
     if (r === 'stall') return new Promise<Rows>((resolve, reject) => this.pending.push({ sql, resolve, reject }));
     if (r instanceof Error) return Promise.reject(r);
     return Promise.resolve(r ?? []);
+  }
+
+  /** Batches for stream(): a list of (batch, bytes) pairs per statement, or the same outcomes as run(). */
+  streamHandler: (sql: string) => readonly (readonly [unknown, number])[] | Error | 'stall' | undefined = () => undefined;
+
+  /** How an early stream stop behaves: confirmed, rejected or never answered. */
+  stopBehaviour: 'ok' | 'reject' | 'hang' = 'ok';
+  streamStops = 0;
+
+  stream(sql: string, consume: BatchConsumer): Promise<void> {
+    this.calls.push(`STREAM ${sql}`);
+    if (this.terminated) return never();
+    const r = this.streamHandler(sql);
+    if (r === 'stall') return new Promise<void>((_resolve, reject) => this.pending.push({ sql, resolve: () => _resolve(), reject }));
+    if (r instanceof Error) return Promise.reject(r);
+    for (const [batch, bytes] of r ?? []) {
+      if (!consume(batch, bytes)) {
+        this.streamStops += 1;
+        if (this.stopBehaviour === 'reject') return Promise.reject(new StreamStopError('stop rejected'));
+        if (this.stopBehaviour === 'hang') return never();
+        break;
+      }
+    }
+    return Promise.resolve();
   }
 
   private lockdownAnswer(sql: string): Rows | Error | undefined {

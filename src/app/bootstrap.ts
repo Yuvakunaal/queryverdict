@@ -14,6 +14,7 @@ import { createReportStore, type ReportStore } from '../stores/reportStore';
 import { createAnnouncer, followEngine, type Announcer } from '../stores/announcer';
 import { createImportStore, type ImportStore } from '../stores/importStore';
 import { createPreviewStore, type PreviewStore } from '../stores/previewStore';
+import { createQueryStore, type QueryStore } from '../stores/queryStore';
 
 export interface EngineRuntime {
   readonly session: EngineSession;
@@ -28,6 +29,8 @@ export interface EngineRuntime {
   readonly imports: ImportStore;
   readonly preview: PreviewStore;
   readonly announcer: Announcer;
+  /** Run SQL (M06): the latest query run and its bounded result. */
+  readonly queries: QueryStore;
   readonly profile: ReleaseProfile;
   /** Starts (or retries) the engine; failures are reflected in the engine store, never thrown. */
   start(): void;
@@ -50,6 +53,7 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
     announcer.announce(`Import finished: ${parts.join(', ')}.`);
   });
   const preview = createPreviewStore(session, profile);
+  const queries = createQueryStore(session, profile, announcer);
   if (typeof document !== 'undefined') {
     // Timers are throttled in background tabs; apply overdue deadlines when the tab is visible again.
     document.addEventListener('visibilitychange', () => {
@@ -66,6 +70,7 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
     imports,
     preview,
     announcer,
+    queries,
     profile,
     start() {
       const kind = session.state.kind;

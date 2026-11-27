@@ -11,11 +11,11 @@ import { TIMEOUT, within } from '../util/time';
 import { MAX_TIMER_MS } from '../profile/profile';
 import { newOperationId } from '../operations/ids';
 import { QUALIFIED_DUCKDB_VERSION } from './bundles';
-import type { EngineDriver, EngineInstance } from './driver';
+import { StreamStopError, type EngineDriver, type EngineInstance } from './driver';
 import { errorText, terminalFor, toEngineError } from './errors';
 import { lockdownStatements, verifyLockdown } from './lockdown';
 import type {
-  BootInfo, DataEpoch, Generation, Lease, OperationBounds, OperationHandle, OperationId, OperationKind,
+  BatchConsumer, BootInfo, DataEpoch, Generation, Lease, OperationBounds, OperationHandle, OperationId, OperationKind,
   OperationResult, QueryShape, Rows, SessionEvent, SessionState, Terminal,
 } from './types';
 
@@ -72,11 +72,18 @@ class LeaseImpl implements Lease {
   inflight: { readonly settled: Promise<void>; readonly cancellable: boolean } | null = null;
   /** Session-owned cleanups, run newest first when the operation ends without running them. */
   readonly deferred: DeferredCleanup[] = [];
+  /**
+   * A streamed result was stopped early but the engine did not confirm the stop within the cancel
+   * grace (or rejected it): the connection's state is unknown and the session restarts the engine
+   * when the operation ends, as for an unconfirmed cleanup.
+   */
+  streamStopUnconfirmed = false;
 
   constructor(
     readonly id: OperationId,
     readonly generation: Generation,
     private readonly instance: EngineInstance,
+    private readonly stopGraceMs: number,
   ) {}
 
   get signal(): AbortSignal {
@@ -112,6 +119,29 @@ class LeaseImpl implements Lease {
 
   query(sql: string, shape: QueryShape): Promise<Rows> {
     return this.call((i) => i.run(sql, shape), true);
+  }
+
+  stream(sql: string, consume: BatchConsumer): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let expire: (e: Error) => void = () => undefined;
+    const stopDeadline = new Promise<never>((_, reject) => {
+      expire = reject;
+    });
+    const unconfirmed = () => new StreamStopError('the engine did not confirm within its cancel grace that the result stream stopped');
+    return this.call((i) => {
+      // A batch arriving after revocation is never handed to the consumer. When the consumer
+      // stops the stream, the engine must confirm the stop within the cancel grace.
+      const running = i.stream(sql, (batch, bytes) => {
+        if (this.revoked) return false;
+        const more = consume(batch, bytes);
+        if (!more && timer === undefined) timer = setTimeout(() => expire(unconfirmed()), this.stopGraceMs);
+        return more;
+      });
+      return Promise.race([running, stopDeadline]).catch((e: unknown) => {
+        if (e instanceof StreamStopError) this.streamStopUnconfirmed = true;
+        throw e;
+      });
+    }, true).finally(() => clearTimeout(timer));
   }
 
   prepareCheck(sql: string): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -365,7 +395,7 @@ export class EngineSession {
     rec.phase = 'active';
     rec.generation = this._generation as Generation;
     rec.runDeadline = this.now() + rec.bounds.runMs;
-    const lease = new LeaseImpl(rec.id, rec.generation, instance);
+    const lease = new LeaseImpl(rec.id, rec.generation, instance, rec.bounds.cancelGraceMs);
     rec.lease = lease;
     this.active = rec;
     this.setState({ kind: 'busy', op: rec.id });
@@ -428,6 +458,12 @@ export class EngineSession {
       }
     }
     if (this.active !== rec || isSettled(rec)) return;
+    if (!cleanupFailed && lease?.streamStopUnconfirmed) {
+      this.settle(rec, terminal.status === 'cancelled' ? { ...terminal, stop: 'terminated' } : { status: 'error', phase: 'engine', message: 'the engine did not confirm that a result stream stopped; the engine was restarted' });
+      this.active = null;
+      this.invalidate('a result stream could not be confirmed stopped');
+      return;
+    }
     if (cleanupFailed) {
       this.settle(rec, terminal.status === 'cancelled' ? { ...terminal, stop: 'terminated' } : { status: 'error', phase: 'engine', message: 'cleanup could not be confirmed; the engine was restarted' });
       this.active = null;
