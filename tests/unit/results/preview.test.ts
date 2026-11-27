@@ -36,7 +36,7 @@ describe('previewTable', () => {
       [{ kind: 'text', text: '1', truncated: false }, { kind: 'null' }],
       [{ kind: 'text', text: '2', truncated: false }, { kind: 'text', text: 'x'.repeat(500), truncated: true }],
     ]);
-    expect(r.value?.truncation).toEqual({ rows: false, columns: null, cells: 1, display: false });
+    expect(r.value?.truncation).toEqual({ rows: false, columns: null, cells: 1, display: false, bytes: false });
   });
 
   it('Codex reproduction: with a 32-byte budget nothing is read and the preview is refused with the reason', async () => {

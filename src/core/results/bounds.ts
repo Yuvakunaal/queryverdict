@@ -46,4 +46,4 @@ export function toCellText(raw: string | null, cellChars: number): CellText {
   return { kind: 'text', text: chars.slice(0, cellChars).join(''), truncated: true };
 }
 
-export const cellLength = (c: CellText) => (c.kind === 'null' ? 0 : c.text.length);
+export const cellLength = (c: CellText) => (c.kind === 'text' ? c.text.length : 0);
