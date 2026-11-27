@@ -4,9 +4,9 @@
 
 ## Current phase
 
-**Implementation (Phase 7).** M01 (PR #7) and M02 (PR #8) are merged. M03 File Ingestion and Dataset Registry is committed on `feat/file-ingestion` (PR #9, open, not merged). **M08 Verdict Analysis Engine (headless) is implemented on `feat/verdict-engine` and awaiting independent Codex review**; nothing of M08 is committed. M08 was started on the maintainer's M08 implementation instruction of 2026-11-26. Because M08 depends on M03 and PR #9 is unmerged, the maintainer chose (2026-11-26) to fast-forward `feat/verdict-engine` onto `origin/feat/file-ingestion` and to use the P-069 transaction check in Verdict. The governing specifications are still *Proposed*; M08 implements them and lists its decisions for approval (P-073…P-078). Research spikes remain under `spikes/` (and the `spike/sql-analysis` branch) and are excluded from the production build.
+**Implementation (Phase 7).** M01 (PR #7), M02 (PR #8), M03 (PR #9) and M08 (PR #10) are merged. **M04 Dataset Explorer and Inspector is implemented on `feat/dataset-explorer` and awaiting independent Codex review**; nothing of M04 is committed. M04 was started on the maintainer's M04 implementation instruction of 2026-11-27. The governing specifications are still *Proposed*; M04 implements them and lists its decisions for approval (P-079…P-083). Research spikes remain under `spikes/` and are excluded from the production build.
 
-Last updated: 2026-11-26 (system clock; earlier entries are dated 2026-11-27)
+Last updated: 2026-11-27
 
 ## Status summary
 
@@ -24,8 +24,8 @@ Last updated: 2026-11-26 (system clock; earlier entries are dated 2026-11-27)
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | M01 (PR #7) and M02 (PR #8) merged; M03 committed, PR #9 open. M08 implemented on `feat/verdict-engine` (uncommitted, awaiting Codex review): headless Verdict analyser (lossless parser adapter, strict recogniser, catalog eligibility, single budget gate, validated join probes, expectations, findings, publication fence, report store), wired into the runtime without UI. No explorer UI, editor, results grid or Verdict UI yet |
-| Tests | **Production (M08 branch, local, 2026-11-26):** 298 Vitest unit tests (154 Verdict), 7 Python oracle tests, and 333 Playwright tests (111 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2), including 49 Verdict browser tests per browser (155 oracle cases, parser corpus, adversarial, snapshot, budget and fence suites); repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices clean; fixtures regenerate byte-identically; Verdict mutation checks 24 of 24 caught. Earlier modules: M03 import/registry and M02 session mutation checks caught.|
+| Application code | M01, M02, M03 and M08 merged. M04 implemented on `feat/dataset-explorer` (uncommitted, awaiting Codex review): datasets sidebar (drawer below 900 px), accessible import dialog, schema-first inspector with an explicit bounded preview (`src/core/results`, for M06 reuse), dataset actions (preview, schema, copy name, remove with confirmation, re-import, choose file again). No SQL editor, results grid or Verdict UI yet |
+| Tests | **Production (M04 branch after the Codex M04 review, local, 2026-11-27):** 326 Vitest unit tests, 7 Python oracle tests, and 387 Playwright tests (129 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2) including 18 explorer tests per browser; axe in Chromium and WebKit for the explorer states (Firefox axe skipped in the explorer suite, P-083); repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices clean. Earlier: Verdict 24/24, M03 and M02 mutation checks caught.|
 | CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
@@ -370,11 +370,102 @@ Branch `feat/verdict-engine` (fast-forwarded onto `origin/feat/file-ingestion`, 
   - an independent review of the oracle.
 - **Decisions for approval:** P-073 (architecture), P-074 (budget semantics), P-075 (witness probes), P-076 (findings and statuses), P-077 (recogniser boundary, self-joins, P-069 in Verdict), P-078 (expectation validation).
 
+### 2026-11-27: M04 Dataset Explorer and Inspector implemented (Claude Code)
+
+Branch `feat/dataset-explorer` (from `main` at PR #10; no commits; awaiting Codex review). Scope as in IMPLEMENTATION_PLAN.md § M04.
+
+- **Built:**
+  - `src/features/explorer/`: explorer layout and drawer, dataset tree, import dialog, inspector with the Schema and Preview tabs, dataset actions with remove confirmation, and pure `model.ts`.
+  - `src/ui/`: Tree (disclosure list), Badge, FileInput (native picker plus drop zone), Table (NULL and empty-string tokens, cut-text markers, focusable scroll region), Tabs, and a wide Dialog variant.
+  - `src/core/results/`: bounded result types, limit planning and the `preview` operation.
+  - `src/stores/`: `importStore`, `previewStore`, `announcer`.
+  - Runtime wiring in `bootstrap.ts`; App shell with the explorer; styles in `src/styles/explorer.css` (tokens only).
+  - A harness `?view=app` view (real App, runtime exposed, optional import limits); test-only.
+  - `OperationKind` gains `preview`. No new dependencies.
+- **Behaviour:**
+  - Every registry state has a text label: Ready, Importing (from the importer's progress), Needs re-import, Removed by SQL, Changed, Failed. Origins are Imported, Created by SQL, Demo.
+  - Selection, disclosure and tab switches never start engine work; a preview starts only on **Preview** / **Preview first rows** (verified from the driver's statement trace). Previews are bounded by the engine and stale after any data, engine or identity change (P-080).
+  - Import review previews the M03 admission and naming rules; the importer remains authoritative (P-081).
+  - The single status region announces outcomes (P-082).
+- **Verification:**
+  - check:repo, typecheck, lint and boundary check exit 0;
+  - Vitest 319/319; Python oracle OK;
+  - build OK, `check-artifact` clean (11 files, 87,199,458 bytes; app JS 542 KB, 153 KB gzip; CSS 15.5 KB);
+  - harness build OK; notices unchanged; `npm audit` 0 vulnerabilities;
+  - Playwright 375/375 in three browsers.
+  - UX-002 is demonstrated keyboard-only in the production build. Option+Tab in WebKit is a Safari platform default.
+- **Defects found and fixed during M04:**
+  - focus was not restored after removal in WebKit;
+  - focus returned to a removed opener after the first import;
+  - the layout did not fill the window;
+  - the engine-internal virtual path appeared in import errors;
+  - duplicated "file the file" wording.
+- **Known issue (P-083):** Playwright's Firefox 159 build crashes the page's content process in some test-tool operations (axe in certain explorer states; a synthetic drop resolved by text inside the modal). Root cause not determined. Functional tests pass in Firefox; axe for the explorer runs in Chromium and WebKit.
+- **Limitations:**
+  - After a later import or any data change, earlier row counts show as "Not measured" (the M03 registry withholds counts from an older epoch, P-071).
+  - Views cannot be previewed.
+  - "Removal of a table referenced by the current query" and "editor text preserved" (UX-002) cannot be shown until the M05 editor exists.
+  - 200 % zoom is covered by narrow-viewport emulation (800 px and 320 px), not by actual browser zoom.
+- **Not verified:** VoiceOver and NVDA (not run; no assistive-technology session was available to the implementer), real Safari, real Firefox outside Playwright, forced-colours mode, real GitHub Pages.
+
+
+### 2026-11-27: M04 corrections after the Codex review, and visual pass (Claude Code)
+
+Codex review: CHANGES REQUIRED (3 HIGH, 3 MEDIUM, 1 LOW, all reproduced). All seven corrected (P-084), each with a regression test:
+
+- **HIGH, Remove dropped the wrong table when two schemas shared a name.** Removal now carries the exact identity of the selected entry and re-checks it inside the operation; a bare ambiguous name is refused. Shared names are shown with `database.schema` and copied fully qualified. Real-engine test: `aaa.same` and `bbb.same`; selecting `bbb` drops only `bbb`.
+- **HIGH, the combined import limit was bypassed by overlapping batches and by re-import.** It is now enforced inside each import operation, before registration, against what the engine holds (P-081). Stand-in tests (overlap, re-import after restart) and a real-engine UI test (10-byte limits, two 8-byte files, held first import, then a re-import) pass; removing the check makes the stand-in tests fail.
+- **HIGH, Preview exceeded the Arrow byte budget.** The planner now counts the sentinel row and Arrow overhead, can plan zero rows, and reduces columns. The driver enforces `maxBytes` on Arrow buffers before conversion and on converted text (P-080). Real-engine test: a 32-byte budget reads nothing and explains why; the driver refuses an over-budget result.
+- **MEDIUM, Cancel and outcomes were lost after closing the dialog.** Batches stay until dismissed, the dialog reopens on their progress, and the sidebar offers **Show import progress**; `File`s are released once imported. Tested through the UI.
+- **MEDIUM, nullability was discarded.** The registry decodes DuckDB's BOOLEAN `is_nullable`; the schema shows Nullable Yes/No. Real-engine test.
+- **MEDIUM, focus was lost.** Starting an import focuses **Import progress**; selecting in the narrow drawer focuses the inspector heading. The UX-002 test now walks the whole path by keyboard with no programmatic focus between steps (Option+Tab in WebKit, a Safari default).
+- **LOW, a blank name silently fell back to the default.** It is now an error.
+- **Wording:** "unordered preview" with the limits actually enforced; P-080 no longer claims no large value is materialised (CAST before `left()` is documented).
+
+**Visual pass (existing tokens only; no dependencies, gradients or animation):**
+- compact 30 px sidebar rows, with selection shown by a 2 px accent bar plus raised background (Codex measured the old selection at 1.12:1);
+- a dataset count;
+- an inspector title bar with one metadata line instead of a four-column fact grid;
+- 28 px secondary actions, with Remove as a quiet destructive action set apart;
+- one **Refresh** in the preview bar instead of repeated "Preview again" buttons;
+- tables with sticky headers, row hover, and right-aligned tabular numerics;
+- an import dialog with an integrated drop area, inline table-name fields and a footer bar.
+
+**Second visual pass (maintainer feedback on the sidebar disclosure arrow):**
+- the text arrow glyph is replaced by a 12 px stroked SVG chevron that rotates 90° when expanded, with a 120 ms transition only under `prefers-reduced-motion: no-preference`;
+- 20 px toggle target with hover state; tree focus rings drawn inset so they are not clipped;
+- expanded details indented under a guide line aligned with the chevron;
+- fixed a 16 px horizontal page overflow at 390 px caused by screen-reader text inside NULL tokens (`.table-scroll` now contains it); verified with scrollWidth 390;
+- numeric cells no longer wrap;
+- the schema table has a hidden caption and no row numbers;
+- the inspector metadata is spaced with gaps instead of "·" separators;
+- at desktop sizes the sidebar and the inspector scroll independently.
+
+Checked in light and dark themes from 2× screenshots.
+
+Recommendations that would change the design system are recorded for M14 (P-085), not applied.
+
+**Verification after both visual passes (same commands, rerun):**
+- check:repo, typecheck, lint and boundary check exit 0;
+- Vitest 326/326; Python oracle OK;
+- build OK, `check-artifact` clean (11 files, 87,208,340 bytes; CSS 19.6 KB);
+- harness build OK; notices unchanged; `npm audit` 0 vulnerabilities;
+- Playwright 387/387 in three browsers (10.4 min).
+
+**Verification after corrections (before the second visual pass):**
+- check:repo, typecheck, lint and boundary check exit 0;
+- Vitest 326/326; Python oracle OK;
+- build OK, `check-artifact` clean (11 files, 87,207,359 bytes; app JS 546 KB, 155 KB gzip; CSS 18.8 KB);
+- harness build OK; notices unchanged; `npm audit` 0 vulnerabilities;
+- Playwright 387/387 in three browsers.
+
+**UX-002 status:** the keyboard path from picker to inspector, invalid files, mixed outcomes, duplicate names, removal and post-restart re-import are verified in three Playwright browsers. Editor-text preservation, and removal of a table used by the current query, await M05. Full UX-002 therefore remains partially verified.
+
+**Still not verified:** VoiceOver and NVDA, actual 200 % browser zoom (narrow-viewport emulation only), forced colours, standalone Firefox and Safari, live Pages. Arrow wire size and peak memory of a preview are bounded by construction and the driver check, not measured.
+
 ## Next steps
 
-1. Merge M03 (PR #9) after its review, then rebase `feat/verdict-engine` onto `main`.
-2. Independent Codex review of M08 (`feat/verdict-engine`). In particular, verify the QV-SA-001/002 evidence before any status changes. Then a maintainer-approved commit, PR and merge.
-3. Maintainer decisions:
-   - for M08: P-073…P-078; P-069 (an ARCHITECTURE §10.3/§12.4 amendment, now also used by Verdict); the M02 `Lease.cleanup` hazard;
-   - still open: P-063…P-068, P-070…P-072; AM-001…AM-022; specification approvals; licence and AM-022.
-4. Next module per the plan: **M04** (only on the maintainer's instruction).
+1. Codex re-review of M04 (`feat/dataset-explorer`) after the corrections; then maintainer-approved commit, PR and merge.
+2. Maintainer decisions: P-079…P-085 (P-083 also needs a decision on the Firefox axe gap); still open: P-063…P-078 and P-069; AM-001…AM-022; specification approvals; licence and AM-022.
+3. Manual checks for M04 field 16: VoiceOver (Safari) and NVDA (Firefox or Chrome) over the tree and dialog; real browser zoom at 200 %.
+4. Next module per the plan: **M05** (only on the maintainer's instruction).
