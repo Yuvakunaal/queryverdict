@@ -71,6 +71,13 @@ class Registry implements DatasetRegistry, ImportRecorder {
 
   /** Records a committed import, then reads the catalog so the returned entry reflects it. */
   async record(t: TrackedImport): Promise<DatasetEntry> {
+    // The import's only change was creating its own table: counts that were exact just before it
+    // are still exact. Anything else that changed data in between leaves them hidden.
+    if (t.epochBefore !== undefined) {
+      for (const [k, other] of this.tracked) {
+        if (other.generation === t.generation && other.rowCountEpoch === t.epochBefore) this.tracked.set(k, { ...other, rowCountEpoch: t.rowCountEpoch });
+      }
+    }
     this.tracked.set(t.relation.toLowerCase(), t);
     await this.reconcile();
     // If the catalog could not be read (engine replaced meanwhile), report what was imported

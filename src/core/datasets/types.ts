@@ -101,6 +101,12 @@ export interface TrackedImport {
   readonly generation: Generation;
   readonly rowCount: string;
   readonly rowCountEpoch: DataEpoch;
+  /**
+   * The data epoch just before this import's own change (read inside its exclusive lease). The
+   * import only creates its new table, so other tables' counts measured at exactly this epoch are
+   * still exact afterwards (registry.record carries them forward).
+   */
+  readonly epochBefore?: DataEpoch;
   /** Set when a re-import failed; cleared by a successful one. */
   readonly failure?: string;
 }

@@ -57,6 +57,32 @@ test.describe('dataset registry (M03)', () => {
     expect(by(e, 'people')?.rowCount).toBeUndefined();
   });
 
+  test('importing another file keeps earlier row counts (an import only creates its own table); a later SQL change still hides them', async ({ page }) => {
+    await open(page);
+    const e = await page.evaluate(async (data) => {
+      const D = window.__qvHarness!.datasets!;
+      const { datasets } = D.current();
+      for (const name of ['a.csv', 'b.csv', 'c.csv']) await datasets.importer.import([{ file: D.file(name, data) }]).handles[0]!.result;
+      // Three files in one batch as well.
+      const batch = datasets.importer.import([{ file: D.file('d.csv', data) }, { file: D.file('e.csv', data) }]);
+      for (const h of batch.handles) await h.result;
+      await datasets.registry.reconcile();
+      return datasets.registry.getSnapshot() as unknown as Entry[];
+    }, PEOPLE);
+    expect(['a', 'b', 'c', 'd', 'e'].map((n) => by(e, n)?.rowCount)).toEqual(['4', '4', '4', '4', '4']);
+    const after = await sqlThenReconcile(page, ['INSERT INTO a SELECT * FROM a']);
+    expect(['a', 'b', 'e'].map((n) => by(after, n)?.rowCount)).toEqual([undefined, undefined, undefined]);
+    // A change before the next import is not carried forward: only counts exact just before an import survive it.
+    const later = await page.evaluate(async (data) => {
+      const D = window.__qvHarness!.datasets!;
+      const { datasets } = D.current();
+      await datasets.importer.import([{ file: D.file('f.csv', data) }]).handles[0]!.result;
+      await datasets.registry.reconcile();
+      return datasets.registry.getSnapshot() as unknown as Entry[];
+    }, PEOPLE);
+    expect(['a', 'f'].map((n) => by(later, n)?.rowCount)).toEqual([undefined, '4']);
+  });
+
   test('the row count is reported while the data epoch is unchanged', async ({ page }) => {
     await open(page);
     await importPeople(page);

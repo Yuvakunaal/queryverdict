@@ -127,6 +127,7 @@ export class FileImporter implements Importer {
     // session owns the ROLLBACK (then drops the file) and replaces the engine if it cannot confirm
     // it, so a failed import never leaves a transaction or table behind.
     await beginOwnTransaction(lease, 'importing');
+    let epochBefore: DataEpoch | null = null;
     try {
       await lease.query(`CREATE TABLE ${quoteIdent(relation)} AS SELECT * FROM ${readerSql(format, path)}`, { maxRows: 10 });
       set('committing', { relation });
@@ -134,6 +135,7 @@ export class FileImporter implements Importer {
       lease.forgetCleanup('ROLLBACK');
     } finally {
       // Data visible to diagnostics may have changed (or a failed import was rolled back).
+      epochBefore = this.session.epoch as DataEpoch;
       this.session.markDataChanged();
     }
     await lease.dropFile(path);
@@ -150,6 +152,7 @@ export class FileImporter implements Importer {
       generation: lease.generation as Generation,
       rowCount: count?.[0] ?? '0',
       rowCountEpoch: this.session.epoch as DataEpoch,
+      ...(epochBefore !== null ? { epochBefore } : {}),
     };
     return { tracked };
   }
