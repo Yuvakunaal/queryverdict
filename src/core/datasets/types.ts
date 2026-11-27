@@ -56,7 +56,12 @@ export interface Importer {
 export interface DatasetRegistry extends Store<readonly DatasetEntry[]> {
   /** Re-reads the catalog and publishes entries (only if the engine state did not change meanwhile). */
   reconcile(): Promise<void>;
-  remove(relation: string): OperationHandle<void>;
+  /**
+   * Removes one dataset. `target` names the exact entry (origin, database, schema, oid); without
+   * it the name must be unambiguous. The object's identity is re-checked inside the operation, so
+   * a table replaced after selection is refused, never dropped.
+   */
+  remove(relation: string, target?: { readonly origin: DatasetOrigin; readonly database: string; readonly schema: string; readonly oid: string }): OperationHandle<void>;
   reimport(relation: string): OperationHandle<DatasetEntry>;
 }
 

@@ -4,7 +4,7 @@ export type Generation = number & { readonly __brand: 'Generation' };
 export type DataEpoch = number & { readonly __brand: 'DataEpoch' };
 export type OperationId = string & { readonly __brand: 'OperationId' };
 
-export type OperationKind = 'query' | 'import' | 'remove' | 'reimport' | 'verdict' | 'catalog';
+export type OperationKind = 'query' | 'import' | 'remove' | 'reimport' | 'verdict' | 'catalog' | 'preview';
 
 export type SessionState =
   | { readonly kind: 'idle' }
@@ -58,6 +58,12 @@ export interface QueryShape {
   readonly columns?: number;
   readonly maxRows: number;
   readonly exactRows?: number;
+  /**
+   * Byte budget for the result: the Arrow buffers of the received batches (checked before any
+   * cell of a batch is converted) and the UTF-8 bytes of the converted text (checked per cell).
+   * Exceeding it fails the call; a truncated result is never returned.
+   */
+  readonly maxBytes?: number;
 }
 
 export type Cell = string | null;

@@ -12,6 +12,8 @@ export interface DialogProps {
    * focused before opening" can be <body>.
    */
   returnFocus: RefObject<HTMLElement | null>;
+  /** Wider layout for content such as file lists. */
+  wide?: boolean;
   children: ReactNode;
 }
 
@@ -20,7 +22,7 @@ export interface DialogProps {
  * the title, focus containment and Escape from the platform, explicit initial focus, and focus
  * returned to `returnFocus` on every kind of dismissal (button, Escape, pointer).
  */
-export function Dialog({ open, title, onClose, initialFocus, returnFocus, children }: DialogProps) {
+export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -47,7 +49,7 @@ export function Dialog({ open, title, onClose, initialFocus, returnFocus, childr
   }, [onClose, returnFocus]);
 
   return (
-    <dialog ref={ref} className="dialog" aria-labelledby={titleId}>
+    <dialog ref={ref} className="dialog" data-size={wide ? 'wide' : undefined} aria-labelledby={titleId}>
       <div className="dialog-body">
         <h2 id={titleId} className="dialog-title">
           {title}

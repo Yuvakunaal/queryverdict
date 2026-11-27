@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { Explorer } from '../features/explorer/Explorer';
 import { Button } from '../ui/Button';
 import { StatusRegion } from '../ui/StatusRegion';
 import type { UiPrefsStore } from '../stores/uiPrefsStore';
@@ -24,25 +25,32 @@ export function App({ prefs, runtime }: { prefs: UiPrefsStore; runtime: EngineRu
 
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
+  // One status region: it shows whichever happened last, an engine status change or an
+  // announcement (import finished, table removed, name copied …).
+  const announcement = useSyncExternalStore(runtime.announcer.subscribe, runtime.announcer.getSnapshot);
+  const status = announcement?.message ?? statusText(engine);
+
   return (
     <div className="app">
       <a className="skip-link" href="#workspace" onClick={(e) => { e.preventDefault(); main.current?.focus(); }}>
         Skip to workspace
       </a>
       <header className="app-header">
-        <p className="wordmark">QueryVerdict</p>
+        <p className="wordmark">
+          QueryVerdict <span className="header-context">Local workspace</span>
+        </p>
         <Button ref={settingsButton} variant="quiet" onClick={() => setSettingsOpen(true)} aria-haspopup="dialog">
           Settings
         </Button>
       </header>
       <main id="workspace" ref={main} tabIndex={-1} className="app-main">
         <ErrorBoundary label="Workspace content">
-          <h1>Workspace</h1>
-          <p className="muted">The workspace is being built. Datasets, the SQL editor and Verdict arrive in later modules.</p>
+          <h1 className="visually-hidden">Workspace</h1>
+          <Explorer runtime={runtime} />
         </ErrorBoundary>
       </main>
       <footer className="status-strip">
-        <StatusRegion message={statusText(engine)} />
+        <StatusRegion message={status} />
         {engine.state.kind === 'failed' ? (
           <Button onClick={() => runtime.start()}>Retry</Button>
         ) : null}

@@ -7,6 +7,7 @@ import { ConfigurationError } from './core/util/errors';
 import { browserDarkSchemeQuery, createUiPrefsStore } from './stores/uiPrefsStore';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/explorer.css';
 
 // Singletons are created once per page, outside React, so StrictMode's double mount cannot
 // create duplicates (docs/ARCHITECTURE.md §6.2).
