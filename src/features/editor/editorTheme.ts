@@ -62,6 +62,8 @@ const theme = EditorView.theme({
   },
   '&.cm-focused .cm-activeLineGutter': { backgroundColor: 'var(--surface-raised)', color: 'var(--text)' },
   '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+  // The statement Run SQL would execute (decorative; P-097).
+  '.cm-lineNumbers .cm-gutterElement.cm-statement-line': { boxShadow: 'inset 2px 0 0 var(--action)' },
   '.cm-placeholder': { color: 'var(--text-muted)' },
   '.cm-cursor, .cm-dropCursor': { borderLeft: '2px solid var(--text)', marginLeft: '-1px' },
   // Same specificity as CodeMirror's base theme, so these win over its defaults. The strengths

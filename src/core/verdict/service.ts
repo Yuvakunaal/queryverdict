@@ -241,6 +241,8 @@ class Analysis {
     return {
       id: l.id, generation: l.generation, signal: l.signal,
       query: (sql, shape) => this.run.query('transaction-check', FREE, sql, shape),
+      // Every Verdict statement goes through the budgeted probe runner; nothing streams around it.
+      stream: () => Promise.reject(new RefusedError('Verdict probes do not stream results')),
       prepareCheck: (sql) => l.prepareCheck(sql), deferCleanup: (sql) => l.deferCleanup(sql), deferDropFile: (n) => l.deferDropFile(n),
       forgetCleanup: (sql) => l.forgetCleanup(sql), cleanup: (sql) => l.cleanup(sql), registerFile: (n, f) => l.registerFile(n, f), dropFile: (n) => l.dropFile(n),
     };

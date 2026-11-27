@@ -43,7 +43,7 @@ async function body(lease: Lease, session: EngineSession, target: PreviewTarget,
   const all: ResultColumn[] = cols.map((r) => ({ name: r[0] ?? '', type: r[1] ?? '' }));
   const limits = planLimits(all.length, profile.results);
   if (!all.length) {
-    return { columns: [], rows: [], truncation: { rows: false, columns: null, cells: 0, display: false }, limits, stamp };
+    return { columns: [], rows: [], truncation: { rows: false, columns: null, cells: 0, display: false, bytes: false }, limits, stamp };
   }
   if (limits.rows === 0 || limits.columns === 0) {
     throw new RefusedError(`The configured preview byte budget (${profile.results.maxArrowBytes} bytes) is too small to show one row of this table. Nothing was read.`);
@@ -69,7 +69,7 @@ async function body(lease: Lease, session: EngineSession, target: PreviewTarget,
   return {
     columns: shown,
     rows,
-    truncation: { rows: raw.length > limits.rows, columns: all.length > shown.length ? { shown: shown.length, total: all.length } : null, cells, display },
+    truncation: { rows: raw.length > limits.rows, columns: all.length > shown.length ? { shown: shown.length, total: all.length } : null, cells, display, bytes: false },
     limits,
     stamp,
   };

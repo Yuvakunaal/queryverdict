@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MutableRefObject, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent, type MutableRefObject } from 'react';
 import type { EngineRuntime } from '../../app/bootstrap';
 import type { OutputView, QueryRequest, WorkspaceStore } from '../../stores/workspaceStore';
 import { Button } from '../../ui/Button';
@@ -8,15 +8,17 @@ import { LANGUAGE_LABEL } from '../editor/editorTheme';
 import { SqlEditor, type CursorPosition } from '../editor/SqlEditor';
 import { EDITOR_PANEL_ID, EDITOR_TITLE_ID, Layout, NARROW_QUERY, OUTPUT_PANEL_ID, useMediaQuery } from './Layout';
 import { detectPlatform, keyLabel, shortcutFor } from './shortcuts';
+import { ResultsPanel } from '../results/ResultsPanel';
+import { isActive, type QueryState } from '../../stores/queryStore';
+import { splitStatements, statementAt } from '../../core/query/sqlText';
 
 /**
- * What Run SQL and Analyze do with the current query. M05 provides the actions and their
- * keyboard bindings only: SQL execution arrives in M06 and the Verdict view in M09, which supply
- * their own implementations here. Until then the workspace says plainly that nothing was run.
+ * What Analyze does with the current query. Run SQL is connected to the query runner (M06); the
+ * Verdict view arrives in M09, which supplies `analyze` here. Until then the workspace says
+ * plainly that nothing was analyzed.
  */
 export interface QueryActions {
-  run(request: QueryRequest): void;
-  analyze(request: QueryRequest): void;
+  analyze?(request: QueryRequest): void;
 }
 
 export const EDITOR_INPUT_ID = 'sql-editor-input';
@@ -32,7 +34,6 @@ const OUTPUT_TABS: readonly { id: OutputView; label: string }[] = [
 ];
 
 export const NOT_CONNECTED = {
-  run: 'Run SQL is not available in this version yet. Your query was not sent to the engine.',
   analyze: 'Analyze is not available in this version yet. Nothing was analyzed.',
   empty: 'The editor is empty. Write a query first.',
 } as const;
@@ -61,9 +62,26 @@ export interface WorkspaceProps {
 
 export function Workspace({ runtime, workspace, actions, focusEditorRef }: WorkspaceProps) {
   const state = useSyncExternalStore(workspace.subscribe, workspace.getSnapshot);
+  const query = useSyncExternalStore(runtime.queries.subscribe, runtime.queries.getSnapshot);
+  const running = isActive(query.state);
+  // When a run ends, Cancel disappears; if it had focus, focus moves to Run SQL instead of the page.
+  const runButton = useRef<HTMLButtonElement>(null);
+  const wasRunning = useRef(running);
+  useEffect(() => {
+    if (wasRunning.current && !running && (document.activeElement === document.body || document.activeElement === null)) runButton.current?.focus();
+    wasRunning.current = running;
+  }, [running]);
+  // A shown result becomes historical once the editor text no longer matches its SQL.
+  useEffect(() => runtime.queries.noteEditorText(state.sql), [runtime.queries, state.sql]);
   const narrow = useMediaQuery(NARROW_QUERY);
   const [narrowView, setNarrowView] = useState<NarrowView>('editor');
-  const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1, selected: 0 });
+  const [cursor, setCursor] = useState<CursorPosition>({ line: 1, column: 1, selected: 0, from: 0, to: 0, head: 0 });
+  // The editor's selection at the moment of Run (read in the action, not rendered).
+  const selection = useRef<CursorPosition | null>(null);
+  const onCursor = useCallback((c: CursorPosition) => {
+    selection.current = c;
+    setCursor(c);
+  }, []);
   const platform = useMemo(() => detectPlatform(), []);
   const runKeys = shortcutFor(platform, 'Run SQL');
   const analyzeKeys = shortcutFor(platform, 'Analyze');
@@ -85,12 +103,21 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
       const sql = workspace.getSnapshot().sql;
       const request = workspace.request(kind, sql);
       // Narrow screens keep the editor (and focus) where it is; the status region reports the outcome.
-      const impl = actions?.[kind];
+      // Run SQL (Snowflake-style, P-097): a selection runs every statement in it; otherwise the
+      // statement at the cursor runs. The runner refuses an empty set itself, with nothing run.
+      if (kind === 'run') {
+        const sel = selection.current;
+        const picked = sel && sel.to > sel.from ? splitStatements(sql.slice(sel.from, sel.to)).map((x) => x.text) : [statementAt(sql, sel?.head ?? sql.length)?.text].filter((x): x is string => !!x);
+        // An empty editor is reported as such (the runner refuses it with nothing run).
+        const statements = picked.length || sql.trim() !== '' ? picked : [sql];
+        return runtime.queries.run(statements, sql);
+      }
+      const impl = actions?.analyze;
       if (sql.trim() === '') announcer.announce(NOT_CONNECTED.empty);
       else if (impl) impl.call(actions, request);
-      else announcer.announce(NOT_CONNECTED[kind]);
+      else announcer.announce(NOT_CONNECTED.analyze);
     },
-    [workspace, actions, announcer],
+    [workspace, actions, announcer, runtime.queries],
   );
   const run = useCallback(() => submit('run'), [submit]);
   const analyze = useCallback(() => submit('analyze'), [submit]);
@@ -172,7 +199,12 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         <Button className="btn-compact" onClick={analyze} aria-keyshortcuts={analyzeKeys.aria} title={`Analyze (${keyLabel(analyzeKeys)})`}>
           Analyze
         </Button>
-        <Button className="btn-compact" variant="primary" onClick={run} aria-keyshortcuts={runKeys.aria} title={`Run SQL (${keyLabel(runKeys)})`}>
+        {running ? (
+          <Button className="btn-compact" variant="destructive" onClick={() => runtime.queries.cancel()} disabled={query.state.status === 'cancelling'}>
+            {query.state.status === 'cancelling' ? 'Cancelling…' : 'Cancel'}
+          </Button>
+        ) : null}
+        <Button ref={runButton} className="btn-compact" variant="primary" onClick={run} aria-keyshortcuts={runKeys.aria} title={`Run SQL (${keyLabel(runKeys)})`}>
           <svg className="run-glyph" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path d="M5.25 3.4c0-.86.94-1.39 1.67-.94l6.06 3.77c.69.43.69 1.43 0 1.86L6.92 11.86c-.73.45-1.67-.08-1.67-.94z" fill="currentColor" />
           </svg>
@@ -180,7 +212,7 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         </Button>
         </div>
       </div>
-      {narrow && latest ? <RequestNote request={latest} kind={latest.kind} compact /> : null}
+      {narrow && latest ? (latest.kind === 'run' ? <QueryLine state={query.state} /> : <RequestNote request={latest} kind="analyze" compact />) : null}
       <div className="editor-host">
         <SqlEditor
           value={state.sql}
@@ -192,12 +224,12 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
           describedBy={HINT_ID}
           wrap={state.wrap}
           placeholderText="Write a SQL query"
-          onCursor={setCursor}
+          onCursor={onCursor}
         />
       </div>
       <div className="panel-foot">
         <p id={HINT_ID} className="editor-hint">
-          Tab leaves the editor · <kbd>{keyLabel(runKeys)}</kbd> Run SQL · <kbd>{keyLabel(analyzeKeys)}</kbd> Analyze
+          Tab leaves the editor · <kbd>{keyLabel(runKeys)}</kbd> runs the statement at the cursor, or the selection · <kbd>{keyLabel(analyzeKeys)}</kbd> Analyze
         </p>
         <p className="cursor-pos" aria-hidden="true">
           Ln {cursor.line}, Col {cursor.column}
@@ -227,7 +259,7 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
       {/* Focusable, so keyboard users can always move from the tab into its panel (APG Tabs). */}
       <div role="tabpanel" id={OUTPUT_VIEW_ID} aria-labelledby={labelTab} className="output-body" tabIndex={0}>
         {outputView === 'results' ? (
-          <ResultsView request={state.lastRun} getStarted={explorer.getStarted} />
+          <ResultsPanel state={query.state} getStarted={explorer.getStarted} />
         ) : outputView === 'verdict' ? (
           <VerdictView request={state.lastAnalyze} />
         ) : (
@@ -274,21 +306,29 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
   );
 }
 
-function RequestNote({ request, kind, compact }: { request: QueryRequest; kind: 'run' | 'analyze'; compact?: boolean }) {
+function RequestNote({ request, compact }: { request: QueryRequest; kind: 'analyze'; compact?: boolean }) {
   const empty = request.sql.trim() === '';
   return (
     <div className={compact ? 'output-note inline-note' : 'output-note'} data-tone="neutral">
-      <p className="output-note-title">{empty ? 'Nothing to run' : kind === 'run' ? 'Not run' : 'Not analyzed'}</p>
-      <p>{empty ? NOT_CONNECTED.empty : NOT_CONNECTED[kind]}</p>
+      <p className="output-note-title">{empty ? 'Nothing to analyze' : 'Not analyzed'}</p>
+      <p>{empty ? NOT_CONNECTED.empty : NOT_CONNECTED.analyze}</p>
     </div>
   );
 }
 
-function ResultsView({ request, getStarted }: { request: QueryRequest | null; getStarted: ReactNode }) {
+/** Narrow screens: the latest Run SQL outcome in one line beside the actions (the grid is in Results). */
+function QueryLine({ state }: { state: QueryState }) {
+  const text =
+    state.status === 'idle' ? null
+    : state.status === 'queued' ? 'Queued'
+    : state.status === 'running' ? 'Running SQL…'
+    : state.status === 'cancelling' ? 'Cancelling…'
+    : state.status === 'done' ? `${state.run.statement === 'select' ? 'SQL executed' : 'Statement executed'} · ${state.run.result ? `${state.run.result.rows.length.toLocaleString('en-US')} rows` : state.run.affectedRows !== undefined ? `${state.run.affectedRows} rows affected` : 'no result set'} · open Results to see it`
+    : state.message;
+  if (!text) return null;
   return (
-    <div className="output-view">
-      {request ? <RequestNote request={request} kind="run" /> : null}
-      {getStarted ?? (request ? null : <p className="empty-note">Results of Run SQL appear here.</p>)}
+    <div className="output-note inline-note" data-tone="neutral">
+      <p>{text}</p>
     </div>
   );
 }

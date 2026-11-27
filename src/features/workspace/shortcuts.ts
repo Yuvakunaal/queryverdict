@@ -31,7 +31,7 @@ export function shortcuts(p: Platform): readonly Shortcut[] {
   const modAria = p === 'apple' ? 'Meta' : 'Control';
   const enter = p === 'apple' ? 'Return' : 'Enter';
   return [
-    { action: 'Run SQL', scope: 'SQL editor', keys: [mod, enter], aria: `${modAria}+Enter` },
+    { action: 'Run SQL', scope: 'SQL editor: the statement at the cursor, or every statement in the selection', keys: [mod, enter], aria: `${modAria}+Enter` },
     { action: 'Analyze', scope: 'SQL editor', keys: [mod, 'Shift', enter], aria: `${modAria}+Shift+Enter` },
     { action: 'Leave the editor', scope: 'SQL editor', keys: ['Tab'], alt: ['Shift', 'Tab'] },
     { action: 'Undo', scope: 'SQL editor', keys: [mod, 'Z'] },

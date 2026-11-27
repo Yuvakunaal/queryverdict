@@ -1,0 +1,304 @@
+{
+  "machine": "Apple M2 MacBook Air, 8 GB RAM",
+  "viewport": "1440x900",
+  "runs": 3,
+  "chromium": {
+    "version": "158.0.8127.37",
+    "F1_1000x10_short": {
+      "cells": 10000,
+      "detailButtons": 0,
+      "domNodes": 12162,
+      "paintedMs": [
+        166,
+        139,
+        156
+      ],
+      "paintedMedian": 156,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 83,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 38
+    },
+    "F2_1000x200_short": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203112,
+      "paintedMs": [
+        1111,
+        1132,
+        1173
+      ],
+      "paintedMedian": 1132,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 708,
+      "renderLongTasks": [
+        [
+          273,
+          678
+        ],
+        [
+          279,
+          701
+        ],
+        [
+          284,
+          708
+        ]
+      ],
+      "renderMaxFrameGap": 983,
+      "scrollMaxLongTask": 71,
+      "scrollMaxFrameGap": 67,
+      "typingMaxMs": 387
+    },
+    "F3_1000x4_500chars": {
+      "cells": 4000,
+      "detailButtons": 4000,
+      "domNodes": 26142,
+      "paintedMs": [
+        321,
+        323,
+        340
+      ],
+      "paintedMedian": 323,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 225,
+      "renderLongTasks": [
+        [
+          50,
+          225
+        ],
+        [
+          56,
+          204
+        ],
+        [
+          54
+        ]
+      ],
+      "renderMaxFrameGap": 267,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 56
+    },
+    "F4_1000x200_10chars": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203008,
+      "paintedMs": [
+        1142,
+        1109,
+        1041
+      ],
+      "paintedMedian": 1109,
+      "longTaskSupported": true,
+      "renderMaxLongTask": 721,
+      "renderLongTasks": [
+        [
+          233,
+          721
+        ],
+        [
+          226,
+          705
+        ],
+        [
+          222,
+          629
+        ]
+      ],
+      "renderMaxFrameGap": 933,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 335
+    }
+  },
+  "firefox": {
+    "version": "159.0",
+    "F1_1000x10_short": {
+      "cells": 10000,
+      "detailButtons": 0,
+      "domNodes": 12162,
+      "paintedMs": [
+        148,
+        142,
+        151
+      ],
+      "paintedMedian": 148,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 50,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 64
+    },
+    "F2_1000x200_short": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203112,
+      "paintedMs": [
+        1704,
+        1710,
+        1655
+      ],
+      "paintedMedian": 1704,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 900,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 183,
+      "typingMaxMs": 1144
+    },
+    "F3_1000x4_500chars": {
+      "cells": 4000,
+      "detailButtons": 4000,
+      "domNodes": 26142,
+      "paintedMs": [
+        416,
+        431,
+        433
+      ],
+      "paintedMedian": 431,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 267,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 85
+    },
+    "F4_1000x200_10chars": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203008,
+      "paintedMs": [
+        1624,
+        1551,
+        1571
+      ],
+      "paintedMedian": 1571,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 883,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 150,
+      "typingMaxMs": 857
+    }
+  },
+  "webkit": {
+    "version": "27.2",
+    "F1_1000x10_short": {
+      "cells": 10000,
+      "detailButtons": 0,
+      "domNodes": 12162,
+      "paintedMs": [
+        207,
+        207,
+        201
+      ],
+      "paintedMedian": 207,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 115,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 67
+    },
+    "F2_1000x200_short": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203112,
+      "paintedMs": [
+        4356,
+        2346,
+        2432
+      ],
+      "paintedMedian": 2432,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 2223,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 0,
+      "typingMaxMs": 1765
+    },
+    "F3_1000x4_500chars": {
+      "cells": 4000,
+      "detailButtons": 4000,
+      "domNodes": 26142,
+      "paintedMs": [
+        522,
+        528,
+        511
+      ],
+      "paintedMedian": 522,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 393,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 52,
+      "typingMaxMs": 279
+    },
+    "F4_1000x200_10chars": {
+      "cells": 200000,
+      "detailButtons": 0,
+      "domNodes": 203007,
+      "paintedMs": [
+        1928,
+        1776,
+        2188
+      ],
+      "paintedMedian": 1928,
+      "longTaskSupported": false,
+      "renderMaxLongTask": 0,
+      "renderLongTasks": [
+        [],
+        [],
+        []
+      ],
+      "renderMaxFrameGap": 1720,
+      "scrollMaxLongTask": 0,
+      "scrollMaxFrameGap": 131,
+      "typingMaxMs": 1706
+    }
+  }
+}

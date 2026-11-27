@@ -117,10 +117,9 @@ test.describe('SQL workspace (harness app view)', () => {
     expect(before.x).toBeLessThan(end.x); // then before the upper row's last character: never stuck
   });
 
-  test('Run SQL (Mod+Enter) and Analyze (Mod+Shift+Enter): distinct, scoped to the editor, honest, and nothing reaches the engine', async ({ page }) => {
+  test('Run SQL (Mod+Enter) and Analyze (Mod+Shift+Enter): distinct and scoped to the editor; Run executes (M06), Analyze is not connected yet (M09)', async ({ page }) => {
     await ready(page);
     await type(page, 'SELECT 42');
-    const before = await statements(page);
 
     await page.keyboard.press('ControlOrMeta+Enter');
     let s = await store(page);
@@ -129,8 +128,9 @@ test.describe('SQL workspace (harness app view)', () => {
     expect(s.sql).toBe('SELECT 42'); // the binding did not insert a line
     await expect(editor(page)).toBeFocused(); // focus stays on the trigger
     await expect(page.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('tabpanel')).toContainText('Run SQL is not available in this version yet. Your query was not sent to the engine.');
-    await expect(page.getByRole('status')).toHaveText('Run SQL is not available in this version yet. Your query was not sent to the engine.');
+    await expect(page.getByRole('tabpanel')).toContainText('SQL executed');
+    await expect(page.getByRole('status')).toHaveText('SQL executed · 1 row shown.');
+    const before = await statements(page);
 
     await page.keyboard.press('ControlOrMeta+Shift+Enter');
     s = await store(page);
@@ -159,8 +159,8 @@ test.describe('SQL workspace (harness app view)', () => {
     await expect(page.getByRole('button', { name: 'Run SQL' })).toHaveAttribute('aria-keyshortcuts', /^(Meta|Control)\+Enter$/);
     await expect(page.getByRole('button', { name: 'Analyze' })).toHaveAttribute('aria-keyshortcuts', /^(Meta|Control)\+Shift\+Enter$/);
     await page.getByRole('button', { name: 'Run SQL' }).click();
-    await expect(page.getByRole('tabpanel')).toContainText('Nothing to run');
-    await expect(page.getByRole('status')).toHaveText('The editor is empty. Write a query first.');
+    await expect(page.getByRole('tabpanel')).toContainText('Not run');
+    await expect(page.getByRole('status')).toHaveText('Not run: The editor is empty. Write a query first.');
     await type(page, 'SELECT 1');
     await page.getByRole('button', { name: 'Analyze' }).click();
     expect((await store(page)).lastAnalyze?.sql).toBe('SELECT 1');

@@ -3,10 +3,14 @@
 // VARCHAR cast), never JavaScript numbers. Every truncation cause is reported separately.
 import type { DataEpoch, Generation } from '../engine/types';
 
-/** One displayed cell: SQL NULL, or text (possibly the empty string, possibly cut). */
+/**
+ * One displayed cell: SQL NULL, text (possibly the empty string, possibly cut), or a value that
+ * cannot be shown exactly in this result (its type, and why). Never a guess.
+ */
 export type CellText =
   | { readonly kind: 'null' }
-  | { readonly kind: 'text'; readonly text: string; readonly truncated: boolean };
+  | { readonly kind: 'text'; readonly text: string; readonly truncated: boolean }
+  | { readonly kind: 'unsupported'; readonly type: string; readonly reason: string };
 
 export interface ResultColumn {
   readonly name: string;
@@ -23,6 +27,8 @@ export interface Truncation {
   readonly cells: number;
   /** Rows were withheld to keep the total displayed text within `limits.displayChars`. */
   readonly display: boolean;
+  /** Rows were withheld because the Arrow result data reached `limits.bytes`. */
+  readonly bytes: boolean;
 }
 
 export interface ResultLimits {
@@ -33,8 +39,12 @@ export interface ResultLimits {
   readonly displayChars: number;
   /** Worst-case result bytes of the planned read (≤ the profile's Arrow byte budget by construction). */
   readonly bytes: number;
-  /** Which budget set the row count (profile row limit, preview size, byte or display budget). */
-  readonly rowsBoundBy: 'preview' | 'profile' | 'bytes' | 'display';
+  /**
+   * Which budget set the row count: profile row limit, preview size, or the worst-case byte or
+   * display plan (preview); query results read up to the profile limit and stop on the byte and
+   * display budgets as data arrives ('query').
+   */
+  readonly rowsBoundBy: 'preview' | 'profile' | 'bytes' | 'display' | 'query';
 }
 
 export interface BoundedResult {

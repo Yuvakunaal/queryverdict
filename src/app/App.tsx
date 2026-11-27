@@ -18,6 +18,7 @@ import { SettingsDialog } from './SettingsDialog';
 export function App({ prefs, runtime, workspace }: { prefs: UiPrefsStore; runtime: EngineRuntime; workspace: WorkspaceStore }) {
   const { theme, resolvedTheme } = useSyncExternalStore(prefs.subscribe, prefs.getSnapshot);
   const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
+  const query = useSyncExternalStore(runtime.queries.subscribe, runtime.queries.getSnapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const settingsButton = useRef<HTMLButtonElement>(null);
@@ -68,7 +69,7 @@ export function App({ prefs, runtime, workspace }: { prefs: UiPrefsStore; runtim
           <Workspace runtime={runtime} workspace={workspace} focusEditorRef={focusEditor} />
         </ErrorBoundary>
       </main>
-      <StatusStrip engine={engine} message={status} onRetry={() => runtime.start()} />
+      <StatusStrip engine={engine} message={status} transactionMayBeOpen={query.transactionMayBeOpen} onRetry={() => runtime.start()} />
       <SettingsDialog
         open={settingsOpen}
         theme={theme}
