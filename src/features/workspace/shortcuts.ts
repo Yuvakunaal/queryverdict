@@ -4,8 +4,13 @@
 
 export type Platform = 'apple' | 'other';
 
+/**
+ * Platform for key names. Uses `navigator.platform`, the same signal CodeMirror uses to map its
+ * Mod key, so the labels always match the real binding (a browser can report a Mac user agent on
+ * another platform). The user agent is consulted only when the platform is empty.
+ */
 export function detectPlatform(nav: { platform?: string; userAgent?: string } | undefined = typeof navigator === 'undefined' ? undefined : navigator): Platform {
-  const s = `${nav?.platform ?? ''} ${nav?.userAgent ?? ''}`;
+  const s = nav?.platform ? nav.platform : (nav?.userAgent ?? '');
   return /Mac|iPhone|iPad|iPod/i.test(s) ? 'apple' : 'other';
 }
 

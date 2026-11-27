@@ -563,6 +563,15 @@ Codex review: CHANGES REQUIRED, with six MEDIUM findings and one LOW, all reprod
 
   Earlier mutation checks (Tab binding, Analyze routed to Run, wrap-aware arrows) still apply.
 
+### 2026-11-27: M05 CI fix (PR #12, Linux runner) (Claude Code)
+
+The PR's `browser` job failed (run 45966025588); `verify` and `build` passed. Two causes, neither visible on macOS:
+
+- **Header overflow (9 tests, all browsers).** At 320 px, the wider Linux fonts gave an 18 px horizontal scroll. The cause was the header row, which could not wrap after the context label was made non-wrapping. The header now wraps its actions onto their own line; locally no overflow was observed down to 280 px.
+- **Shortcut labels (1 test, WebKit).** Playwright's WebKit on Linux reports a Mac user agent with a Linux `navigator.platform`. The labels followed the user agent and showed ⌘ while CodeMirror bound Ctrl. Platform detection now uses `navigator.platform`, the signal CodeMirror uses for its Mod key, falling back to the user agent only when the platform is empty. Unit test added.
+
+Local rerun of the affected suites (editor-a11y, shell, explorer, workspace) in Chrome, Firefox and WebKit: 162 passed, 6 skipped by design. CI re-run pending.
+
 ## Next steps
 
 1. Codex re-review of M05 (`feat/sql-workspace`) after the corrections; manual VoiceOver/NVDA editing (M05 field 16); maintainer approval of P-052 (CodeMirror 6) and P-086–P-090; then maintainer-approved commit, PR and merge.

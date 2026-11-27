@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { detectPlatform, keyLabel, shortcutFor, shortcuts } from '../../../src/features/workspace/shortcuts';
 
 describe('workspace shortcuts (M05)', () => {
-  it('detects Apple platforms from platform or user agent', () => {
+  it('detects Apple platforms from navigator.platform (user agent only when the platform is empty)', () => {
     expect(detectPlatform({ platform: 'MacIntel' })).toBe('apple');
     expect(detectPlatform({ userAgent: 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)' })).toBe('apple');
     expect(detectPlatform({ platform: 'Win32', userAgent: 'Mozilla/5.0 (Windows NT 10.0)' })).toBe('other');
     expect(detectPlatform({})).toBe('other');
+    // A Mac user agent on Linux (Playwright WebKit on CI): the platform decides, like CodeMirror's Mod key.
+    expect(detectPlatform({ platform: 'Linux x86_64', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' })).toBe('other');
   });
 
   it('uses platform key names and matching aria-keyshortcuts', () => {
