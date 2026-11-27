@@ -219,6 +219,8 @@ kbd,
   margin-bottom: -1px;
 }
 .output-body {
+  /* Containing block for screen-reader-only text inside the view, so it never extends the page. */
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;

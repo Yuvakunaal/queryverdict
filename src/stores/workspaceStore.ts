@@ -54,6 +54,8 @@ export interface WorkspaceState {
   /** The most recent Run SQL request and Analyze request (null until one is made). */
   readonly lastRun: QueryRequest | null;
   readonly lastAnalyze: QueryRequest | null;
+  /** The Verdict is shown full width in place of the editor and output (M09; the editor stays mounted). */
+  readonly verdictDetail: boolean;
 }
 
 export interface WorkspaceStore extends Store<WorkspaceState> {
@@ -63,6 +65,7 @@ export interface WorkspaceStore extends Store<WorkspaceState> {
   setOutput(view: OutputView): void;
   /** Records an explicit action and selects its output view (Results for Run SQL, Verdict for Analyze). */
   request(kind: QueryRequestKind, sql: string): QueryRequest;
+  setVerdictDetail(open: boolean): void;
 }
 
 export const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -75,6 +78,7 @@ export function createWorkspaceStore(initial: Partial<Pick<WorkspaceState, 'sql'
     output: 'results',
     lastRun: null,
     lastAnalyze: null,
+    verdictDetail: false,
   });
   let seq = 0;
   const update = (patch: Partial<WorkspaceState>) => store.set({ ...store.getSnapshot(), ...patch });
@@ -103,6 +107,9 @@ export function createWorkspaceStore(initial: Partial<Pick<WorkspaceState, 'sql'
       const request: QueryRequest = { kind, seq: ++seq, sql };
       update(kind === 'run' ? { lastRun: request, output: 'results' } : { lastAnalyze: request, output: 'verdict' });
       return request;
+    },
+    setVerdictDetail(open) {
+      if (open !== store.getSnapshot().verdictDetail) update(open ? { verdictDetail: true, output: 'verdict' } : { verdictDetail: false });
     },
   };
 }

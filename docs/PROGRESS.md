@@ -4,7 +4,7 @@
 
 ## Current phase
 
-**Implementation (Phase 7).** M01 (PR #7), M02 (PR #8), M03 (PR #9) and M08 (PR #10) are merged. **M04 Dataset Explorer and Inspector is implemented on `feat/dataset-explorer` and awaiting independent Codex review**; nothing of M04 is committed. M04 was started on the maintainer's M04 implementation instruction of 2026-11-27. The governing specifications are still *Proposed*; M04 implements them and lists its decisions for approval (P-079…P-083). Research spikes remain under `spikes/` and are excluded from the production build.
+**Implementation (Phase 7).** M01–M06 and M08 are merged (PRs #7–#13). **M09 Verdict Report and Visual Verdict is implemented on `feat/visual-verdict` and awaiting independent Codex review**; nothing of M09 is committed. The governing specifications are still *Proposed*; M09 lists its decisions for approval (P-099…P-104). Research spikes remain under `spikes/` and are excluded from the production build.
 
 Last updated: 2026-11-27
 
@@ -24,7 +24,7 @@ Last updated: 2026-11-27
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | M01–M05 and M08 merged. M06 Run SQL implemented on `feat/query-results` (uncommitted, awaiting Codex re-review): exact results, bounded streaming, statement policy with Snowflake-style running (P-097), windowed results grid (R1) |
+| Application code | M01–M06 and M08 merged. M09 Visual Verdict implemented on `feat/visual-verdict` (uncommitted, awaiting Codex review): Analyze wiring, Verdict panel and full view, findings, expectations, witnesses, coverage, historical states, join-key profile |
 | Tests | **Production (M06 branch after the Codex M06 review, local, 2026-11-27):** 404 Vitest unit tests, 7 Python oracle tests, and 559 Playwright tests passed with 8 skipped by design (Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2). Axe runs in Chromium and WebKit (Firefox skipped, P-083). Repo scan, typecheck, lint, boundary check, build, harness build, artifact check and notices clean |
 | CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
@@ -673,9 +673,58 @@ Codex review: CHANGES REQUIRED, with six HIGH findings and three MEDIUM, all rep
 
 **R1 re-measured on the final grid:** Chromium longest long task 113 ms (target 200 ms); Firefox and WebKit at or under 133 ms; typing at or under 61 ms.
 
+### 2026-11-27: M09 Verdict Report and Visual Verdict implemented (Claude Code)
+
+Branch `feat/visual-verdict` (from `main` at the M06 merge, PR #13), uncommitted, awaiting Codex review. Prerequisites M04, M05, M06 and M08 are merged. Started on the maintainer's M09 instruction of 2026-11-27.
+
+**What was built (P-099):**
+- Analyze is connected: the M05 button and Cmd/Ctrl+Shift+Enter submit the whole query buffer and the declared expectations, in order, to the M08 `VerdictService` as one `verdict` operation on the shared session queue. `src/stores/analysisStore.ts` tracks only that operation; a new Analyze supersedes the previous one, and a per-request sink lets only the latest request publish, inside the fence's synchronous hand-off. Cancel analysis sits next to Analyze (and in the full view); focus moves to Analyze when it disappears. Run SQL and Analyze stay independent.
+- `src/features/verdict/`: `VerdictPanel` (fixed reading order), `JoinOverview` (Left and Right inputs → join with type, key condition, key type, matching key groups, whole-input and matched-key relationships → output rows and matched pairs; each input states matched rows, unmatched rows kept or dropped, and rows multiplied with excess copies; a row-accounting table by input in a disclosure), `Findings`, `ExpectationsEditor` (outcomes and authoring), `Witnesses` (≤ 5 per kind, ≤ 15 rendered, filter tabs, NULL-key totals separate, "No sample keys for this check" with the report's counts), `Coverage` (checked, outside coverage, authority, reasons, disclaimer, identity disclosure), `VerdictStates` (no analysis, queued, analyzing, cancelling, engine notices, historical strip, state notices), and `model.ts` (labels and grouping only).
+- Full-width view (wide screens): the editor stays mounted; Back to SQL focuses the editor with its selection kept; Results are kept.
+- Join-key profile: a "Join keys" tab in the M04 inspector (`src/features/explorer/JoinKeyProfile.tsx`), from the current report only, matched by catalog identity and side; it never runs SQL.
+- Styles: `src/styles/verdict.css` (existing tokens only; container query stacks the join at narrow widths; forced-colour outlines).
+
+**Currency (P-100):** the report store now also compares the editor text and the declared expectations; editing either makes the report historical, and a data change keeps it historical even if the SQL text is restored. A run that never reached the engine is labelled as such. This is an additive change to M08's `currency` and `reportStore`.
+
+**Presentation (P-101, P-103):** M08's categories, labels and confidence are rendered unchanged; historical reports are entirely neutral and labelled historical; "No issues found in these checks" only for a current authoritative report without warnings or violations. Expectations are validated by the core's `invalidExpectation` before they are stored; field errors are announced at their controls.
+
+**Contradictions reported, not resolved (P-102):** row loss alone is an observation in M08 but a warning in the mockup (AM-011a); Analyze uses the whole buffer per UI_SPECIFICATION §4 while Run SQL uses the statement at the cursor (P-097); View diagnostic SQL / Copy summary depend on M12 and are not shown.
+
+**Verification (local, 2026-11-27, Apple M2 / 8 GB):**
+- typecheck, lint (boundaries OK), check:repo OK; `git diff --check` clean.
+- Vitest 453/453 (49 new in `tests/unit/verdict-ui/`: golden reports built with the real M08 functions and rendered with `react-dom/server`, presentation model, stores and currency). Python oracle 7/7 OK.
+- Mutation checks, 8 of 8 caught: superseded analysis publishing, historical findings keeping their tone, editor text not compared, expectation edits not compared, healthy summary without authority, historical outcomes shown as current, witness bound removed, unchecked shown as held.
+- Build: JS 979.6 KB raw / 295.0 KB gzip (M06: 929.0 / 280.7), CSS 42.1 KB; check-artifact OK (11 files, 87,663,829 bytes); harness build OK; notices 64 locations, 5 release-blocking (unchanged); npm audit 0 vulnerabilities.
+- Playwright, full suite (Chrome 158, Firefox 159, WebKit 27.2): 602 passed, 8 skipped by design, 8 failed — all 8 in Firefox, all "Page crashed". Reproduced: the crash happens in Playwright's axe and `allInnerTexts` paths in its Firefox 159 build (P-083); with axe skipped in Firefox (as in M04–M06) and cell text read through the DOM, the page stays alive and every assertion passes. Re-run of the affected specs (verdict-ui, workspace, query, explorer, editor-a11y, verdict-fence) in all three browsers on the final code: 267 passed, 6 skipped, 0 failed.
+- `tests/e2e/verdict-ui.spec.ts` (17 tests × 3 browsers): UX-004 with the illustrative fixture (every mockup count, both sides' loss), the golden flows, rapid analyses, T-ENG-010a/c, join-key profile, full view and Back to SQL, keyboard, expectation validation, narrow and 200 % zoom layouts, network isolation; axe in every report state in both themes (Chromium and WebKit).
+- Not verified: VoiceOver, NVDA, real browser zoom, Windows forced colours, a real (non-Playwright) Firefox for the crash above.
+
+### 2026-11-27: M09 corrections after the Codex review (Claude Code)
+
+All six findings were reproduced and corrected (P-105); each has a regression test, and the three new presentation gates have mutation checks (3 of 3 caught).
+- **HIGH:** a report that turns historical during the final hand-off is now announced as historical, and the narrow summary says Current or Historical.
+- **HIGH:** violation, warning and held tones and wording appear only for a current AND authoritative report; a partial report reads "Violated · not authoritative" as limited evidence.
+- **MEDIUM:** the Verdict view has its own Cancel analysis wherever the editor's is not on screen; focus goes to the Verdict heading after cancelling when Analyze is hidden.
+- **MEDIUM:** measured row loss withholds "No issues found in these checks" and stays visible; the category is unchanged (P-076; AM-011/P-102 still open).
+- **MEDIUM:** a field error is attached before focus moves, and every refused declaration is announced.
+- **LOW:** an empty witness panel is reachable by Tab.
+
+**Verification (local, 2026-11-27):** typecheck, lint, check:repo OK; Vitest 457/457; Python oracle 7/7; build OK, check-artifact OK; Playwright full suite in Chrome, Firefox and WebKit: **625 passed, 8 skipped, 0 failed** (17.8 min). Axe in Firefox stays skipped (P-083). Not verified: VoiceOver, NVDA, real 200 % zoom, Windows forced colours, real (non-Playwright) Firefox.
+
+### 2026-11-27: Verdict answer rewrite and test datasets (Claude Code)
+
+At the maintainer's request (P-106), every report now opens with an **answer** a non-expert can read in seconds: one headline, what it means for the user's result, and at most two next steps. Built only from the published report and the report store's currency; categories, authority and currency unchanged.
+- **Unsupported queries:** one primary reason by priority (several statements > not a SELECT > no join > more than one join > input > join type > key > clause), named in plain words ("No join to analyze: this query reads a single table."; "Verdict cannot check the aggregation, but the join underneath it is where counts and sums get inflated."), with concrete next steps and an "Also outside the checks" list. No overview, witnesses or expectation editor when there is no join.
+- **Complete analyses:** told from the FROM table ("The result has 33 rows from 30 orders rows: 2 orders rows appear more than once (3 extra rows); …"), a **row fate** table per input, **Why** with real sample keys and counts, what it means for totals, and conditional fixes (reduce the other table to one row per key; LEFT JOIN to keep rows). The answer tone follows the core's categories (violation, suspicious pattern, otherwise informational).
+- Failures, incomplete, cancelled, partial and historical states each have their own headline; internal terms stay out of the main view; everything else is in one collapsed Details.
+- **Page scroll fix:** screen-reader-only text inside the report was absolutely positioned without a positioned ancestor, so long reports extended the page and the workspace shifted when Analyze finished. The output view, the full view and the report now contain it; a browser test checks the page height is unchanged through seven analyses.
+- **Row counts (P-107):** the sidebar showed a row count only for the last imported table, because every import advanced the data epoch. An import now carries forward counts that were exact just before it; SQL changes still hide them.
+- **`test_datasets/`:** `customers.csv`, `orders.csv`, `payments.csv` (30 rows each, synthetic) and a README with 7 join scenarios, 7 rules and 9 unsupported or failing queries. The expected counts were computed by brute force from the CSV rows; a browser test imports the three files through the real dialog and checks every scenario's row fate against the engine.
+
 ## Next steps
 
-1. Codex review of M06 (`feat/query-results`); maintainer approval of P-092–P-097 (P-097 revises AM-004/P-064 at the maintainer's request; P-096 records the measured windowing choice); then maintainer-approved commit, PR and merge.
+0. Codex review of M09 (`feat/visual-verdict`); maintainer decisions on P-099–P-104, in particular P-100 (expectation edits make a report historical) and the P-102 contradictions (row loss as observation vs mockup warning; whole-buffer Analyze vs statement at the cursor). M10 only on the maintainer's instruction.
+1. (Done: M06 merged as PR #13.) Codex review of M06 (`feat/query-results`); maintainer approval of P-092–P-097 (P-097 revises AM-004/P-064 at the maintainer's request; P-096 records the measured windowing choice); then maintainer-approved commit, PR and merge.
 2. Maintainer decisions: P-079…P-085 (P-083 also needs a decision on the Firefox axe gap); still open: P-063…P-078 and P-069; AM-001…AM-022; specification approvals; licence and AM-022.
 3. Manual checks for M04 field 16: VoiceOver (Safari) and NVDA (Firefox or Chrome) over the tree and dialog; real browser zoom at 200 %.
 4. Next module per the plan: **M09** (only on the maintainer's instruction).

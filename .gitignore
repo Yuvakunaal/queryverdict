@@ -43,6 +43,8 @@ benchmarks/results/raw/
 !**/fixtures/**/*.parquet
 !**/fixtures/**/*.ndjson
 !**/fixtures/**/*.jsonl
+# Small synthetic datasets for trying Verdict by hand (test_datasets/README.md); a browser test imports them.
+!test_datasets/*.csv
 *.local.csv
 *.local.json
 *.local.parquet

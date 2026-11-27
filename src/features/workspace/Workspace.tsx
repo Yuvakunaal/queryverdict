@@ -11,15 +11,9 @@ import { detectPlatform, keyLabel, shortcutFor } from './shortcuts';
 import { ResultsPanel } from '../results/ResultsPanel';
 import { isActive, type QueryState } from '../../stores/queryStore';
 import { splitStatements, statementAt } from '../../core/query/sqlText';
-
-/**
- * What Analyze does with the current query. Run SQL is connected to the query runner (M06); the
- * Verdict view arrives in M09, which supplies `analyze` here. Until then the workspace says
- * plainly that nothing was analyzed.
- */
-export interface QueryActions {
-  analyze?(request: QueryRequest): void;
-}
+import { isAnalysisActive, type AnalysisState } from '../../stores/analysisStore';
+import { VerdictPanel } from '../verdict/VerdictPanel';
+import { answerFor } from '../verdict/answer';
 
 export const EDITOR_INPUT_ID = 'sql-editor-input';
 const OUTPUT_VIEW_ID = 'ws-output-view';
@@ -34,7 +28,6 @@ const OUTPUT_TABS: readonly { id: OutputView; label: string }[] = [
 ];
 
 export const NOT_CONNECTED = {
-  analyze: 'Analyze is not available in this version yet. Nothing was analyzed.',
   empty: 'The editor is empty. Write a query first.',
 } as const;
 
@@ -54,16 +47,47 @@ const visible = (el: Element | null): el is HTMLElement => el instanceof HTMLEle
 export interface WorkspaceProps {
   readonly runtime: EngineRuntime;
   readonly workspace: WorkspaceStore;
-  /** Optional implementations from later modules; absent in M05. */
-  readonly actions?: QueryActions;
   /** Set to a function that shows and focuses the editor (used by the skip link). */
   readonly focusEditorRef?: MutableRefObject<(() => void) | null>;
 }
 
-export function Workspace({ runtime, workspace, actions, focusEditorRef }: WorkspaceProps) {
+export function Workspace({ runtime, workspace, focusEditorRef }: WorkspaceProps) {
   const state = useSyncExternalStore(workspace.subscribe, workspace.getSnapshot);
   const query = useSyncExternalStore(runtime.queries.subscribe, runtime.queries.getSnapshot);
   const running = isActive(query.state);
+  const analysis = useSyncExternalStore(runtime.analyses.subscribe, runtime.analyses.getSnapshot);
+  const reportView = useSyncExternalStore(runtime.reports.subscribe, runtime.reports.getSnapshot);
+  const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
+  const analyzing = isAnalysisActive(analysis);
+  const analyzeButton = useRef<HTMLButtonElement>(null);
+  const verdictHeading = useRef<HTMLHeadingElement>(null);
+  const wasAnalyzing = useRef(analyzing);
+  // When an analysis ends its Cancel disappears; if it had focus, focus goes to Analyze when that is
+  // on screen, otherwise (full view, narrow Verdict view) to the Verdict heading.
+  useEffect(() => {
+    if (wasAnalyzing.current && !analyzing && (document.activeElement === document.body || document.activeElement === null)) {
+      const a = analyzeButton.current;
+      if (a && a.getClientRects().length > 0) a.focus();
+      else verdictHeading.current?.focus();
+    }
+    wasAnalyzing.current = analyzing;
+  }, [analyzing]);
+  // The report's currency follows the editor text and the declared expectations synchronously
+  // (store subscriptions, before any render), so an edited query never shows a current report.
+  useEffect(() => {
+    const { reports, expectations } = runtime;
+    const sync = () => {
+      reports.setQueryText(workspace.getSnapshot().sql);
+      reports.setExpectations(expectations.values());
+    };
+    sync();
+    const offSql = workspace.subscribe(sync);
+    const offExp = expectations.subscribe(sync);
+    return () => {
+      offSql();
+      offExp();
+    };
+  }, [runtime, workspace]);
   // When a run ends, Cancel disappears; if it had focus, focus moves to Run SQL instead of the page.
   const runButton = useRef<HTMLButtonElement>(null);
   const wasRunning = useRef(running);
@@ -112,12 +136,12 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         const statements = picked.length || sql.trim() !== '' ? picked : [sql];
         return runtime.queries.run(statements, sql);
       }
-      const impl = actions?.analyze;
-      if (sql.trim() === '') announcer.announce(NOT_CONNECTED.empty);
-      else if (impl) impl.call(actions, request);
-      else announcer.announce(NOT_CONNECTED.analyze);
+      // Analyze (M09): the whole query buffer and the declared expectations, in order, as one
+      // Verdict operation on the shared session queue (UI_SPECIFICATION §4). Nothing is run.
+      if (request.sql.trim() === '') announcer.announce(NOT_CONNECTED.empty);
+      else runtime.analyses.analyze(request.sql, runtime.expectations.values());
     },
-    [workspace, actions, announcer, runtime.queries],
+    [workspace, announcer, runtime.queries, runtime.analyses, runtime.expectations],
   );
   const run = useCallback(() => submit('run'), [submit]);
   const analyze = useCallback(() => submit('analyze'), [submit]);
@@ -185,6 +209,34 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
     if (v !== 'editor') workspace.setOutput(v);
   };
 
+  // Full-width Verdict (UI_SPECIFICATION §5): wide screens only; narrow screens already show one
+  // view at a time. Back to SQL returns to the editor with its selection kept (it stays mounted).
+  const detailOpen = state.verdictDetail && !narrow;
+  const openDetail = useCallback(() => {
+    workspace.setVerdictDetail(true);
+    requestAnimationFrame(() => verdictHeading.current?.focus());
+  }, [workspace]);
+  const backToSql = useCallback(() => {
+    workspace.setVerdictDetail(false);
+    requestAnimationFrame(() => document.getElementById(EDITOR_INPUT_ID)?.focus());
+  }, [workspace]);
+  const verdictPanel = (detail: boolean) => (
+    <VerdictPanel
+      view={reportView}
+      analysis={analysis}
+      engine={engine}
+      expectations={runtime.expectations}
+      analyzeKeys={keyLabel(analyzeKeys)}
+      detail={detail}
+      cancelHere={detail || narrow}
+      {...(narrow ? {} : { onOpenDetail: openDetail })}
+      onBack={backToSql}
+      onCancel={() => runtime.analyses.cancel()}
+      announce={announcer.announce}
+      headingRef={verdictHeading}
+    />
+  );
+
   const editor = (
     <section className="panel editor-panel" aria-labelledby={EDITOR_TITLE_ID} onKeyDownCapture={blockActionChords}>
       <div className="panel-bar">
@@ -196,9 +248,14 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         <Button className="btn-small" variant="quiet" aria-pressed={state.wrap} onClick={() => workspace.setWrap(!state.wrap)}>
           Wrap lines
         </Button>
-        <Button className="btn-compact" onClick={analyze} aria-keyshortcuts={analyzeKeys.aria} title={`Analyze (${keyLabel(analyzeKeys)})`}>
+        <Button ref={analyzeButton} className="btn-compact" onClick={analyze} aria-keyshortcuts={analyzeKeys.aria} title={`Analyze (${keyLabel(analyzeKeys)})`}>
           Analyze
         </Button>
+        {analyzing ? (
+          <Button className="btn-compact" variant="destructive" onClick={() => runtime.analyses.cancel()} disabled={analysis.status === 'cancelling'}>
+            {analysis.status === 'cancelling' ? 'Cancelling analysis…' : 'Cancel analysis'}
+          </Button>
+        ) : null}
         {running ? (
           <Button className="btn-compact" variant="destructive" onClick={() => runtime.queries.cancel()} disabled={query.state.status === 'cancelling'}>
             {query.state.status === 'cancelling' ? 'Cancelling…' : 'Cancel'}
@@ -212,7 +269,7 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         </Button>
         </div>
       </div>
-      {narrow && latest ? (latest.kind === 'run' ? <QueryLine state={query.state} /> : <RequestNote request={latest} kind="analyze" compact />) : null}
+      {narrow && latest ? (latest.kind === 'run' ? <QueryLine state={query.state} /> : latest.sql.trim() === '' ? <EmptyNote /> : <AnalysisLine state={analysis} view={reportView} />) : null}
       <div className="editor-host">
         <SqlEditor
           value={state.sql}
@@ -261,7 +318,7 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         {outputView === 'results' ? (
           <ResultsPanel state={query.state} getStarted={explorer.getStarted} />
         ) : outputView === 'verdict' ? (
-          <VerdictView request={state.lastAnalyze} />
+          detailOpen ? null : verdictPanel(false)
         ) : (
           explorer.detail
         )}
@@ -300,18 +357,36 @@ export function Workspace({ runtime, workspace, actions, focusEditorRef }: Works
         onLayout={workspace.setLayout}
         rootRef={rootRef}
         stackRef={stackRef}
+        {...(detailOpen ? { detail: <section className="panel verdict-detail" aria-label="Verdict detail">{verdictPanel(true)}</section> } : {})}
       />
       {explorer.dialog}
     </>
   );
 }
 
-function RequestNote({ request, compact }: { request: QueryRequest; kind: 'analyze'; compact?: boolean }) {
-  const empty = request.sql.trim() === '';
+function EmptyNote() {
   return (
-    <div className={compact ? 'output-note inline-note' : 'output-note'} data-tone="neutral">
-      <p className="output-note-title">{empty ? 'Nothing to analyze' : 'Not analyzed'}</p>
-      <p>{empty ? NOT_CONNECTED.empty : NOT_CONNECTED.analyze}</p>
+    <div className="output-note inline-note" data-tone="neutral">
+      <p className="output-note-title">Nothing to analyze</p>
+      <p>{NOT_CONNECTED.empty}</p>
+    </div>
+  );
+}
+
+/** Narrow screens: the latest Analyze outcome in one line beside the actions (the report is in Verdict). */
+function AnalysisLine({ state, view }: { state: AnalysisState; view: import('../../stores/reportStore').ReportView }) {
+  const text =
+    state.status === 'idle' ? null
+    : state.status === 'queued' ? 'Queued for analysis'
+    : state.status === 'analyzing' ? 'Analyzing…'
+    : state.status === 'cancelling' ? 'Cancelling analysis…'
+    : view.report && view.report.id === state.reportId
+      ? `Verdict: ${answerFor(view.report, view.current, view.historicalReason).headline} Open Verdict for details.`
+    : 'Analysis finished · open Verdict to see it';
+  if (!text) return null;
+  return (
+    <div className="output-note inline-note" data-tone="neutral">
+      <p>{text}</p>
     </div>
   );
 }
@@ -331,8 +406,4 @@ function QueryLine({ state }: { state: QueryState }) {
       <p>{text}</p>
     </div>
   );
-}
-
-function VerdictView({ request }: { request: QueryRequest | null }) {
-  return <div className="output-view">{request ? <RequestNote request={request} kind="analyze" /> : <p className="empty-note">Analyze reports appear here.</p>}</div>;
 }

@@ -37,6 +37,7 @@ export function useExplorer(runtime: EngineRuntime, options: ExplorerOptions = {
   const entries = useSyncExternalStore(datasets.registry.subscribe, datasets.registry.getSnapshot);
   const batches = useSyncExternalStore(imports.subscribe, imports.getSnapshot);
   const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
+  const report = useSyncExternalStore(runtime.reports.subscribe, runtime.reports.getSnapshot);
   const engineReady = engine.state.kind === 'ready' || engine.state.kind === 'busy';
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
@@ -161,7 +162,7 @@ export function useExplorer(runtime: EngineRuntime, options: ExplorerOptions = {
   const detail = (
     <div className="explorer-main">
       {entry ? (
-        <Inspector entry={entry} qualified={isAmbiguous(entry, entries)} tab={tab} onTab={setTab} registry={datasets.registry} imports={imports} preview={preview} announcer={announcer} profile={profile} engineReady={engineReady} />
+        <Inspector entry={entry} qualified={isAmbiguous(entry, entries)} tab={tab} onTab={setTab} registry={datasets.registry} imports={imports} preview={preview} announcer={announcer} profile={profile} engineReady={engineReady} report={report} />
       ) : (
         <section className="empty-state" aria-labelledby="explorer-empty">
           <h2 id="explorer-empty">Select a dataset</h2>

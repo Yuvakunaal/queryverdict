@@ -59,6 +59,11 @@ export interface LayoutProps {
   onLayout(layout: Partial<LayoutSizes>): void;
   readonly rootRef: RefObject<HTMLDivElement | null>;
   readonly stackRef: RefObject<HTMLDivElement | null>;
+  /**
+   * Wide screens: a full-width view shown in place of the editor/output stack (the Verdict detail,
+   * M09). The stack stays mounted but hidden, so the editor keeps its text, selection and history.
+   */
+  readonly detail?: ReactNode;
 }
 
 /**
@@ -67,7 +72,8 @@ export interface LayoutProps {
  * one column with the datasets drawer and tabs for Editor, Results, Verdict and Dataset. Both
  * panes stay mounted at every width, so the editor keeps its text, selection and undo history.
  */
-export function Layout({ narrow, sidebar, narrowBar, editor, output, showEditor, editorTabId, layout, onLayout, rootRef, stackRef }: LayoutProps) {
+export function Layout({ narrow, sidebar, narrowBar, editor, output, showEditor, editorTabId, layout, onLayout, rootRef, stackRef, detail }: LayoutProps) {
+  const full = !narrow && detail !== undefined && detail !== null;
   const root = useSize(rootRef);
   const stack = useSize(stackRef);
   const medium = useMediaQuery(MEDIUM_QUERY);
@@ -102,7 +108,8 @@ export function Layout({ narrow, sidebar, narrowBar, editor, output, showEditor,
           onReset={() => onLayout({ sidebarPx: null })}
         />
       )}
-      <div ref={stackRef} className="workspace-stack">
+      {full ? <div className="workspace-detail">{detail}</div> : null}
+      <div ref={stackRef} className="workspace-stack" hidden={full}>
         <div
           id={EDITOR_PANEL_ID}
           className="workspace-pane"
