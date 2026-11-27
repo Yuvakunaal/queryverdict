@@ -1,0 +1,25 @@
+baseline
+  js           files=1 raw=220203 gzip=68019 brotli=58631
+  total        files=2 raw=220859 gzip=68375 brotli=58891
+  html         files=1 raw=656 gzip=356 brotli=260
+cm
+  js           files=1 raw=555599 gzip=176238 brotli=151402
+  total        files=2 raw=556243 gzip=176592 brotli=151638
+  html         files=1 raw=644 gzip=354 brotli=236
+monaco
+  ttf          files=1 raw=154520 gzip=75811 brotli=67952
+  total        files=7 raw=3768352 gzip=1002205 brotli=804643
+  js-worker    files=2 raw=342339 gzip=99232 brotli=77328
+  css          files=1 raw=121142 gzip=17507 brotli=15170
+  js           files=2 raw=3149613 gzip=809265 brotli=643926
+  html         files=1 raw=738 gzip=390 brotli=267
+monaco-full
+  js           files=87 raw=4538416 gzip=1187638 brotli=938495
+  total        files=96 raw=14220889 gzip=3370077 brotli=2530476
+  ttf          files=1 raw=154520 gzip=75811 brotli=67952
+  js-worker    files=6 raw=9336460 gzip=2078404 brotli=1500380
+  css          files=1 raw=190809 gzip=27858 brotli=23400
+  html         files=1 raw=684 gzip=366 brotli=249
+incremental cm: raw=335384 gzip=108217 brotli=92747
+incremental monaco: raw=3547493 gzip=933830 brotli=745752
+incremental monaco-full: raw=14000030 gzip=3301702 brotli=2471585

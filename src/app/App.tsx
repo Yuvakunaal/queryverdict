@@ -1,29 +1,36 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Explorer } from '../features/explorer/Explorer';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { StatusStrip } from '../features/workspace/StatusStrip';
+import { ShortcutsDialog } from '../features/workspace/ShortcutsDialog';
+import { detectPlatform } from '../features/workspace/shortcuts';
+import { Workspace } from '../features/workspace/Workspace';
 import { Button } from '../ui/Button';
-import { StatusRegion } from '../ui/StatusRegion';
 import type { UiPrefsStore } from '../stores/uiPrefsStore';
 import { statusText } from '../stores/engineStore';
+import { LAYOUT_PRESETS, type WorkspaceStore } from '../stores/workspaceStore';
 import type { EngineRuntime } from './bootstrap';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SettingsDialog } from './SettingsDialog';
 
 /**
- * Application shell (docs/IMPLEMENTATION_PLAN.md M01): header, skip link, main landmark and the
- * persistent status region. Workspace features arrive in later modules.
+ * Application shell (M01, workspace from M05): skip link, header with Shortcuts and Settings, the
+ * SQL workspace (UI_SPECIFICATION §4) and the status strip with the one persistent status region.
  */
-export function App({ prefs, runtime }: { prefs: UiPrefsStore; runtime: EngineRuntime }) {
+export function App({ prefs, runtime, workspace }: { prefs: UiPrefsStore; runtime: EngineRuntime; workspace: WorkspaceStore }) {
   const { theme, resolvedTheme } = useSyncExternalStore(prefs.subscribe, prefs.getSnapshot);
   const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const main = useRef<HTMLElement>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const settingsButton = useRef<HTMLButtonElement>(null);
+  const shortcutsButton = useRef<HTMLButtonElement>(null);
+  const focusEditor = useRef<(() => void) | null>(null);
+  const platform = useMemo(() => detectPlatform(), []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolvedTheme;
   }, [resolvedTheme]);
 
   const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  const closeShortcuts = useCallback(() => setShortcutsOpen(false), []);
 
   // One status region: it shows whichever happened last, an engine status change or an
   // announcement (import finished, table removed, name copied …).
@@ -32,30 +39,45 @@ export function App({ prefs, runtime }: { prefs: UiPrefsStore; runtime: EngineRu
 
   return (
     <div className="app">
-      <a className="skip-link" href="#workspace" onClick={(e) => { e.preventDefault(); main.current?.focus(); }}>
-        Skip to workspace
+      <a
+        className="skip-link"
+        href="#sql-editor-input"
+        onClick={(e) => {
+          e.preventDefault();
+          focusEditor.current?.();
+        }}
+      >
+        Skip to SQL editor
       </a>
       <header className="app-header">
         <p className="wordmark">
           QueryVerdict <span className="header-context">Local workspace</span>
         </p>
-        <Button ref={settingsButton} variant="quiet" onClick={() => setSettingsOpen(true)} aria-haspopup="dialog">
-          Settings
-        </Button>
+        <div className="header-actions">
+          <Button ref={shortcutsButton} className="btn-small" variant="quiet" onClick={() => setShortcutsOpen(true)} aria-haspopup="dialog">
+            Shortcuts
+          </Button>
+          <Button ref={settingsButton} className="btn-small" variant="quiet" onClick={() => setSettingsOpen(true)} aria-haspopup="dialog">
+            Settings
+          </Button>
+        </div>
       </header>
-      <main id="workspace" ref={main} tabIndex={-1} className="app-main">
+      <main id="workspace" tabIndex={-1} className="app-main">
         <ErrorBoundary label="Workspace content">
-          <h1 className="visually-hidden">Workspace</h1>
-          <Explorer runtime={runtime} />
+          <h1 className="visually-hidden">SQL workspace</h1>
+          <Workspace runtime={runtime} workspace={workspace} focusEditorRef={focusEditor} />
         </ErrorBoundary>
       </main>
-      <footer className="status-strip">
-        <StatusRegion message={status} />
-        {engine.state.kind === 'failed' ? (
-          <Button onClick={() => runtime.start()}>Retry</Button>
-        ) : null}
-      </footer>
-      <SettingsDialog open={settingsOpen} theme={theme} onThemeChange={prefs.setTheme} onClose={closeSettings} returnFocus={settingsButton} />
+      <StatusStrip engine={engine} message={status} onRetry={() => runtime.start()} />
+      <SettingsDialog
+        open={settingsOpen}
+        theme={theme}
+        onThemeChange={prefs.setTheme}
+        onLayoutPreset={(p) => workspace.setLayout(LAYOUT_PRESETS[p])}
+        onClose={closeSettings}
+        returnFocus={settingsButton}
+      />
+      <ShortcutsDialog open={shortcutsOpen} onClose={closeShortcuts} returnFocus={shortcutsButton} platform={platform} />
     </div>
   );
 }

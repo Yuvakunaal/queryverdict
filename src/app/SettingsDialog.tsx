@@ -13,13 +13,15 @@ export interface SettingsDialogProps {
   open: boolean;
   theme: ThemeChoice;
   onThemeChange: (theme: ThemeChoice) => void;
+  /** Applies a named panel layout (a single-pointer and keyboard alternative to dragging). */
+  onLayoutPreset: (preset: 'reset' | 'editor' | 'output') => void;
   onClose: () => void;
   /** The control that opened the dialog; focus returns to it on close. */
   returnFocus: RefObject<HTMLElement | null>;
 }
 
 /** Session settings (docs/UI_SPECIFICATION.md §7). Preferences last for this session only. */
-export function SettingsDialog({ open, theme, onThemeChange, onClose, returnFocus }: SettingsDialogProps) {
+export function SettingsDialog({ open, theme, onThemeChange, onLayoutPreset, onClose, returnFocus }: SettingsDialogProps) {
   const selected = useRef<HTMLInputElement>(null);
   return (
     <Dialog open={open} title="Settings" onClose={onClose} initialFocus={selected} returnFocus={returnFocus}>
@@ -38,6 +40,15 @@ export function SettingsDialog({ open, theme, onThemeChange, onClose, returnFocu
             {o.label}
           </label>
         ))}
+      </fieldset>
+      <fieldset className="radio-group settings-group">
+        <legend>Layout</legend>
+        <div className="preset-row">
+          <Button className="btn-small" onClick={() => onLayoutPreset('reset')}>Reset layout</Button>
+          <Button className="btn-small" onClick={() => onLayoutPreset('editor')}>Larger editor</Button>
+          <Button className="btn-small" onClick={() => onLayoutPreset('output')}>Larger output</Button>
+        </div>
+        <p className="field-hint">Dividers can also be moved with the arrow keys when focused, or reset with a double-click.</p>
       </fieldset>
       <p className="muted">Preferences apply to this browser tab and are not saved.</p>
       <div className="dialog-actions">

@@ -33,7 +33,7 @@ const noHarness = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'dist-harness/**', 'build/**', 'node_modules/**', 'spikes/**', 'test-results/**', 'playwright-report/**', 'public/**'] },
+  { ignores: ['dist/**', 'dist-harness/**', 'build/**', 'node_modules/**', 'spikes/**', 'test-results/**', 'playwright-report/**', 'public/**', 'docs/evidence/**'] },
   ...tseslint.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
