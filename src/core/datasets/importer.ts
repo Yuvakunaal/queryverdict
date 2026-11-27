@@ -103,6 +103,11 @@ export class FileImporter implements Importer {
 
   private async body(lease: Lease, file: File, format: DatasetFormat, requestedName: string | undefined, set: (stage: ImportProgress['stage'], extra?: { relation?: string; reason?: string }) => void): Promise<InternalResult> {
     set('checking');
+    // Authoritative admission, inside the serialized operation and before the file is registered:
+    // the combined limit counts every import held by this engine at the moment this one runs, so
+    // overlapping batches, re-imports and "choose file again" cannot together exceed it.
+    const [admission] = admit([{ name: file.name, size: file.size }], this.profile.imports, this.recorder.importedBytes());
+    if (!admission || !admission.ok) throw new RefusedError(admission && !admission.ok ? admission.reason : 'The file was not admitted.');
     if (!(await isReadable(file))) throw new ImportError('checking', 'The browser can no longer read this file. Choose the file again.');
     const reserved = new Set((await lease.query(RESERVED_SQL, { columns: 1, maxRows: 1_000 })).map((r) => r[0] ?? ''));
     const taken = new Set((await lease.query(NAMES_SQL, { columns: 1, maxRows: MAX_CATALOG_ROWS })).map((r) => r[0] ?? ''));

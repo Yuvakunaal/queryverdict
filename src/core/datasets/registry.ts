@@ -2,6 +2,7 @@
 // recomputed from the live engine catalog after every data-epoch change and engine recovery; the
 // registry only remembers which tables it imported (and their File, for re-import). Nothing is
 // persisted and lost tables are never restored automatically.
+import { RefusedError } from '../util/errors';
 import { createStore } from '../util/store';
 import type { EngineSession } from '../engine/session';
 import type { OperationBounds, OperationHandle, OperationResult } from '../engine/types';
@@ -111,7 +112,7 @@ class Registry implements DatasetRegistry, ImportRecorder {
         currentDatabase: current?.[0] ?? '',
         currentSchema: current?.[1] ?? '',
         objects: objects.map((r): CatalogObject => ({ kind: r[0] === 'view' ? 'view' : 'table', database: r[1] ?? '', schema: r[2] ?? '', name: r[3] ?? '', oid: r[4] ?? '', temporary: r[5] === 'true', generated: r[6] === 'true' })),
-        columns: columns.map((r): CatalogColumn => ({ database: r[0] ?? '', schema: r[1] ?? '', relation: r[2] ?? '', name: r[3] ?? '', type: r[4] ?? '', nullable: r[5] === 'YES' ? true : r[5] === 'NO' ? false : null })),
+        columns: columns.map((r): CatalogColumn => ({ database: r[0] ?? '', schema: r[1] ?? '', relation: r[2] ?? '', name: r[3] ?? '', type: r[4] ?? '', nullable: decodeNullable(r[5]) })),
       };
       return snapshot;
     }, this.bounds());
@@ -126,20 +127,36 @@ class Registry implements DatasetRegistry, ImportRecorder {
     this.publish(r.value);
   }
 
-  remove(relation: string): OperationHandle<void> {
+  remove(relation: string, target?: RemoveTarget): OperationHandle<void> {
     const key = relation.toLowerCase();
-    const entry = this.getSnapshot().find((e) => e.relation.toLowerCase() === key);
-    if (!entry) return settled({ terminal: { status: 'refused', reason: `No dataset named "${relation}".` }, generation: null });
+    const matches = this.getSnapshot().filter((e) => e.relation.toLowerCase() === key && (!target || (e.origin === target.origin && e.identity?.database === target.database && e.identity?.schema === target.schema && e.identity?.oid === target.oid)));
+    if (!matches.length) return settled({ terminal: { status: 'refused', reason: `No dataset named "${relation}" matches the selection. It may have been removed or replaced; refresh the list.` }, generation: null });
+    if (matches.length > 1) return settled({ terminal: { status: 'refused', reason: `More than one dataset is named "${relation}"; choose the exact one to remove.` }, generation: null });
+    const entry = matches[0] as DatasetEntry;
+    const forget = () => {
+      // Only the imported entry owns the import record (a SQL table can share its name).
+      if (entry.origin === 'imported') this.tracked.delete(key);
+      this.publish(this.catalog);
+    };
     if (entry.state !== 'ready' && entry.state !== 'changed') {
       // Nothing exists in the engine: forget the record (and its File) only.
-      this.tracked.delete(key);
-      this.publish(this.catalog);
+      forget();
       return settled({ terminal: { status: 'ok' }, generation: this.session.generation });
     }
+    const id = entry.identity;
+    if (!id) return settled({ terminal: { status: 'refused', reason: `"${relation}" has no catalog identity.` }, generation: null });
     const h = this.session.submit('remove', async (l) => {
       await beginOwnTransaction(l, 'removing a dataset');
       try {
-        await l.query(`DROP ${entry.kind === 'view' ? 'VIEW' : 'TABLE'} ${quoteIdent(entry.identity?.database ?? '')}.${quoteIdent(entry.identity?.schema ?? '')}.${quoteIdent(entry.relation)}`, { maxRows: 1 });
+        // Inside the lease: the object at this exact place must still be the one that was selected.
+        const lit = (x: string) => `'${x.replaceAll("'", "''")}'`;
+        const where = `database_name = ${lit(id.database)} AND schema_name = ${lit(id.schema)}`;
+        const now = await l.query(
+          `SELECT table_oid::VARCHAR FROM duckdb_tables() WHERE ${where} AND table_name = ${lit(entry.relation)} UNION ALL SELECT view_oid::VARCHAR FROM duckdb_views() WHERE ${where} AND view_name = ${lit(entry.relation)}`,
+          { columns: 1, maxRows: 4 },
+        );
+        if (now.length !== 1 || now[0]?.[0] !== id.oid) throw new RefusedError(`"${entry.relation}" in ${id.database}.${id.schema} was replaced or removed after it was selected; nothing was dropped. Refresh the list and try again.`);
+        await l.query(`DROP ${entry.kind === 'view' ? 'VIEW' : 'TABLE'} ${quoteIdent(id.database)}.${quoteIdent(id.schema)}.${quoteIdent(entry.relation)}`, { maxRows: 1 });
         await l.query('COMMIT', { maxRows: 1 });
         l.forgetCleanup('ROLLBACK');
       } finally {
@@ -147,10 +164,7 @@ class Registry implements DatasetRegistry, ImportRecorder {
       }
     }, this.bounds());
     const result = h.result.then((r) => {
-      if (r.terminal.status === 'ok' && r.generation === this.session.generation) {
-        this.tracked.delete(key);
-        this.publish(this.catalog);
-      }
+      if (r.terminal.status === 'ok' && r.generation === this.session.generation) forget();
       return r;
     });
     return { id: h.id, kind: h.kind, get generation() { return h.generation; }, result, cancel: () => h.cancel() };
@@ -176,6 +190,21 @@ class Registry implements DatasetRegistry, ImportRecorder {
     });
     return { id: h.id, kind: h.kind, get generation() { return h.generation; }, result, cancel: () => h.cancel() };
   }
+}
+
+/** The exact entry to remove: names can repeat across origins, databases and schemas. */
+export interface RemoveTarget {
+  readonly origin: DatasetEntry['origin'];
+  readonly database: string;
+  readonly schema: string;
+  readonly oid: string;
+}
+
+/** duckdb_columns().is_nullable is a BOOLEAN ('true'/'false' as text); information_schema uses YES/NO. */
+export function decodeNullable(v: string | null | undefined): boolean | null {
+  if (v === 'true' || v === 'YES') return true;
+  if (v === 'false' || v === 'NO') return false;
+  return null;
 }
 
 function settled<T>(result: OperationResult<T>): OperationHandle<T> {

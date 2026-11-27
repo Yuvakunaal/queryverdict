@@ -10,6 +10,7 @@ import './datasets';
 import './verdict';
 import '../src/styles/tokens.css';
 import '../src/styles/base.css';
+import '../src/styles/explorer.css';
 
 /** Module-level fault switch, flipped by the fixture buttons (test-only). */
 const fault = { broken: false };
@@ -41,6 +42,23 @@ if (root && view === 'app-faulty') {
   faults.failStatement = 'SET enable_external_access = false';
   const runtime = engineHarness.createEngineRuntime(engineHarness.DEFAULT_PROFILE, new FaultyDriver());
   runtime.start();
+  createRoot(root).render(
+    <StrictMode>
+      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} />
+    </StrictMode>,
+  );
+} else if (root && view === 'app') {
+  // The production App on a real engine, with its runtime exposed so tests can restart the engine
+  // or run SQL (there is no SQL editor until M05). Optional import limits for admission tests.
+  const params = new URLSearchParams(location.search);
+  const base = engineHarness.DEFAULT_PROFILE;
+  const maxFile = Number(params.get('maxFileBytes') ?? base.imports.maxFileBytes);
+  const maxCombined = Number(params.get('maxCombinedBytes') ?? base.imports.maxCombinedBytes);
+  const maxArrow = Number(params.get('maxArrowBytes') ?? base.results.maxArrowBytes);
+  const profile = { ...base, results: { ...base.results, maxArrowBytes: maxArrow }, imports: { ...base.imports, maxFileBytes: maxFile, maxCombinedBytes: maxCombined } };
+  const runtime = engineHarness.createEngineRuntime(profile, new FaultyDriver());
+  runtime.start();
+  (window as unknown as { __qvApp: typeof runtime }).__qvApp = runtime;
   createRoot(root).render(
     <StrictMode>
       <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} />

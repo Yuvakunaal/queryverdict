@@ -22,6 +22,21 @@ function toCell(v: unknown): Cell {
   throw new ShapeError('non-text value in an engine-internal result; cast it to VARCHAR');
 }
 
+/** UTF-8 byte length of a JavaScript string, without allocating an encoded copy. */
+export function utf8Bytes(s: string): number {
+  let n = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff && i + 1 < s.length) {
+      n += 4;
+      i++;
+    } else n += 3;
+  }
+  return n;
+}
+
 function abortable<T>(p: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(signal.reason);
   return new Promise<T>((resolve, reject) => {
@@ -47,8 +62,19 @@ class DuckDBInstance implements EngineInstance {
     const reader = await this.conn.send(sql, true);
     const rows: Cell[][] = [];
     let columns: number | null = null;
+    let arrowBytes = 0;
+    let textBytes = 0;
+    const overBudget = async (what: string) => {
+      await this.conn.cancelSent().catch(() => false);
+      return new ShapeError(`result exceeds its byte budget of ${shape.maxBytes} bytes (${what}); truncated results are not used`);
+    };
     for await (const batch of reader) {
       columns ??= batch.numCols;
+      if (shape.maxBytes !== undefined) {
+        // Before converting anything from this batch: the batch the engine already sent.
+        arrowBytes += batch.data.byteLength;
+        if (arrowBytes > shape.maxBytes) throw await overBudget('Arrow buffers');
+      }
       if (shape.columns !== undefined && batch.numCols !== shape.columns) {
         await this.conn.cancelSent().catch(() => false);
         throw new ShapeError(`expected ${shape.columns} columns, got ${batch.numCols}`);
@@ -59,7 +85,14 @@ class DuckDBInstance implements EngineInstance {
           throw new ShapeError(`result exceeds ${shape.maxRows} rows; truncated results are not used`);
         }
         const row: Cell[] = [];
-        for (let c = 0; c < batch.numCols; c++) row.push(toCell(batch.getChildAt(c)?.get(r)));
+        for (let c = 0; c < batch.numCols; c++) {
+          const cell = toCell(batch.getChildAt(c)?.get(r));
+          if (shape.maxBytes !== undefined && cell !== null) {
+            textBytes += utf8Bytes(cell);
+            if (textBytes > shape.maxBytes) throw await overBudget('converted text');
+          }
+          row.push(cell);
+        }
         rows.push(row);
       }
     }
