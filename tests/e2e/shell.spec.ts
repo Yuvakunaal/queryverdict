@@ -17,15 +17,15 @@ test.describe('application shell', () => {
     expect(await page.locator('[role="status"]').count()).toBe(1);
   });
 
-  test('skip link is the first tab stop and moves focus to the workspace', async ({ page, browserName }) => {
+  test('skip link is the first tab stop and moves focus to the SQL editor (UI_SPECIFICATION §4)', async ({ page, browserName }) => {
     await page.goto(APP);
     // Safari/WebKit skip links on Tab by default; Option+Tab reaches them (platform behaviour).
     await page.keyboard.press(browserName === 'webkit' ? 'Alt+Tab' : 'Tab');
-    const skip = page.getByRole('link', { name: 'Skip to workspace' });
+    const skip = page.getByRole('link', { name: 'Skip to SQL editor' });
     await expect(skip).toBeFocused();
     await expect(skip).toBeInViewport();
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('main')).toBeFocused();
+    await expect(page.getByRole('textbox', { name: 'SQL editor' })).toBeFocused();
   });
 
   test('settings dialog: keyboard theme change, Escape closes, focus returns', async ({ page }) => {

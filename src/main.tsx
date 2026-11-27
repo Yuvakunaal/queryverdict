@@ -5,9 +5,11 @@ import { createEngineRuntime } from './app/bootstrap';
 import { DEFAULT_PROFILE, validateProfile } from './core/profile/profile';
 import { ConfigurationError } from './core/util/errors';
 import { browserDarkSchemeQuery, createUiPrefsStore } from './stores/uiPrefsStore';
+import { createWorkspaceStore } from './stores/workspaceStore';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/explorer.css';
+import './styles/workspace.css';
 
 // Singletons are created once per page, outside React, so StrictMode's double mount cannot
 // create duplicates (docs/ARCHITECTURE.md §6.2).
@@ -26,10 +28,11 @@ if (problems.length) {
 } else {
   const prefs = createUiPrefsStore(browserDarkSchemeQuery());
   const runtime = createEngineRuntime(DEFAULT_PROFILE);
+  const workspace = createWorkspaceStore();
   runtime.start();
   createRoot(root).render(
     <StrictMode>
-      <App prefs={prefs} runtime={runtime} />
+      <App prefs={prefs} runtime={runtime} workspace={workspace} />
     </StrictMode>,
   );
 }

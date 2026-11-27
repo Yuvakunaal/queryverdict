@@ -1,0 +1,547 @@
+{
+  "method": "revised-2026-11-27",
+  "runs": 7,
+  "chromium": {
+    "version": "158.0.8127.37",
+    "baseline": {
+      "readyMedianMs": 47.2,
+      "readyAll": [
+        36,
+        38,
+        43,
+        57,
+        51,
+        49,
+        47
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 25,
+        "p95": 32
+      },
+      "paste": {
+        "samples": 7,
+        "median": 82,
+        "all": [
+          82,
+          82,
+          84,
+          99,
+          82,
+          83,
+          82
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/baseline-*.js",
+        "/queryverdict/baseline.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "TEXTAREA",
+          "role": null,
+          "label": "SQL editor",
+          "multiline": null,
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    },
+    "cm": {
+      "readyMedianMs": 77.3,
+      "readyAll": [
+        78,
+        78,
+        77,
+        77,
+        85,
+        77,
+        73
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 24.8,
+        "p95": 31.8
+      },
+      "paste": {
+        "samples": 7,
+        "median": 65,
+        "all": [
+          65,
+          48,
+          49,
+          65,
+          49,
+          65,
+          65
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/cm-*.js",
+        "/queryverdict/cm.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "DIV",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)",
+        "scrollable-region-focusable(1)"
+      ],
+      "failures": []
+    },
+    "monaco": {
+      "readyMedianMs": 210.8,
+      "readyAll": [
+        292,
+        209,
+        211,
+        209,
+        211,
+        221,
+        210
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 24.2,
+        "p95": 31.1
+      },
+      "paste": {
+        "samples": 7,
+        "median": 48,
+        "all": [
+          49,
+          49,
+          65,
+          48,
+          48,
+          48,
+          34
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/monaco-*.css",
+        "/queryverdict/assets/monaco-*.js",
+        "/queryverdict/assets/sql-*.js",
+        "/queryverdict/monaco.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "DIV",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "",
+          "inRoot": true
+        },
+        "escape": "after",
+        "reverse": true
+      },
+      "axe": [
+        "color-contrast(16)",
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    }
+  },
+  "firefox": {
+    "version": "159.0",
+    "baseline": {
+      "readyMedianMs": 53,
+      "readyAll": [
+        51,
+        53,
+        51,
+        46,
+        73,
+        66,
+        65
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 16,
+        "p95": 31
+      },
+      "paste": {
+        "samples": 7,
+        "median": 64,
+        "all": [
+          64,
+          63,
+          65,
+          50,
+          214,
+          64,
+          62
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/baseline-*.js",
+        "/queryverdict/baseline.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "TEXTAREA",
+          "role": null,
+          "label": "SQL editor",
+          "multiline": null,
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    },
+    "cm": {
+      "readyMedianMs": 92,
+      "readyAll": [
+        86,
+        94,
+        87,
+        90,
+        182,
+        92,
+        113
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 11,
+        "p95": 26
+      },
+      "paste": {
+        "samples": 7,
+        "median": 63,
+        "all": [
+          64,
+          63,
+          64,
+          49,
+          62,
+          66,
+          63
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/cm-*.js",
+        "/queryverdict/cm.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "DIV",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)",
+        "scrollable-region-focusable(1)"
+      ],
+      "failures": []
+    },
+    "monaco": {
+      "readyMedianMs": 325,
+      "readyAll": [
+        325,
+        311,
+        290,
+        332,
+        327,
+        290,
+        347
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 10,
+        "p95": 26
+      },
+      "paste": {
+        "samples": 7,
+        "median": 62,
+        "all": [
+          65,
+          47,
+          65,
+          48,
+          62,
+          62,
+          64
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/monaco-*.css",
+        "/queryverdict/assets/monaco-*.js",
+        "/queryverdict/assets/sql-*.js",
+        "/queryverdict/monaco.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "TEXTAREA",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "",
+          "inRoot": true
+        },
+        "escape": "after",
+        "reverse": true
+      },
+      "axe": [
+        "color-contrast(16)",
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    }
+  },
+  "webkit": {
+    "version": "27.2",
+    "baseline": {
+      "readyMedianMs": 43,
+      "readyAll": [
+        38,
+        42,
+        44,
+        46,
+        34,
+        43,
+        43
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 24,
+        "p95": 32
+      },
+      "paste": {
+        "samples": 7,
+        "median": 132,
+        "all": [
+          149,
+          132,
+          133,
+          132,
+          132,
+          132,
+          133
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/baseline-*.js",
+        "/queryverdict/baseline.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "TEXTAREA",
+          "role": null,
+          "label": "SQL editor",
+          "multiline": null,
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    },
+    "cm": {
+      "readyMedianMs": 75,
+      "readyAll": [
+        71,
+        75,
+        75,
+        90,
+        74,
+        119,
+        75
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 26,
+        "p95": 33
+      },
+      "paste": {
+        "samples": 7,
+        "median": 48,
+        "all": [
+          48,
+          48,
+          66,
+          49,
+          49,
+          47,
+          47
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/cm-*.js",
+        "/queryverdict/cm.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "DIV",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)",
+        "scrollable-region-focusable(1)"
+      ],
+      "failures": []
+    },
+    "monaco": {
+      "readyMedianMs": 222,
+      "readyAll": [
+        286,
+        222,
+        221,
+        216,
+        223,
+        214,
+        222
+      ],
+      "typing": {
+        "samples": 420,
+        "median": 24,
+        "p95": 31
+      },
+      "paste": {
+        "samples": 7,
+        "median": 52,
+        "all": [
+          51,
+          52,
+          52,
+          54,
+          55,
+          53,
+          51
+        ]
+      },
+      "external": [],
+      "startupFetches": [
+        "/queryverdict/assets/monaco-*.css",
+        "/queryverdict/assets/monaco-*.js",
+        "/queryverdict/assets/sql-*.js",
+        "/queryverdict/monaco.html"
+      ],
+      "csp": [],
+      "errors": [],
+      "keyboard": {
+        "inEditor": {
+          "tag": "TEXTAREA",
+          "role": "textbox",
+          "label": "SQL editor",
+          "multiline": "true",
+          "inRoot": true
+        },
+        "afterTab": {
+          "id": "after",
+          "inRoot": false
+        },
+        "escape": null,
+        "reverse": true
+      },
+      "axe": [
+        "color-contrast(16)",
+        "landmark-one-main(1)",
+        "page-has-heading-one(1)",
+        "region(1)"
+      ],
+      "failures": []
+    }
+  }
+}

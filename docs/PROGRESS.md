@@ -24,8 +24,8 @@ Last updated: 2026-11-27
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | M01, M02, M03 and M08 merged. M04 implemented on `feat/dataset-explorer` (uncommitted, awaiting Codex review): datasets sidebar (drawer below 900 px), accessible import dialog, schema-first inspector with an explicit bounded preview (`src/core/results`, for M06 reuse), dataset actions (preview, schema, copy name, remove with confirmation, re-import, choose file again). No SQL editor, results grid or Verdict UI yet |
-| Tests | **Production (M04 branch after the Codex M04 review, local, 2026-11-27):** 326 Vitest unit tests, 7 Python oracle tests, and 387 Playwright tests (129 × Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2) including 18 explorer tests per browser; axe in Chromium and WebKit for the explorer states (Firefox axe skipped in the explorer suite, P-083); repo scan, typecheck, lint, boundary check, build, harness build, artifact check, notices clean. Earlier: Verdict 24/24, M03 and M02 mutation checks caught.|
+| Application code | M01, M02, M03, M04 and M08 merged. M05 SQL workspace implemented on `feat/sql-workspace` (uncommitted, awaiting Codex review): E9 selected CodeMirror 6 (P-052 pending approval), resizable workspace, editor, Run SQL/Analyze actions not yet connected (M06/M09) |
+| Tests | **Production (M05 branch after the Codex M05 review, local, 2026-11-27):** 339 Vitest unit tests, 7 Python oracle tests, and 471 Playwright tests passed with 6 skipped by design (Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2). Axe runs in Chromium and WebKit (Firefox skipped, P-083). Repo scan, typecheck, lint, boundary check, build, harness build, artifact check and notices clean |
 | CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
@@ -463,9 +463,118 @@ Recommendations that would change the design system are recorded for M14 (P-085)
 
 **Still not verified:** VoiceOver and NVDA, actual 200 % browser zoom (narrow-viewport emulation only), forced colours, standalone Firefox and Safari, live Pages. Arrow wire size and peak memory of a preview are bounded by construction and the driver check, not measured.
 
+### 2026-11-27: M05 SQL Workspace and Editor implemented (Claude Code)
+
+Branch `feat/sql-workspace` (from `main` at the M04 merge, PR #11), uncommitted, awaiting Codex review. Prerequisites M01–M04 and M08 are merged.
+
+**E9 editor qualification (first step; FEASIBILITY §15, P-052):**
+- CodeMirror 6 and Monaco 0.58 were measured with the production Vite configuration, base path and CSP. The harness and raw results are in `docs/evidence/e9-editor/`.
+- Both passed the E9 criteria. Monaco escapes Tab only through its Ctrl+Shift+M toggle.
+- **CodeMirror 6 was selected** under the smaller-bundle rule: +335 KB raw / +108 KB gzip, against Monaco's +3.55 MB / +934 KB.
+- Monaco was never installed in the application.
+- **P-052 awaits maintainer approval.**
+
+**Workspace (P-086–P-089):**
+- **Layout:** a header with Shortcuts and Settings, the datasets sidebar, the editor above the output panel (Results, Verdict, Dataset), and the status strip.
+- **Explorer:** the M04 explorer is integrated through a `useExplorer` hook, with the registry still the only source of dataset state. The inspector is the Dataset view.
+- **Dividers:** two keyboard- and pointer-operable dividers following the window splitter pattern, with layout presets in Settings.
+- **Responsive:** responsive at ≥ 1200, 900–1199 and < 900 px (drawer and view tabs).
+- **State:** a session-only `workspaceStore`.
+- **Editor:** DuckDB SQL highlighting from the design tokens, line numbers, a wrap toggle, undo and redo, and no Tab capture.
+- **Run SQL and Analyze** (Mod+Enter, Mod+Shift+Enter) are editor-scoped and distinct. They say plainly that nothing was sent to the engine (P-087); execution and Verdict UI belong to M06 and M09.
+- **Shortcuts:** a dialog lists only the supported bindings.
+
+**Maintainer feedback, fixed:**
+- The focus border was hidden by the gutter.
+- At soft-wrap points, Left and Right skipped a caret position. The caret is now drawn by CodeMirror, and wrap-aware arrows reach every position in both directions.
+- The placeholder is now "Write a SQL query", and the Run icon was redrawn.
+- The selection colour is derived from tokens and keeps every SQL colour at 4.55:1 or more; the active line is marked in the gutter only.
+
+**Other defects found and fixed during M05:**
+- Undo merged an external text change with the user's typing.
+- Where the two dividers meet, the horizontal divider's hit area covered the vertical one.
+- The narrow editor toolbar split its actions across lines.
+
+**Tests:**
+- New suites:
+  - `tests/e2e/workspace.spec.ts` (20 tests after the Codex corrections);
+  - `tests/e2e/editor-a11y.spec.ts` (10 tests, of which IME and forced colours run in Chromium only);
+  - `tests/unit/workspace/` (9 tests);
+  - a test-only `?view=editor` harness fixture for the `SqlEditor` contract.
+- Updated tests: the skip link now targets the editor (UI_SPECIFICATION §4), and the narrow explorer test imports through the drawer.
+- **Mutation checks** (each caught):
+  - binding Tab (`indentWithTab`);
+  - routing Analyze to Run;
+  - removing the wrap-aware arrows.
+
+**Verification (final code):**
+- check:repo, typecheck, lint and boundary check exit 0.
+- Vitest 335/335; Python oracle OK.
+- Build OK and `check-artifact` clean: 11 files. App JS is 895.0 KB raw / 269.4 KB gzip (+348.4 / +114.7 KB against M04); CSS is 24.8 KB.
+- Harness build OK. Notices: 64 package locations, 5 release-blocking items (unchanged). `npm audit` 0 vulnerabilities.
+- **Playwright 455 passed, 4 skipped, 0 failed** in Chrome 158.0.8127.37, Firefox 159.0 and WebKit 27.2 (13.1 min). The skips are the two Chromium-only tests in Firefox and WebKit.
+
+**Not verified:**
+- VoiceOver and NVDA (manual, M05 field 16).
+- IME outside Chromium's DevTools protocol, and IME with a real input method.
+- Windows forced colours (Chromium emulation only).
+- Real 200 % browser zoom (a half-size viewport was used).
+- Live GitHub Pages.
+- Axe in Firefox (P-083).
+
+### 2026-11-27: M05 corrections after the Codex review (Claude Code)
+
+Codex review: CHANGES REQUIRED, with six MEDIUM findings and one LOW, all reproduced. All seven corrected (P-091), each with a regression test and a mutation check. Codex verdict for E9: partially verified.
+
+- **MEDIUM, action chords on focused buttons (Firefox).** A focused Analyze ran on Cmd+Enter. The chords are now blocked outside the editor; plain Enter and Space still activate. Tested on both buttons with both chords in all three browsers. Removing the guard fails the Firefox test.
+- **MEDIUM, crossing 900 px hid the focused editor.** The narrow view now follows the focused pane, and focus moves to the visible equivalent of a control that disappears. Tested in both directions, from the editor and from an output tab.
+- **MEDIUM, output tab semantics and narrow feedback.** Narrow tabs now reference the `tabpanel`, the panel is focusable, and the Run/Analyze notice appears beside the actions at 320 px while focus stays on the trigger.
+- **MEDIUM, external text reset the caret.** Only the differing span is replaced (`src/features/editor/textDiff.ts`, unit-tested and surrogate-safe). The regression reads the editor's own cursor report. A first version of the test, which read the caret through typing, passed under the mutation and was strengthened.
+- **MEDIUM, E9 timing method.** Re-run with:
+  - fresh identical documents per trial, and an asserted caret offset;
+  - exact typed text, and one validated real paste per trial (7 trials, 0 failures);
+  - emitted and fetched assets reported separately;
+  - the harness lockfile committed.
+
+  FEASIBILITY §15 and P-052 were rewritten; status: partially verified.
+- **MEDIUM, a second touch could take over a drag.** Drags now track their `pointerId`. The first version of the test passed under the mutation for two reasons:
+  - Chrome's touch adjustment moved a contact near the divider junction onto the other divider;
+  - the second finger missed the moved divider.
+
+  Corrected; the mutation now fails the test (294 px against 234 px).
+- **LOW, bounds and reset.** The output minimum now excludes the divider rule (exactly 160 px). The sidebar default is breakpoint-aware for the initial layout and every reset (224 px at 900–1199 px). Dividers are named by the pane headings (**Datasets**, **Query**).
+- **Also:**
+  - P-088's caret claim is scoped to the verified inputs; bidirectional text keeps CodeMirror's default traversal;
+  - the header context label no longer wraps;
+  - the trailing blank line in FEASIBILITY was removed.
+
+**Verification after corrections (final code):**
+- check:repo, typecheck, lint and boundary check exit 0; `git diff --check` clean.
+- Vitest 339/339 (4 new `textDiff` tests); Python oracle OK.
+- Build OK and `check-artifact` clean: 11 files, 87,564,333 bytes. App JS is 897.0 KB raw / 270.2 KB gzip (+350.4 / +115.4 KB against M04); CSS is 25.2 KB.
+- Harness build OK. Notices: 64 package locations, 5 release-blocking items (unchanged). `npm audit` 0 vulnerabilities.
+- **Playwright 471 passed, 6 skipped, 0 failed** in Chrome 158.0.8127.37, Firefox 159.0 and WebKit 27.2 (12.8 min). The skips are the Chromium-only IME, forced-colours and touch tests in Firefox and WebKit.
+- **Mutation checks** (each caught by its test):
+  - the chord guard;
+  - pointer ownership;
+  - the whole-document replacement;
+  - breakpoint focus continuity;
+  - the non-focusable tab panel.
+
+  Earlier mutation checks (Tab binding, Analyze routed to Run, wrap-aware arrows) still apply.
+
+### 2026-11-27: M05 CI fix (PR #12, Linux runner) (Claude Code)
+
+The PR's `browser` job failed (run 45966025588); `verify` and `build` passed. Two causes, neither visible on macOS:
+
+- **Header overflow (9 tests, all browsers).** At 320 px, the wider Linux fonts gave an 18 px horizontal scroll. The cause was the header row, which could not wrap after the context label was made non-wrapping. The header now wraps its actions onto their own line; locally no overflow was observed down to 280 px.
+- **Shortcut labels (1 test, WebKit).** Playwright's WebKit on Linux reports a Mac user agent with a Linux `navigator.platform`. The labels followed the user agent and showed ⌘ while CodeMirror bound Ctrl. Platform detection now uses `navigator.platform`, the signal CodeMirror uses for its Mod key, falling back to the user agent only when the platform is empty. Unit test added.
+
+Local rerun of the affected suites (editor-a11y, shell, explorer, workspace) in Chrome, Firefox and WebKit: 162 passed, 6 skipped by design. CI re-run pending.
+
 ## Next steps
 
-1. Codex re-review of M04 (`feat/dataset-explorer`) after the corrections; then maintainer-approved commit, PR and merge.
+1. Codex re-review of M05 (`feat/sql-workspace`) after the corrections; manual VoiceOver/NVDA editing (M05 field 16); maintainer approval of P-052 (CodeMirror 6) and P-086–P-090; then maintainer-approved commit, PR and merge.
 2. Maintainer decisions: P-079…P-085 (P-083 also needs a decision on the Firefox axe gap); still open: P-063…P-078 and P-069; AM-001…AM-022; specification approvals; licence and AM-022.
 3. Manual checks for M04 field 16: VoiceOver (Safari) and NVDA (Firefox or Chrome) over the tree and dialog; real browser zoom at 200 %.
-4. Next module per the plan: **M05** (only on the maintainer's instruction).
+4. Next module per the plan: **M06** (only on the maintainer's instruction).

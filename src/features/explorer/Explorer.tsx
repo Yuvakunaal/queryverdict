@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import type { EngineRuntime } from '../../app/bootstrap';
 import { isActiveStage } from '../../stores/importStore';
 import { Button } from '../../ui/Button';
@@ -7,11 +7,32 @@ import { ImportDialog } from './ImportDialog';
 import { Inspector, type InspectorTab } from './Inspector';
 import { entryKey, isAmbiguous } from './model';
 
+/** The explorer's parts, placed by the workspace layout (M05). */
+export interface ExplorerParts {
+  /** The datasets sidebar (a drawer below 900 px). */
+  readonly sidebar: ReactNode;
+  /** Opens and closes the datasets drawer (shown only below 900 px). */
+  readonly drawerToggle: ReactNode;
+  /** The inspector for the selected dataset, or a prompt to select one. */
+  readonly detail: ReactNode;
+  /** The getting-started block while the workspace has no datasets (null otherwise). */
+  readonly getStarted: ReactNode;
+  /** The import dialog (rendered once, wherever the layout puts it). */
+  readonly dialog: ReactNode;
+  /** Name of the selected dataset, if any. */
+  readonly selectedName: string | null;
+}
+
+export interface ExplorerOptions {
+  /** Called when the user selects a dataset (the workspace shows the Dataset view). */
+  onSelect?(): void;
+}
+
 /**
- * Dataset explorer (M04): the datasets sidebar (a drawer below 900 px), the import dialog and the
- * inspector. All dataset state comes from the registry; import progress from the importer.
+ * Dataset explorer (M04, placed in the M05 workspace): the datasets sidebar, the import dialog and
+ * the inspector. All dataset state comes from the registry; import progress from the importer.
  */
-export function Explorer({ runtime }: { runtime: EngineRuntime }) {
+export function useExplorer(runtime: EngineRuntime, options: ExplorerOptions = {}): ExplorerParts {
   const { datasets, imports, preview, announcer, profile } = runtime;
   const entries = useSyncExternalStore(datasets.registry.subscribe, datasets.registry.getSnapshot);
   const batches = useSyncExternalStore(imports.subscribe, imports.getSnapshot);
@@ -25,7 +46,6 @@ export function Explorer({ runtime }: { runtime: EngineRuntime }) {
   const opener = useRef<HTMLElement | null>(null);
   const sidebarImport = useRef<HTMLButtonElement>(null);
   const datasetsHeading = useRef<HTMLHeadingElement>(null);
-  const inspectorRef = useRef<HTMLDivElement>(null);
   const lostSql = useRef<{ generation: number | null; names: string[] }>({ generation: engine.generation, names: [] });
   const [sqlLost, setSqlLost] = useState<string[]>([]);
 
@@ -65,17 +85,19 @@ export function Explorer({ runtime }: { runtime: EngineRuntime }) {
     }
   }, [entry, drawerOpen]);
 
+  const onSelect = options.onSelect;
   const select = useCallback((key: string) => {
     if (key !== selected) {
       preview.clear(); // selecting never starts work; any previous preview is discarded
       setTab('schema');
     }
     setSelected(key);
+    onSelect?.();
     if (drawerOpen) {
       focusInspector.current = true;
       setDrawerOpen(false);
     }
-  }, [selected, preview, drawerOpen]);
+  }, [selected, preview, drawerOpen, onSelect]);
 
   const toggle = useCallback((key: string) => {
     setExpanded((s) => {
@@ -99,65 +121,76 @@ export function Explorer({ runtime }: { runtime: EngineRuntime }) {
     setImportOpen(true);
   };
 
-  return (
-    <div className="explorer">
-      <div className="explorer-toolbar">
-        <Button className="drawer-toggle" aria-expanded={drawerOpen} aria-controls="datasets-panel" onClick={() => setDrawerOpen((o) => !o)}>
-          Datasets ({entries.length})
+  const drawerToggle = (
+    <Button className="drawer-toggle" aria-expanded={drawerOpen} aria-controls="datasets-panel" onClick={() => setDrawerOpen((o) => !o)}>
+      Datasets ({entries.length})
+    </Button>
+  );
+
+  const sidebar = (
+    <aside id="datasets-panel" className="sidebar" data-open={drawerOpen || undefined} aria-labelledby="datasets-heading">
+      <div className="sidebar-head">
+        <h2 id="datasets-heading" ref={datasetsHeading} tabIndex={-1}>
+          <span id="datasets-title">Datasets</span> {entries.length ? <span className="count">{entries.length}</span> : null}
+        </h2>
+        <Button ref={sidebarImport} className="btn-small" onClick={(e) => openImport(e.currentTarget)} disabled={!engineReady}>
+          + Import
         </Button>
       </div>
-      <aside id="datasets-panel" className="sidebar" data-open={drawerOpen || undefined} aria-labelledby="datasets-heading">
-        <div className="sidebar-head">
-          <h2 id="datasets-heading" ref={datasetsHeading} tabIndex={-1}>
-            Datasets {entries.length ? <span className="count">{entries.length}</span> : null}
-          </h2>
-          <Button ref={sidebarImport} className="btn-small" onClick={(e) => openImport(e.currentTarget)} disabled={!engineReady}>
-            + Import
-          </Button>
-        </div>
-        {!engineReady ? <p className="sidebar-note">Import is available when the engine is ready.</p> : null}
-        {sqlLost.length ? (
-          <p className="sidebar-note" data-tone="warning">
-            The engine restarted. Tables created by SQL were lost and must be recreated: <span className="mono">{sqlLost.join(', ')}</span>.{' '}
-            <Button variant="quiet" onClick={() => setSqlLost([])}>Dismiss</Button>
-          </p>
-        ) : null}
-        <div className="sidebar-list">
-          {entries.length || importing.length ? (
-            <DatasetTree entries={entries} importing={importing} selected={selected} expanded={expanded} onSelect={select} onToggle={toggle} onShowImports={() => openImport(null)} />
-          ) : (
-            <p className="sidebar-note">No datasets yet.</p>
-          )}
-        </div>
-        <div className="sidebar-foot">
-          <strong>Session tables</strong>
-          <p>Reloading clears this workspace.</p>
-        </div>
-      </aside>
-      <div className="explorer-main" ref={inspectorRef}>
-        {entry ? (
-          <Inspector entry={entry} qualified={isAmbiguous(entry, entries)} tab={tab} onTab={setTab} registry={datasets.registry} imports={imports} preview={preview} announcer={announcer} profile={profile} engineReady={engineReady} />
-        ) : entries.length ? (
-          <section className="empty-state" aria-labelledby="explorer-empty">
-            <h2 id="explorer-empty">Select a dataset</h2>
-            <p className="muted">Choose a dataset in the list to see its schema. Sample rows are read only when you ask for a preview.</p>
-          </section>
+      {!engineReady ? <p className="sidebar-note">Import is available when the engine is ready.</p> : null}
+      {sqlLost.length ? (
+        <p className="sidebar-note" data-tone="warning">
+          The engine restarted. Tables created by SQL were lost and must be recreated: <span className="mono">{sqlLost.join(', ')}</span>.{' '}
+          <Button variant="quiet" onClick={() => setSqlLost([])}>Dismiss</Button>
+        </p>
+      ) : null}
+      <div className="sidebar-list">
+        {entries.length || importing.length ? (
+          <DatasetTree entries={entries} importing={importing} selected={selected} expanded={expanded} onSelect={select} onToggle={toggle} onShowImports={() => openImport(null)} />
         ) : (
-          <section className="empty-state" aria-labelledby="explorer-empty">
-            <h2 id="explorer-empty">Get started</h2>
-            <p>Files stay in this browser session.</p>
-            <Button variant="primary" onClick={(e) => openImport(e.currentTarget)} disabled={!engineReady}>
-              Import CSV or Parquet
-            </Button>
-            <ol className="next-steps">
-              <li>Import one or more CSV or Parquet files as session tables.</li>
-              <li>Select a dataset to see its columns and types.</li>
-              <li>Preview its first rows when you need them.</li>
-            </ol>
-          </section>
+          <p className="sidebar-note">No datasets yet.</p>
         )}
       </div>
-      <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} returnFocus={returnFocus} imports={imports} entries={entries} limits={profile.imports} engineReady={engineReady} />
+      <div className="sidebar-foot">
+        <strong>Session tables</strong>
+        <p>Reloading clears this workspace.</p>
+      </div>
+    </aside>
+  );
+
+  const detail = (
+    <div className="explorer-main">
+      {entry ? (
+        <Inspector entry={entry} qualified={isAmbiguous(entry, entries)} tab={tab} onTab={setTab} registry={datasets.registry} imports={imports} preview={preview} announcer={announcer} profile={profile} engineReady={engineReady} />
+      ) : (
+        <section className="empty-state" aria-labelledby="explorer-empty">
+          <h2 id="explorer-empty">Select a dataset</h2>
+          <p className="muted">
+            {entries.length
+              ? 'Choose a dataset in the list to see its schema. Sample rows are read only when you ask for a preview.'
+              : 'Import a CSV or Parquet file, then choose it in the Datasets list to see its schema.'}
+          </p>
+        </section>
+      )}
     </div>
   );
+
+  const getStarted = entries.length ? null : (
+    <section className="empty-state" aria-labelledby="get-started">
+      <h2 id="get-started">Get started</h2>
+      <p>Files stay in this browser session.</p>
+      <Button variant="primary" onClick={(e) => openImport(e.currentTarget)} disabled={!engineReady}>
+        Import CSV or Parquet
+      </Button>
+      <ol className="next-steps">
+        <li>Import one or more CSV or Parquet files as session tables.</li>
+        <li>Select a dataset to see its columns and types.</li>
+        <li>Preview its first rows when you need them.</li>
+      </ol>
+    </section>
+  );
+
+  const dialog = <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} returnFocus={returnFocus} imports={imports} entries={entries} limits={profile.imports} engineReady={engineReady} />;
+
+  return { sidebar, drawerToggle, detail, getStarted, dialog, selectedName: entry?.relation ?? null };
 }

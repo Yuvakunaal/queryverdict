@@ -381,9 +381,13 @@ test.describe('dataset explorer (harness: restart, SQL changes, held imports)', 
   test('narrow screens: datasets move into a drawer; 320 px reflows without page scrolling', async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 700 });
     await ready(page, APP_VIEW);
+    // M05: narrow screens open on the Editor view; Import lives in the datasets drawer.
+    const toggle = page.getByRole('button', { name: /^Datasets \(/ });
+    await toggle.click();
     await importFiles(page, [fx('people.csv')]);
     await done(page);
-    const toggle = page.getByRole('button', { name: 'Datasets (1)' });
+    await expect(toggle).toHaveText('Datasets (1)');
+    await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#datasets-panel')).toBeHidden();
     await toggle.click();

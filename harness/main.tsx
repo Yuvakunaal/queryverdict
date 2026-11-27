@@ -5,12 +5,15 @@ import { createRoot } from 'react-dom/client';
 import { App } from '../src/app/App';
 import { ErrorBoundary } from '../src/app/ErrorBoundary';
 import { browserDarkSchemeQuery, createUiPrefsStore } from '../src/stores/uiPrefsStore';
+import { createWorkspaceStore } from '../src/stores/workspaceStore';
+import { EditorFixture } from './editor';
 import { engineHarness, faults, FaultyDriver } from './engine';
 import './datasets';
 import './verdict';
 import '../src/styles/tokens.css';
 import '../src/styles/base.css';
 import '../src/styles/explorer.css';
+import '../src/styles/workspace.css';
 
 /** Module-level fault switch, flipped by the fixture buttons (test-only). */
 const fault = { broken: false };
@@ -44,12 +47,13 @@ if (root && view === 'app-faulty') {
   runtime.start();
   createRoot(root).render(
     <StrictMode>
-      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} />
+      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} workspace={createWorkspaceStore()} />
     </StrictMode>,
   );
 } else if (root && view === 'app') {
   // The production App on a real engine, with its runtime exposed so tests can restart the engine
-  // or run SQL (there is no SQL editor until M05). Optional import limits for admission tests.
+  // or run SQL (Run SQL is not connected until M06), and its workspace store exposed so tests can
+  // read the query buffer. Optional import limits for admission tests.
   const params = new URLSearchParams(location.search);
   const base = engineHarness.DEFAULT_PROFILE;
   const maxFile = Number(params.get('maxFileBytes') ?? base.imports.maxFileBytes);
@@ -58,10 +62,18 @@ if (root && view === 'app-faulty') {
   const profile = { ...base, results: { ...base.results, maxArrowBytes: maxArrow }, imports: { ...base.imports, maxFileBytes: maxFile, maxCombinedBytes: maxCombined } };
   const runtime = engineHarness.createEngineRuntime(profile, new FaultyDriver());
   runtime.start();
+  const workspace = createWorkspaceStore();
   (window as unknown as { __qvApp: typeof runtime }).__qvApp = runtime;
+  (window as unknown as { __qvWorkspace: typeof workspace }).__qvWorkspace = workspace;
   createRoot(root).render(
     <StrictMode>
-      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} />
+      <App prefs={createUiPrefsStore(browserDarkSchemeQuery())} runtime={runtime} workspace={workspace} />
+    </StrictMode>,
+  );
+} else if (root && view === 'editor') {
+  createRoot(root).render(
+    <StrictMode>
+      <EditorFixture />
     </StrictMode>,
   );
 } else if (root) {
