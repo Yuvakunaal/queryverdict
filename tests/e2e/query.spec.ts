@@ -245,6 +245,8 @@ test.describe('Run SQL in the app runtime: registry, Verdict evidence, rapid re-
       rt.queries.run(['CREATE TABLE l AS SELECT i AS k FROM range(3) t(i)'], 'CREATE TABLE l AS SELECT i AS k FROM range(3) t(i)'); await settle();
       rt.queries.run(['CREATE TABLE r AS SELECT i AS k FROM range(3) t(i)'], 'CREATE TABLE r AS SELECT i AS k FROM range(3) t(i)'); await settle();
       const created = await until(() => entry('l')?.origin === 'sql' && entry('r')?.state === 'ready');
+      // The report is current only for the editor's text (M09, P-100), so the editor holds the analysed query.
+      (window as unknown as { __qvWorkspace: { setSql(s: string): void } }).__qvWorkspace.setSql('SELECT * FROM l JOIN r ON l.k = r.k');
       await rt.verdict.analyze('SELECT * FROM l JOIN r ON l.k = r.k', []).result;
       const fresh = rt.reports.getSnapshot().current;
       rt.queries.run(['SELECT count(*) FROM l'], 'SELECT count(*) FROM l'); await settle();

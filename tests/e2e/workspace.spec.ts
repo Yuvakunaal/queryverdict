@@ -117,7 +117,7 @@ test.describe('SQL workspace (harness app view)', () => {
     expect(before.x).toBeLessThan(end.x); // then before the upper row's last character: never stuck
   });
 
-  test('Run SQL (Mod+Enter) and Analyze (Mod+Shift+Enter): distinct and scoped to the editor; Run executes (M06), Analyze is not connected yet (M09)', async ({ page }) => {
+  test('Run SQL (Mod+Enter) and Analyze (Mod+Shift+Enter): distinct and scoped to the editor; Run executes (M06), Analyze reports in Verdict (M09)', async ({ page }) => {
     await ready(page);
     await type(page, 'SELECT 42');
 
@@ -130,15 +130,17 @@ test.describe('SQL workspace (harness app view)', () => {
     await expect(page.getByRole('tab', { name: 'Results' })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel')).toContainText('SQL executed');
     await expect(page.getByRole('status')).toHaveText('SQL executed · 1 row shown.');
-    const before = await statements(page);
 
     await page.keyboard.press('ControlOrMeta+Shift+Enter');
     s = await store(page);
     expect(s.lastAnalyze).toMatchObject({ seq: 2, sql: 'SELECT 42' });
     expect(s.lastRun?.seq).toBe(1); // Analyze never triggers Run
     await expect(page.getByRole('tab', { name: 'Verdict' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('tabpanel')).toContainText('Analyze is not available in this version yet. Nothing was analyzed.');
+    // Not a join: Verdict says so; nothing about the SQL being wrong (M09).
+    await expect(page.getByRole('tabpanel')).toContainText('No join to analyze: this query does not read two tables.');
+    await expect(page.getByRole('status')).toHaveText('Verdict: No join to analyze: this query does not read two tables.');
     await expect(editor(page)).toBeFocused();
+    const before = await statements(page);
 
     // Outside the editor the shortcuts do nothing. (Focus on the page body: on a focused button,
     // Firefox activates the button itself for Cmd/Ctrl+Enter, which is native behaviour.)
@@ -392,7 +394,7 @@ test.describe('Codex M05 review regressions (harness app view)', () => {
     await analyzeButton.focus();
     await page.keyboard.press('Enter');
     const note = page.locator('.inline-note');
-    await expect(note).toContainText('Analyze is not available in this version yet');
+    await expect(note).toContainText(/Queued for analysis|Analyzing…|Verdict: No join to analyze/);
     await expect(note).toBeInViewport();
     await expect(analyzeButton).toBeFocused();
     await expect(page.getByRole('tab', { name: 'Editor' })).toHaveAttribute('aria-selected', 'true');

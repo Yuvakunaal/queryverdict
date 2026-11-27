@@ -4,7 +4,7 @@ import { createWorkspaceStore, DEFAULT_LAYOUT, LAYOUT_LIMITS, LAYOUT_PRESETS } f
 describe('workspaceStore (M05, session only)', () => {
   it('starts empty, results selected, default layout, no requests', () => {
     const s = createWorkspaceStore().getSnapshot();
-    expect(s).toEqual({ sql: '', wrap: false, layout: DEFAULT_LAYOUT, output: 'results', lastRun: null, lastAnalyze: null });
+    expect(s).toEqual({ sql: '', wrap: false, layout: DEFAULT_LAYOUT, output: 'results', lastRun: null, lastAnalyze: null, verdictDetail: false });
   });
 
   it('notifies only on real changes', () => {
