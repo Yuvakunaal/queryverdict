@@ -142,11 +142,34 @@ export function publish(draft: DraftReport | null, ctx: FenceContext): VerdictRe
   };
 }
 
-/** Historical vs current (ARCHITECTURE §16.2): a report is current only while its stamp and query match. */
-export function currency(report: VerdictReport, live: { generation: Generation | null; epoch: DataEpoch; state: SessionState; queryHash?: string }): { current: boolean; reason?: string } {
+/** A canonical text of declared expectations (keys sorted), for comparing declaration lists. */
+export function declarationKey(declared: readonly unknown[]): string {
+  const canon = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(canon);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon((v as Record<string, unknown>)[k])]));
+    return v;
+  };
+  return JSON.stringify(declared.map(canon), (_k, v: unknown) => (typeof v === 'bigint' ? `${v}n` : v));
+}
+
+/**
+ * Historical vs current (ARCHITECTURE §16.2): a report is current only while its stamp, its query
+ * and (M09, P-100) its declared expectations match the live workspace. `sqlText` and
+ * `expectations` are compared only when given.
+ */
+export function currency(
+  report: VerdictReport,
+  live: { generation: Generation | null; epoch: DataEpoch; state: SessionState; queryHash?: string; sqlText?: string; expectations?: readonly unknown[] },
+): { current: boolean; reason?: string } {
   if (live.state.kind === 'disposed') return { current: false, reason: 'session ended' };
-  if (report.stamp.generation === null || live.generation !== report.stamp.generation) return { current: false, reason: 'engine restarted' };
+  // A run that never reached the engine has no snapshot to be current for.
+  if (report.stamp.generation === null) return { current: false, reason: 'analysis never reached the engine' };
+  if (live.generation !== report.stamp.generation) return { current: false, reason: 'engine restarted' };
   if (live.epoch !== report.stamp.epoch) return { current: false, reason: 'data may have changed' };
   if (live.queryHash !== undefined && live.queryHash !== report.identity.queryHash) return { current: false, reason: 'query changed' };
+  if (live.sqlText !== undefined && live.sqlText !== report.identity.sqlText) return { current: false, reason: 'query changed' };
+  if (live.expectations !== undefined && declarationKey(live.expectations) !== declarationKey(report.expectations.map((o) => o.expectation))) {
+    return { current: false, reason: 'expectations changed' };
+  }
   return { current: true };
 }

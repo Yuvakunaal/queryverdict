@@ -15,6 +15,9 @@ import { createAnnouncer, followEngine, type Announcer } from '../stores/announc
 import { createImportStore, type ImportStore } from '../stores/importStore';
 import { createPreviewStore, type PreviewStore } from '../stores/previewStore';
 import { createQueryStore, type QueryStore } from '../stores/queryStore';
+import { createAnalysisStore, type AnalysisStore } from '../stores/analysisStore';
+import { announcementFor } from '../features/verdict/answer';
+import { createExpectationStore, type ExpectationStore } from '../stores/expectationStore';
 
 export interface EngineRuntime {
   readonly session: EngineSession;
@@ -31,6 +34,9 @@ export interface EngineRuntime {
   readonly announcer: Announcer;
   /** Run SQL (M06): the latest query run and its bounded result. */
   readonly queries: QueryStore;
+  /** Analyze (M09): the latest analysis operation (its report is in `reports`) and the declared expectations. */
+  readonly analyses: AnalysisStore;
+  readonly expectations: ExpectationStore;
   readonly profile: ReleaseProfile;
   /** Starts (or retries) the engine; failures are reflected in the engine store, never thrown. */
   start(): void;
@@ -54,6 +60,10 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
   });
   const preview = createPreviewStore(session, profile);
   const queries = createQueryStore(session, profile, announcer);
+  // Analyze from the workspace: the same M08 service on the same session queue, with a sink that
+  // lets only the latest request publish (analysisStore.ts).
+  const analyses = createAnalysisStore({ session, reports, announcer, describe: announcementFor, service: (sink) => createVerdict({ session, profile, sink, origin }) });
+  const expectations = createExpectationStore();
   if (typeof document !== 'undefined') {
     // Timers are throttled in background tabs; apply overdue deadlines when the tab is visible again.
     document.addEventListener('visibilitychange', () => {
@@ -71,6 +81,8 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
     preview,
     announcer,
     queries,
+    analyses,
+    expectations,
     profile,
     start() {
       const kind = session.state.kind;

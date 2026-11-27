@@ -6,14 +6,16 @@ import type { BoundedResult, CellText } from '../../core/results/types';
 import type { Announcer } from '../../stores/announcer';
 import type { ImportStore } from '../../stores/importStore';
 import type { PreviewStore } from '../../stores/previewStore';
+import type { ReportView } from '../../stores/reportStore';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
 import { Table } from '../../ui/Table';
 import { Tabs } from '../../ui/Tabs';
 import { DatasetActions } from './DatasetActions';
+import { JoinKeyProfile } from './JoinKeyProfile';
 import { formatBytes, groupDigits, isPresent, ORIGIN, rowCountText, STATE } from './model';
 
-export type InspectorTab = 'schema' | 'preview';
+export type InspectorTab = 'schema' | 'preview' | 'keys';
 
 export interface InspectorProps {
   readonly entry: DatasetEntry;
@@ -27,6 +29,8 @@ export interface InspectorProps {
   readonly announcer: Announcer;
   readonly profile: ReleaseProfile;
   readonly engineReady: boolean;
+  /** The latest Verdict report and its currency (M09: join-key profile). */
+  readonly report: ReportView;
 }
 
 const text = (s: string): CellText => ({ kind: 'text', text: s, truncated: false });
@@ -45,7 +49,7 @@ export function previewNotes(r: BoundedResult): string[] {
  * The dataset inspector (UI_SPECIFICATION §3): schema first; sample rows only after an explicit
  * Preview. Selecting a dataset or switching tabs never starts engine work.
  */
-export function Inspector({ entry, qualified, tab, onTab, registry, imports, preview, announcer, profile, engineReady }: InspectorProps) {
+export function Inspector({ entry, qualified, tab, onTab, registry, imports, preview, announcer, profile, engineReady, report }: InspectorProps) {
   const p = useSyncExternalStore(preview.subscribe, preview.getSnapshot);
   const state = STATE[entry.state];
   const cols = entry.columns ?? [];
@@ -62,7 +66,13 @@ export function Inspector({ entry, qualified, tab, onTab, registry, imports, pre
   const meta: string[] = [];
   if (entry.source) meta.push(`From ${entry.source.fileName} · ${entry.source.format.toUpperCase()} · ${formatBytes(entry.source.bytes)}`);
   meta.push(cols.length ? `${groupDigits(String(cols.length))} ${cols.length === 1 ? 'column' : 'columns'}` : 'Columns unknown');
-  meta.push(entry.rowCount !== undefined && entry.state === 'ready' ? rowCountText(entry.rowCount) : 'Row count not measured');
+  meta.push(
+    entry.rowCount !== undefined && entry.state === 'ready'
+      ? rowCountText(entry.rowCount)
+      : entry.origin === 'imported' && entry.state === 'ready'
+        ? 'Row count hidden: data may have changed since import'
+        : 'Row count not measured',
+  );
 
   return (
     <section className="inspector" aria-labelledby="inspector-title">
@@ -92,8 +102,10 @@ export function Inspector({ entry, qualified, tab, onTab, registry, imports, pre
         ) : null}
         <DatasetActions entry={entry} qualified={qualified} registry={registry} imports={imports} announcer={announcer} engineReady={engineReady} onPreview={startPreview} onViewSchema={() => onTab('schema')} />
       </header>
-      <Tabs label={`Details of ${entry.relation}`} tabs={[{ id: 'schema', label: 'Schema' }, { id: 'preview', label: 'Preview' }]} selected={tab} onSelect={onTab}>
-        {tab === 'schema' ? (
+      <Tabs label={`Details of ${entry.relation}`} tabs={[{ id: 'schema', label: 'Schema' }, { id: 'preview', label: 'Preview' }, { id: 'keys', label: 'Join keys' }]} selected={tab} onSelect={onTab}>
+        {tab === 'keys' ? (
+          <JoinKeyProfile entry={entry} view={report} />
+        ) : tab === 'schema' ? (
           cols.length ? (
             <Table
               caption={`Schema of ${entry.relation}: ${cols.length} ${cols.length === 1 ? 'column' : 'columns'}`}

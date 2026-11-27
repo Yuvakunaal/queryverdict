@@ -16,6 +16,7 @@ import '../src/styles/base.css';
 import '../src/styles/explorer.css';
 import '../src/styles/workspace.css';
 import '../src/styles/results.css';
+import '../src/styles/verdict.css';
 
 /** Module-level fault switch, flipped by the fixture buttons (test-only). */
 const fault = { broken: false };
@@ -61,7 +62,14 @@ if (root && view === 'app-faulty') {
   const maxFile = Number(params.get('maxFileBytes') ?? base.imports.maxFileBytes);
   const maxCombined = Number(params.get('maxCombinedBytes') ?? base.imports.maxCombinedBytes);
   const maxArrow = Number(params.get('maxArrowBytes') ?? base.results.maxArrowBytes);
-  const profile = { ...base, results: { ...base.results, maxArrowBytes: maxArrow }, imports: { ...base.imports, maxFileBytes: maxFile, maxCombinedBytes: maxCombined } };
+  // Verdict pair-row budget override for budget-refusal tests (M09).
+  const pairRows = params.get('executionPairRows');
+  const profile = {
+    ...base,
+    results: { ...base.results, maxArrowBytes: maxArrow },
+    imports: { ...base.imports, maxFileBytes: maxFile, maxCombinedBytes: maxCombined },
+    verdict: { ...base.verdict, ...(pairRows ? { executionPairRows: BigInt(pairRows) } : {}) },
+  };
   const runtime = engineHarness.createEngineRuntime(profile, new FaultyDriver());
   runtime.start();
   const workspace = createWorkspaceStore();
