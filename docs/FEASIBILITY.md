@@ -155,7 +155,7 @@ Steps 1–7 decide whether the engine and hosting model are viable. Step 8 decid
 | P1 | E6 | Ingestion paths and memory characterisation (50 MB–1 GB) | D-009 workloads, supported limits | RUN (Chrome) |
 | P1 | E7 | Browser matrix (Chromium, Firefox, Safari) | Supported browsers | PARTLY RUN (Chrome only) |
 | P1 | E11 | Licence and notice audit of the pinned artifacts | Licence choice, redistribution | PARTLY RUN |
-| P2 | E8 | Result streaming and main-thread responsiveness | P-004, P-007 | PARTLY RUN |
+| P2 | E8 | Result streaming and main-thread responsiveness | P-004, P-007 | PARTLY RUN; results-grid rendering measured in M06 (R1, §16) |
 | P2 | E9 | Editor comparison (Monaco vs CodeMirror 6) | P-005, P-052 | RUN in M05 (§15) |
 | P3 | E10 | OPFS spill and persistence | P-008 | NOT RUN (deferred) |
 
@@ -1692,3 +1692,89 @@ Further observations, which are not part of the rule:
 Typing and paste do not separate the candidates. Subjective preferences (API style, ecosystem familiarity) did not enter the decision.
 
 **Production impact:** the M05 build adds 350.4 KB raw and 115.4 KB gzip to the application JavaScript, against the M04 build. That includes the workspace code, not only CodeMirror. The editor is not lazy-loaded: CodeMirror was about 30 ms behind the textarea at first frame in Chrome, which does not justify a separate chunk and loading state.
+
+## 16. M06 measurements: R1 results-grid rendering, and DuckDB-WASM result encoding (2026-11-27)
+
+Run by Claude Code during M06 (IMPLEMENTATION_PLAN M06 fields 6, 14, 15; ARCHITECTURE §17; P-051; AM-014). Scripts, the baseline grid and raw results: [docs/evidence/r1-results-grid/](evidence/r1-results-grid/).
+
+### 16.1 R1 method
+
+- **Machine:** Apple M2 MacBook Air, 8 GB RAM, macOS (Darwin 25.5). Viewport 1440 × 900.
+- **Browsers:** Google Chrome 158.0.8127.37 (installed), Playwright Firefox 159.0 and WebKit 27.2; headless. **Not real Safari:** WebKit results are not Safari measurements.
+- **Path:** the production build under `/queryverdict/`, the real Run SQL path: SQL is typed into the editor and Cmd+Enter is pressed.
+- **Fixtures (P-020 bounds: 1,000 rows, 200 columns, 500 characters per cell, 2,000,000 display characters):**
+  - F1: 1,000 × 10 short values;
+  - F2: 1,000 × 200 short integers (200,000 cells);
+  - F3: 1,000 × 4 values of 600 characters, cut to 500 (2,000,000 display characters, 4,000 detail buttons);
+  - F4: 1,000 × 200 values of 10 characters (combined pressure, 2,000,000 display characters).
+- **Measured, 3 runs per fixture and browser, each in a fresh context:**
+  - **Painted:** from Cmd+Enter to two animation frames after the grid exists (engine time included).
+  - **Long tasks:** `longtask` entries. Chromium only: Firefox and WebKit do not list it in `PerformanceObserver.supportedEntryTypes`.
+  - **Frame gaps over 50 ms:** a `requestAnimationFrame` loop, in every browser.
+  - **Scrolling:** 20 vertical then 20 horizontal steps, 40 ms apart.
+  - **Typing:** keydown to the second frame in the editor while the result is shown.
+- **Uncertainty:**
+  - Timings are single-machine, headless and coarse (frame-bound).
+  - A first exploratory run checked support with a `try` around `observe()` and reported Firefox and WebKit as "supported" with no entries. That detection was corrected before the recorded runs.
+  - The first 3-run set was taken while other work (typecheck, unit tests) ran on the machine. It was discarded and both versions re-measured without other work of mine.
+  - Near the end of the plain-grid re-measurement (WebKit), an unrelated test run started on the machine. The plain WebKit F2 value of 4,356 ms is probably affected. This only makes the plain grid look worse and does not change the decision.
+
+### 16.2 R1 results
+
+**Plain semantic table (every row and cell in the document; `ResultGrid.plain.tsx`):**
+
+| Fixture | Cells | Chrome longest long task (3 runs) | Chrome painted | Firefox longest frame gap | WebKit longest frame gap | Typing while shown (Chrome / Firefox / WebKit) |
+|---|---|---|---|---|---|---|
+| F1 | 10,000 | none | 139–166 ms | 50 ms | 115 ms | 38 / 64 / 67 ms |
+| F2 | 200,000 | **678–708 ms** | 1,111–1,173 ms | 900 ms | 2,223 ms | 387 / 1,144 / 1,765 ms |
+| F3 | 4,000 + 4,000 buttons | **56–225 ms** (2 of 3 runs over 200 ms) | 321–340 ms | 267 ms | 393 ms | 56 / 85 / 279 ms |
+| F4 | 200,000 | **629–721 ms** | 1,041–1,142 ms | 883 ms | 1,720 ms | 335 / 857 / 1,706 ms |
+
+**Result:** the plain table fails the 200 ms target in Chromium at the P-020 bounds. The bottleneck is DOM size: 200,000 cells to create, style and lay out, plus 4,000 buttons in F3.
+
+**Windowed table (rows and columns; the final implementation, re-measured after the Codex M06 corrections: one spacer column per hidden side, pixel column widths, a one-screen initial window):**
+
+| Fixture | Cells in the document | Chrome longest long task (3 runs) | Chrome painted | Firefox longest frame gap | WebKit longest frame gap | Longest scroll frame gap (Chrome / Firefox / WebKit) | Typing (Chrome / Firefox / WebKit) |
+|---|---|---|---|---|---|---|---|
+| F1 | 361 | 104 ms in the first (cold) run; none in the others | 154–316 ms | 0 | 0 | 0 / 0 / 0 | 33 / 30 / 51 ms |
+| F2 | 721 | **99–113 ms** | 267–329 ms | 68 ms | 106 ms | 0 / 67 / 0 ms | 42 / 57 / 46 ms |
+| F3 | 141 | none | 132–153 ms | 51 ms | 61 ms | 0 / 0 / 0 | 33 / 33 / 37 ms |
+| F4 | 541 | **55–62 ms** | 235–252 ms | 133 ms | 76 ms | 0 / 0 / 0 | 36 / 61 / 44 ms |
+
+**Result:**
+- **Chromium:** meets the target. The longest long task was 113 ms, and scrolling produced no long task.
+- **Firefox and WebKit:** no frame gap over 133 ms.
+- **Typing** while a result is shown stayed at or under 61 ms.
+
+An earlier windowed version, with spanning spacer cells and widths in `ch` units, measured 52–64 ms in Chromium. It is not reported as the final result because that version mispositioned columns in WebKit.
+
+An intermediate row-only windowing (all 200 columns of each visible row, about 7,200 cells) was measured once in a clean single run, with a longest Chrome task of 89 ms. It was not adopted because a vertical scroll jump re-rendered every cell.
+
+### 16.3 Decision (P-096; AM-014)
+
+- **Windowing is adopted:** an in-house row and column windower inside `ResultGrid`, behind the same component interface. TanStack Virtual is not added (no new dependency; P-051 allows either).
+- **Fixed geometry:**
+  - Rows have one fixed height, with values on one line.
+  - Column widths are computed once per result from all bounded values, capped at 40 characters, and set in pixels from the measured character width. Columns never shift.
+  - Positions include padding and the 1 px rule of every column: omitting the rule left an about 200 px unrendered band at the far right of 200 columns, found and fixed with a regression test.
+  - The hidden columns on each side are one spacer column, as wide as all of them. No cell spans columns: WebKit's fixed table layout ignored `<col>` widths across spanning spacer cells and drifted by thousands of pixels (found by the column-windowing test in WebKit after the Codex review).
+- **Accessibility:** the table states its full size with `aria-rowcount`/`aria-colcount` and `aria-rowindex`/`aria-colindex`. Cells outside the window are reached by scrolling the focusable region.
+- **Limitation:** assistive technology sees only the rendered window, plus the stated counts. Manual screen-reader checks are pending.
+
+### 16.4 DuckDB-WASM result encoding probe (M06; P-093)
+
+Each SQL value was run with the production open configuration (`castBigIntToDouble: false`) through DuckDB-WASM 1.33.1-dev57.0's Node build, which uses the same engine as the browser bundles. Its Arrow form was compared with DuckDB's own `CAST(… AS VARCHAR)`.
+
+**Ambiguous, so not exact if read from Arrow:**
+- HUGEINT and UHUGEINT both arrive as Decimal(38,0): UHUGEINT's maximum reads as −1.
+- BLOB, BIT and VARINT all arrive as Binary.
+- TIME and TIMETZ both arrive as Time64, so the offset is lost.
+- FLOAT `0.1` reads as 0.10000000149011612.
+- DOUBLE `1.0` reads as `1` where DuckDB prints `1.0`.
+- A BC date is printed by DuckDB as `0045-03-15 (BC)`.
+- Arrow's `get()` returns `null` for `inf` and `nan`, although the buffer holds them with the validity bit set.
+- **Found by the Codex M06 review:**
+  - The WHATWG `TextDecoder` default drops a leading U+FEFF, and Arrow's reader decodes with it. QueryVerdict now decodes UTF-8 itself with `ignoreBOM`, in both the results and the engine-internal reads.
+  - An ENUM in a streamed `INSERT … RETURNING` result arrives with its keys but an **empty dictionary**: one chunk of length 0, no bytes, verified in Chrome. The labels are not in the transferred data, so they are shown as "not shown". A SELECT of the stored rows shows them exactly.
+
+**Hence (P-093):** SELECT results are read as DuckDB's own text. A projection with `CAST` and `left()` runs in the engine, and the projection keeps row order: 2,001 rows of an `ORDER BY` result compared identical, single-threaded engine (`threads` = 1). Other statements' results show only the unambiguous types.

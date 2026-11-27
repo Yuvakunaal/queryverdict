@@ -24,8 +24,8 @@ Last updated: 2026-11-27
 | Testing strategy | Proposed in [TESTING_STRATEGY.md](TESTING_STRATEGY.md) (2026-11-27). Approval and review pending |
 | Implementation plan | Proposed in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): modules M01–M15 with task briefs (2026-11-27). Approval and review pending. Specification contradictions in [SPEC_AMENDMENTS.md](SPEC_AMENDMENTS.md) |
 | Licence | Not chosen; no LICENSE file |
-| Application code | M01, M02, M03, M04 and M08 merged. M05 SQL workspace implemented on `feat/sql-workspace` (uncommitted, awaiting Codex review): E9 selected CodeMirror 6 (P-052 pending approval), resizable workspace, editor, Run SQL/Analyze actions not yet connected (M06/M09) |
-| Tests | **Production (M05 branch after the Codex M05 review, local, 2026-11-27):** 339 Vitest unit tests, 7 Python oracle tests, and 471 Playwright tests passed with 6 skipped by design (Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2). Axe runs in Chromium and WebKit (Firefox skipped, P-083). Repo scan, typecheck, lint, boundary check, build, harness build, artifact check and notices clean |
+| Application code | M01–M05 and M08 merged. M06 Run SQL implemented on `feat/query-results` (uncommitted, awaiting Codex re-review): exact results, bounded streaming, statement policy with Snowflake-style running (P-097), windowed results grid (R1) |
+| Tests | **Production (M06 branch after the Codex M06 review, local, 2026-11-27):** 404 Vitest unit tests, 7 Python oracle tests, and 559 Playwright tests passed with 8 skipped by design (Chrome 158.0.8127.37, Firefox 159.0, WebKit 27.2). Axe runs in Chromium and WebKit (Firefox skipped, P-083). Repo scan, typecheck, lint, boundary check, build, harness build, artifact check and notices clean |
 | CI | `.github/workflows/ci.yml` (verify, build, browser jobs) added in M01; **not yet run on GitHub** (runs when the maintainer pushes the branch) |
 | GitHub Pages deployment | Not configured |
 | Benchmarks | 23 Chrome runs, all headless. 19 historical (50 MB–1 GB tiers), classified `historical-unvalidated`. 4 new schema-v2 runs (tiny and 50 MB tiers only): 2 accepted, 2 correctly rejected. No general capacity claim. Proposed qualification target: 50 MB combined (P-024) |
@@ -572,9 +572,110 @@ The PR's `browser` job failed (run 45966025588); `verify` and `build` passed. Tw
 
 Local rerun of the affected suites (editor-a11y, shell, explorer, workspace) in Chrome, Firefox and WebKit: 162 passed, 6 skipped by design. CI re-run pending.
 
+### 2026-11-27: M06 Query Execution and Results implemented (Claude Code)
+
+Branch `feat/query-results` (from `main` at the M05 merge, PR #12), uncommitted, awaiting Codex review. Prerequisites M01–M05 and M08 are merged.
+
+**Execution (P-092):**
+- `src/core/query/runner.ts` runs Run SQL as one `query` operation through the session's queue and revocable lease. There is no new connection, and no deadline (ARCHITECTURE §12.1).
+- Classification uses DuckDB's parser, then `prepare()` (executes nothing).
+- **A single SELECT** is read as DuckDB's own text through an outer projection with `CAST`/`left()` and `LIMIT maxRows + 1`. Names and types come from `DESCRIBE`. The terminator is removed only if the parse tree is identical without it. The epoch is unchanged.
+- **Other statements** run unchanged, with their result streamed and bounded. The epoch advances once a statement was sent, even if it failed or was cancelled.
+- Affected rows come from DuckDB's `Count` row.
+- Errors are labelled Syntax, Binding, Runtime or Engine.
+- The lockdown was re-verified through Run SQL: remote reads, `ATTACH`, `COPY`, `LOAD` and `SET` are refused, and no request left the page.
+
+**Snowflake-style running (P-097, maintainer request; revises AM-004/P-064 for the editor):**
+- Cmd+Enter and Run SQL run the statement at the cursor, or every statement in a selection, in one operation, and show the last result.
+- Splitting uses a quote- and comment-aware lexer, and DuckDB's parser checks every piece before any runs.
+- The first error stops the run and names its statement.
+- The gutter marks the statement that will run.
+
+**Exactness (P-093):**
+- SELECT values are exact for every type (verified against hand-written known answers).
+- Other statements' results show only types whose Arrow form is unambiguous; the rest are explicit "not shown" cells.
+- The probe behind this is in FEASIBILITY §16.4.
+
+**Bounds (P-094):**
+- `ResultCollector` checks each batch's bytes before converting it, then applies the row, column, cell (code points; a bounded UTF-8 prefix only), display (whole rows) and byte bounds.
+- Every cause is reported separately.
+- The lease and driver gain `stream()`; Verdict's budgeted lease refuses it.
+- The one-batch allocation limit is documented.
+
+**UI (P-095, P-096):**
+- **Query store:** a newer run supersedes the previous one, and late results never publish. Elapsed time is labelled as the page clock. Results are marked Historical after an edit, a data change or an engine restart, and a "Transaction may be open" hint appears after BEGIN.
+- **Results panel:** summary, truncation notes, display-order wording, error and refusal states, zero rows, and Cancel next to Run SQL.
+- **Grid and detail viewer:** a bounded cell-detail dialog, and a **row- and column-windowed grid**.
+
+**R1 (FEASIBILITY §16, P-096):**
+- The plain table failed the Chromium target, with long tasks up to 721 ms at 1,000 × 200.
+- The final windowed grid's longest Chromium task was 113 ms, Firefox and WebKit stayed at or under 133 ms, and typing stayed at or under 61 ms (re-measured after the Codex M06 corrections).
+
+**Defects found and fixed during M06:**
+- Column windowing ignored each column's 1 px rule, leaving a band of about 200 px unrendered at the far right of 200 columns.
+- Arrow's `get()` reports `inf`/`nan` as `null`, which is why the Arrow formatter was not used for SELECT results.
+- R1's first long-task support check was wrong in Firefox and WebKit.
+- R1's first 3-run sets overlapped other work on the machine. They were discarded and re-measured.
+
+**Tests:**
+- `tests/unit/query/{runner,sqlText,split}.test.ts`
+- `tests/unit/results/{arrow,collect}.test.ts`
+- `tests/e2e/query.spec.ts`: real engine, known answers, every bound, policy, lockdown, cancellation, recovery, registry, Verdict invalidation and rapid re-runs.
+- `tests/e2e/results-render.spec.ts`: UX-003, Snowflake-style running, detail viewer, windowing and gaps, T-ENG-009c long tasks, axe, network, narrow layout, historical labels, transaction hint, Cancel.
+- M05 tests updated where Run SQL now executes.
+
+**Verification (final code, after the Codex corrections; quiet machine, load ≈ 5):**
+- check:repo, typecheck, lint and boundary check exit 0; `git diff --check` clean.
+- Vitest 404/404; Python oracle OK.
+- Build OK and `check-artifact` clean: 11 files, 87,599,866 bytes. App JS is 929.0 KB raw / 280.7 KB gzip; CSS is 28.7 KB.
+- Harness build OK. Notices: 64 package locations, 5 release-blocking items (unchanged). `npm audit` 0 vulnerabilities.
+- **Playwright 559 passed, 8 skipped, 0 failed** in Chrome 158.0.8127.37, Firefox 159.0 and WebKit 27.2 (17.3 min). The skips are the four Chromium-only tests (IME, forced colours, touch, Long Tasks API), each in Firefox and WebKit.
+
+**Not verified:**
+- VoiceOver and NVDA on the grid (manual).
+- Real Safari: WebKit timings are Playwright's, and headless.
+- Real 200 % zoom.
+- Windows High Contrast.
+- Live GitHub Pages.
+- Axe in Firefox (P-083).
+- Engine memory during a query.
+
+### 2026-11-27: M06 corrections after the Codex review (Claude Code)
+
+Codex review: CHANGES REQUIRED, with six HIGH findings and three MEDIUM, all reproduced. All are corrected (P-098), each with a regression test.
+
+- **HIGH, exact text changed silently.**
+  - A leading U+FEFF was dropped by the WHATWG decoder default; it is now kept, in results and engine-internal reads.
+  - ENUM values from `RETURNING` showed as empty strings. DuckDB-WASM streams them with an empty dictionary, so they are now an explicit "not shown" (verified in Chrome).
+  - Missing or inconsistent buffers are never shown as empty text.
+  - Booleans respect the cell limit.
+- **HIGH, clipped affected-row counts.** The count is read from DuckDB's own Int64 value before display bounds, only with full provenance, and kept as integer text (15 rows reported as 15 with a 1-character cell limit).
+- **HIGH, misleading outcomes for partial batches and cancellation.** Runs carry structured progress:
+  - "Nothing was run" appears only when nothing was sent.
+  - A partial batch says how many statements completed and that their changes were applied.
+  - A cancelled, already-sent statement says its changes may have been applied.
+  - BEGIN followed by an error keeps the transaction hint.
+- **HIGH, current publication after a stale epoch.** Results carry their epoch; the store checks it and the generation at publication. A change injected between settlement and publication now shows the result as Historical.
+- **HIGH, unconfirmed stream stops.** An early stop must be confirmed within the cancel grace, or the engine restarts. Rejected and hanging stops were tested in unit tests and against the real engine. Statements other than SELECT are never stopped early.
+- **HIGH, effectful SELECTs.** SELECTs calling `nextval`, `setseed` or a user macro are evaluated in full, without pruning or a row limit. `nextval` after a 3,000-row SELECT shown with one column now returns 3001.
+- **MEDIUM, results UI.**
+  - Zero rows returned is distinguished from rows withheld; small limits show in bytes; the copy says what was kept.
+  - A run that starts at once shows Running.
+  - Focus moves to Run SQL when Cancel disappears, and to the grid when a focused detail button leaves the window.
+  - The editor content carries `tabindex="0"` for axe.
+- **MEDIUM, PIVOT and browser tests.**
+  - The PIVOT note now suggests the verified `PIVOT … ON b IN (…)` form (a dynamic PIVOT is several statements even when wrapped).
+  - Two browser tests used the old string API.
+
+**Found while fixing:**
+- WebKit's fixed table layout ignored `<col>` widths across spanning spacer cells, and columns drifted by thousands of pixels. The grid now uses one spacer column per hidden side and pixel widths.
+- Two new tests raced the product: Cancel before the statement was sent, and a byte limit larger than the value. Both tests were corrected; the product behaviour was right.
+
+**R1 re-measured on the final grid:** Chromium longest long task 113 ms (target 200 ms); Firefox and WebKit at or under 133 ms; typing at or under 61 ms.
+
 ## Next steps
 
-1. Codex re-review of M05 (`feat/sql-workspace`) after the corrections; manual VoiceOver/NVDA editing (M05 field 16); maintainer approval of P-052 (CodeMirror 6) and P-086–P-090; then maintainer-approved commit, PR and merge.
+1. Codex review of M06 (`feat/query-results`); maintainer approval of P-092–P-097 (P-097 revises AM-004/P-064 at the maintainer's request; P-096 records the measured windowing choice); then maintainer-approved commit, PR and merge.
 2. Maintainer decisions: P-079…P-085 (P-083 also needs a decision on the Firefox axe gap); still open: P-063…P-078 and P-069; AM-001…AM-022; specification approvals; licence and AM-022.
 3. Manual checks for M04 field 16: VoiceOver (Safari) and NVDA (Firefox or Chrome) over the tree and dialog; real browser zoom at 200 %.
-4. Next module per the plan: **M06** (only on the maintainer's instruction).
+4. Next module per the plan: **M09** (only on the maintainer's instruction).
