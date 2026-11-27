@@ -35,6 +35,11 @@ function engine(inst: FakeInstance, opts: { failCreate?: boolean; stallCreate?: 
       return [];
     }
     if (sql === 'ROLLBACK') { pending = null; return []; }
+    if (sql.includes('UNION ALL SELECT view_oid::VARCHAR FROM duckdb_views()')) {
+      const name = /table_name = '((?:[^']|'')+)'/.exec(sql)?.[1]?.replaceAll("''", "'");
+      const t = tables.find((x) => x.name === name);
+      return t ? [[t.oid]] : [];
+    }
     if (sql.includes('FROM duckdb_tables() WHERE table_name =')) {
       const name = /table_name = '((?:[^']|'')+)'/.exec(sql)?.[1]?.replaceAll("''", "'");
       const t = tables.find((x) => x.name === name);
@@ -199,3 +204,47 @@ describe('registry (stand-in engine)', () => {
     expect(registry.getSnapshot()[0]).toMatchObject({ state: 'failed', reason: expect.stringContaining('Choose the file again') });
   });
 });
+
+describe('Codex M04 review regressions (stand-in engine)', () => {
+  it('the combined limit holds across overlapping batches: the later file is refused inside its operation, before registration', async () => {
+    const { importer } = await setup({ stallCreate: false });
+    // 1,500 combined (PROFILE): 800 + 800 exceeds it. Both pass the early check (each batch alone fits).
+    const a = importer.import([{ file: new File(['x'.repeat(800)], 'a.csv') }]).handles[0]!;
+    const b = importer.import([{ file: new File(['y'.repeat(800)], 'b.csv') }]).handles[0]!;
+    expect((await a.result).terminal.status).toBe('ok');
+    const rb = await b.result;
+    expect(rb.terminal).toMatchObject({ status: 'refused', reason: expect.stringMatching(/combined limit/) });
+    expect(driver.current.calls.filter((c) => c.startsWith('REGISTER')).length).toBe(1);
+  });
+
+  it('re-import after a restart counts against the combined limit held by the new engine', async () => {
+    const { importer, registry } = await setup();
+    await importer.import([{ file: new File(['x'.repeat(800)], 'lost.csv') }]).handles[0]!.result;
+    await session.restart('test');
+    engine(driver.current);
+    await importer.import([{ file: new File(['y'.repeat(800)], 'resident.csv') }]).handles[0]!.result;
+    const r = await registry.reimport('lost').result;
+    expect(r.terminal).toMatchObject({ status: 'refused', reason: expect.stringMatching(/combined limit/) });
+    expect(driver.current.calls.filter((c) => c.startsWith('REGISTER')).length).toBe(1);
+  });
+
+  it('removal is refused when the selected table was replaced after selection (identity re-checked in the lease)', async () => {
+    const { importer, registry, tables } = await setup();
+    await importer.import([{ file: csv('orders.csv') }]).handles[0]!.result;
+    await registry.reconcile();
+    const e = registry.getSnapshot()[0]!;
+    tables[0]!.oid = '999'; // replaced by SQL meanwhile
+    const r = await registry.remove('orders', { origin: e.origin, database: e.identity!.database, schema: e.identity!.schema, oid: e.identity!.oid }).result;
+    expect(r.terminal).toMatchObject({ status: 'refused', reason: expect.stringMatching(/replaced or removed after it was selected/) });
+    expect(driver.current.calls.some((c) => c.startsWith('DROP TABLE'))).toBe(false);
+  });
+
+  it('a bare name that matches more than one dataset is refused rather than guessed', async () => {
+    const { registry } = await setup();
+    const reg = registry as unknown as { getSnapshot(): unknown[] };
+    const twin = (schema: string, oid: string) => ({ relation: 'same', kind: 'table', origin: 'sql', state: 'ready', identity: { database: 'memory', schema, oid }, verdictEligible: false });
+    reg.getSnapshot = () => [twin('aaa', '1'), twin('bbb', '2')];
+    expect((await registry.remove('same').result).terminal).toMatchObject({ status: 'refused', reason: expect.stringMatching(/More than one dataset/) });
+  });
+});
+
