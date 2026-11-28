@@ -4,7 +4,7 @@
 
 ## Current phase
 
-**Implementation (Phase 7).** M01–M06 and M08 are merged (PRs #7–#13). **M09 Verdict Report and Visual Verdict is implemented on `feat/visual-verdict` and awaiting independent Codex review**; nothing of M09 is committed. The governing specifications are still *Proposed*; M09 lists its decisions for approval (P-099…P-104). Research spikes remain under `spikes/` and are excluded from the production build.
+**Implementation (Phase 7).** M01–M06 and M08 are merged (PRs #7–#13). M09 is merged (PR #14). **M10 Operation Status, Recovery UX and Release Profile is implemented on `feat/operations-recovery-ux` and awaiting independent Codex review**; nothing of M10 is committed. Decisions for approval: P-108…P-112. Research spikes remain under `spikes/` and are excluded from the production build.
 
 Last updated: 2026-11-27
 
@@ -720,6 +720,29 @@ At the maintainer's request (P-106), every report now opens with an **answer** a
 - **Page scroll fix:** screen-reader-only text inside the report was absolutely positioned without a positioned ancestor, so long reports extended the page and the workspace shifted when Analyze finished. The output view, the full view and the report now contain it; a browser test checks the page height is unchanged through seven analyses.
 - **Row counts (P-107):** the sidebar showed a row count only for the last imported table, because every import advanced the data epoch. An import now carries forward counts that were exact just before it; SQL changes still hide them.
 - **`test_datasets/`:** `customers.csv`, `orders.csv`, `payments.csv` (30 rows each, synthetic) and a README with 7 join scenarios, 7 rules and 9 unsupported or failing queries. The expected counts were computed by brute force from the CSV rows; a browser test imports the three files through the real dialog and checks every scenario's row fate against the engine.
+
+### 2026-11-28: M10 Operation Status, Recovery UX and Release Profile implemented (Claude Code)
+
+Branch `feat/operations-recovery-ux` (from `main` at the M09 merge, PR #14), uncommitted, awaiting Codex review. Started on the maintainer's M10 instruction. Decisions P-108 to P-112.
+
+**Built:** labelled operations in the one operation store (P-108); one cancellation path, `session.cancel(id)` (P-109); status-strip operation line with elapsed time and Cancel, outside the live region; Operation details dialog (engine, queued and running operations with the reason they wait, recent outcomes, transaction explanation, configured limits from the release profile, background-tab note); RecoveryNotice with re-import per lost file, SQL tables to recreate and Retry (P-110); background-tab reconciliation announced once (P-111); Run SQL and Analyze disabled while the engine has failed or stopped.
+
+**Defects found and corrected (P-112):** ROLLBACK could not run after an error inside a transaction (M06 runner; the user was stuck until a restart); a queued analysis that never reached the engine was labelled historical; a queue-wait refusal read as a failed check; disposal read as an engine restart.
+
+**PRD §5 state matrix → tests:**
+
+| Row | Test evidence |
+|---|---|
+| Starting or recovering | `recovery-ux` (recovery during Run SQL: editor text kept, nothing re-run); `engine-lifecycle` (fail-closed boot); unit `operations` (queued reason "Waiting for the engine to recover") |
+| Importing, running or analyzing | `operations` UX-005 (action and identity labels, queued vs active, Cancel reachable by keyboard, nothing announced per second) |
+| Invalid file, unsupported browser, boot or policy failure | `engine-lifecycle` (each failed control blocks ready; Retry), `imports`/`explorer` (invalid files, M03/M04), `recovery-ux` failed recovery |
+| SQL syntax, binding or execution failure | `query` (M06 errors by phase), `verdict-ui`/`verdict-answer` (query failures; prior report historical) |
+| Unsupported diagnostic, invalid expectation or cutoff | `verdict-answer`, `verdict-ui` (M09), `operations` time limits (queue wait, Verdict deadline) |
+| User cancel, timeout, replacement or disposal | `operations` (queued and active cancel, repeated and concurrent cancel, ignored cancel → restart, time limits), `recovery-ux` (disposal; stalled RPC), unit `operations` (background-tab reconcile) |
+| Recovery succeeds after termination | `recovery-ux` (stale run, historical report, discarded preview, re-import from the notice, SQL tables to recreate, re-import failure) |
+| Recovery fails or resource ceiling is reached | `recovery-ux` failed recovery and fail-closed Retry; `verdict-budget`/`verdict-ui` budget refusal (M08/M09); `imports` admission limits (M03) |
+
+**Verification (local, 2026-11-28):** typecheck, lint, check:repo OK; Vitest 510/510; Python oracle 7/7; build JS 1,026.3 KB raw / 308.5 KB gzip (M09: 982.0 / 295.7), CSS 47.3 KB; check-artifact OK (11 files, 87,715,820 bytes); harness build OK; notices 64 locations, 5 release-blocking (unchanged); npm audit 0 vulnerabilities. Full Playwright run (Chrome, Firefox, WebKit, 24.3 min): 684 passed, 8 skipped, 4 failed — all four were test expectations (a status pattern that did not match the new recovery wording, and an engine briefly `busy` reading the dataset list after Retry); corrected and re-run in all three browsers: 6 passed. Not verified: VoiceOver, NVDA, real 200 % zoom, Windows forced colours, a real background tab (covered by unit tests with an injected clock).
 
 ## Next steps
 
