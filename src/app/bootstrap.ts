@@ -17,6 +17,8 @@ import { createPreviewStore, type PreviewStore } from '../stores/previewStore';
 import { createQueryStore, type QueryStore } from '../stores/queryStore';
 import { createAnalysisStore, type AnalysisStore } from '../stores/analysisStore';
 import { announcementFor } from '../features/verdict/answer';
+import { createRecoveryStore, type RecoveryStore } from '../stores/recoveryStore';
+import { followVisibility } from '../stores/visibility';
 import { createExpectationStore, type ExpectationStore } from '../stores/expectationStore';
 
 export interface EngineRuntime {
@@ -37,9 +39,13 @@ export interface EngineRuntime {
   /** Analyze (M09): the latest analysis operation (its report is in `reports`) and the declared expectations. */
   readonly analyses: AnalysisStore;
   readonly expectations: ExpectationStore;
+  /** Engine recovery and start failures, and what they cost (M10). */
+  readonly recovery: RecoveryStore;
   readonly profile: ReleaseProfile;
   /** Starts (or retries) the engine; failures are reflected in the engine store, never thrown. */
   start(): void;
+  /** Ends the session and removes every listener this runtime added (M10, Codex). */
+  dispose(): void;
 }
 
 export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDriver = new DuckDBDriver()): EngineRuntime {
@@ -64,12 +70,10 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
   // lets only the latest request publish (analysisStore.ts).
   const analyses = createAnalysisStore({ session, reports, announcer, describe: announcementFor, service: (sink) => createVerdict({ session, profile, sink, origin }) });
   const expectations = createExpectationStore();
-  if (typeof document !== 'undefined') {
-    // Timers are throttled in background tabs; apply overdue deadlines when the tab is visible again.
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') session.reconcile();
-    });
-  }
+  const recovery = createRecoveryStore(session, datasets.registry, announcer);
+  // Timers are throttled in background tabs; apply overdue deadlines when the tab is visible again,
+  // and say once what that stopped (M10).
+  const stopVisibility = typeof document !== 'undefined' ? followVisibility(document, session, announcer) : () => undefined;
   return {
     session,
     engine,
@@ -83,7 +87,22 @@ export function createEngineRuntime(profile: ReleaseProfile, driver: EngineDrive
     queries,
     analyses,
     expectations,
+    recovery,
     profile,
+    dispose() {
+      stopVisibility();
+      // End the session first, so every store records the final settlements; then detach them.
+      session.dispose();
+      recovery.dispose();
+      queries.dispose();
+      analyses.dispose();
+      operations.dispose();
+      engine.dispose();
+      preview.dispose();
+      imports.dispose();
+      datasets.registry.dispose();
+      reports.dispose();
+    },
     start() {
       const kind = session.state.kind;
       if (kind === 'idle' || kind === 'failed') session.start().catch(() => undefined);

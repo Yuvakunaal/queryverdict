@@ -79,7 +79,7 @@ async function body(lease: Lease, session: EngineSession, target: PreviewTarget,
 export function previewTable(session: EngineSession, target: PreviewTarget, profile: ReleaseProfile): OperationHandle<BoundedResult> {
   const b = profile.bounds;
   const bounds: OperationBounds = { queueWaitMs: b.queueWaitMs, runMs: b.queueWaitMs, cancelGraceMs: b.cancelRequestMs, cleanupMs: b.cleanupMs };
-  const inner = session.submit<BoundedResult>('preview', (lease) => body(lease, session, target, profile), bounds);
+  const inner = session.submit<BoundedResult>('preview', (lease) => body(lease, session, target, profile), bounds, target.relation);
   const result = inner.result.then((r): OperationResult<BoundedResult> => {
     if (r.terminal.status !== 'ok' || !r.value) return r;
     const v = r.value;

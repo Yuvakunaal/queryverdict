@@ -24,7 +24,7 @@ export type AnalysisState =
   | (Base & { readonly status: 'queued' })
   | (Base & { readonly status: 'analyzing' })
   | (Base & { readonly status: 'cancelling' })
-  | (Base & { readonly status: 'settled'; readonly terminal: Terminal; readonly reportId: string | null });
+  | (Base & { readonly status: 'settled'; readonly terminal: Terminal; readonly reportId: string | null; readonly opId: OperationId });
 
 export interface AnalysisStore extends Store<AnalysisState> {
   /** Analyzes `sql` with the declared expectations (in order). */
@@ -94,6 +94,8 @@ export function createAnalysisStore(deps: {
   const off = deps.session.subscribe((e) => {
     const s = store.getSnapshot();
     if (e.type === 'operation' && handle && e.id === handle.id && e.phase === 'active' && s.status === 'queued') store.set({ ...s, status: 'analyzing' });
+    // Cancelled from anywhere (Cancel analysis or the operation list): one Cancelling state (M10).
+    if (e.type === 'state' && e.state.kind === 'cancelling' && handle && e.state.op === handle.id && (s.status === 'queued' || s.status === 'analyzing')) store.set({ ...s, status: 'cancelling' });
   });
 
   return {
@@ -119,7 +121,7 @@ export function createAnalysisStore(deps: {
       void h.result.then((r) => {
         if (mine !== seq) return;
         handle = null;
-        store.set({ ...base, status: 'settled', terminal: r.terminal, reportId: r.value?.id ?? null });
+        store.set({ ...base, status: 'settled', terminal: r.terminal, reportId: r.value?.id ?? null, opId: h.id });
         const view = deps.reports.getSnapshot();
         deps.announcer.announce(r.value && deps.describe ? deps.describe(r.value, view) : settledAnnouncement(r.value ?? null, view));
       });

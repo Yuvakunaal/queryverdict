@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { StatusStrip } from '../features/workspace/StatusStrip';
+import { OperationDetails } from '../features/workspace/OperationDetails';
+import { RecoveryNotice } from '../features/workspace/RecoveryNotice';
+import { useNow } from '../features/workspace/useNow';
+import { verdictOutcome } from '../features/workspace/operationModel';
+import type { OperationEntry } from '../stores/operationStore';
+import { Dialog } from '../ui/Dialog';
+import type { OperationId } from '../core/engine/types';
 import { ShortcutsDialog } from '../features/workspace/ShortcutsDialog';
 import { detectPlatform } from '../features/workspace/shortcuts';
 import { Workspace } from '../features/workspace/Workspace';
@@ -19,6 +26,22 @@ export function App({ prefs, runtime, workspace }: { prefs: UiPrefsStore; runtim
   const { theme, resolvedTheme } = useSyncExternalStore(prefs.subscribe, prefs.getSnapshot);
   const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
   const query = useSyncExternalStore(runtime.queries.subscribe, runtime.queries.getSnapshot);
+  const ops = useSyncExternalStore(runtime.operations.subscribe, runtime.operations.getSnapshot);
+  const recovery = useSyncExternalStore(runtime.recovery.subscribe, runtime.recovery.getSnapshot);
+  const entries = useSyncExternalStore(runtime.datasets.registry.subscribe, runtime.datasets.registry.getSnapshot);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsButton = useRef<HTMLButtonElement>(null);
+  const pending = ops.some((o) => o.phase !== 'settled');
+  const analysis = useSyncExternalStore(runtime.analyses.subscribe, runtime.analyses.getSnapshot);
+  const reportView = useSyncExternalStore(runtime.reports.subscribe, runtime.reports.getSnapshot);
+  // The latest analysis's operation shows the outcome the user got (its report), not only the engine terminal.
+  const outcomeOf = useCallback(
+    (o: OperationEntry) => (o.kind === 'verdict' && analysis.status === 'settled' && analysis.opId === o.id && reportView.report?.id === analysis.reportId && reportView.report ? verdictOutcome(reportView.report.status) : undefined),
+    [analysis, reportView],
+  );
+  const now = useNow(pending || detailsOpen);
+  // One cancellation path for every operation: the session's own (same as the handle's cancel).
+  const cancelOperation = useCallback((id: OperationId) => void runtime.session.cancel(id), [runtime.session]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const settingsButton = useRef<HTMLButtonElement>(null);
@@ -63,13 +86,42 @@ export function App({ prefs, runtime, workspace }: { prefs: UiPrefsStore; runtim
           </Button>
         </div>
       </header>
+      <RecoveryNotice view={recovery} engine={engine.state} entries={entries} registry={runtime.datasets.registry} recovery={runtime.recovery} announcer={runtime.announcer} onRetry={() => runtime.start()} />
       <main id="workspace" tabIndex={-1} className="app-main">
         <ErrorBoundary label="Workspace content">
           <h1 className="visually-hidden">SQL workspace</h1>
           <Workspace runtime={runtime} workspace={workspace} focusEditorRef={focusEditor} />
         </ErrorBoundary>
       </main>
-      <StatusStrip engine={engine} message={status} transactionMayBeOpen={query.transactionMayBeOpen} onRetry={() => runtime.start()} />
+      <StatusStrip
+        engine={engine}
+        message={status}
+        ops={ops}
+        now={now}
+        onCancel={cancelOperation}
+        transactionMayBeOpen={query.transactionMayBeOpen}
+        onDetails={() => setDetailsOpen(true)}
+        detailsRef={detailsButton}
+      />
+      <Dialog open={detailsOpen} title="Operation details" onClose={() => setDetailsOpen(false)} returnFocus={detailsButton} wide focusTitle>
+        <OperationDetails
+          ops={ops}
+          engine={engine.state}
+          info={engine.info}
+          profile={runtime.profile}
+          now={now}
+          importedBytes={runtime.datasets.registry.importedBytes()}
+          transactionMayBeOpen={query.transactionMayBeOpen}
+          onCancel={cancelOperation}
+          focusFallback={() => document.getElementById('opd-ops')}
+          outcomeOf={outcomeOf}
+        />
+        <div className="dialog-actions">
+          <Button variant="primary" onClick={() => setDetailsOpen(false)}>
+            Close
+          </Button>
+        </div>
+      </Dialog>
       <SettingsDialog
         open={settingsOpen}
         theme={theme}

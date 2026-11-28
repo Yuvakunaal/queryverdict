@@ -64,8 +64,11 @@ if (root && view === 'app-faulty') {
   const maxArrow = Number(params.get('maxArrowBytes') ?? base.results.maxArrowBytes);
   // Verdict pair-row budget override for budget-refusal tests (M09).
   const pairRows = params.get('executionPairRows');
+  // Time-limit overrides for operation and recovery tests (M10): queue wait, Verdict and import deadlines.
+  const ms = (k: string) => (params.get(k) ? { [k]: Number(params.get(k)) } : {});
   const profile = {
     ...base,
+    bounds: { ...base.bounds, ...ms('queueWaitMs'), ...ms('verdictMs'), ...ms('importMs') },
     results: { ...base.results, maxArrowBytes: maxArrow },
     imports: { ...base.imports, maxFileBytes: maxFile, maxCombinedBytes: maxCombined },
     verdict: { ...base.verdict, ...(pairRows ? { executionPairRows: BigInt(pairRows) } : {}) },
