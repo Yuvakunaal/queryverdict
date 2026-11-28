@@ -155,8 +155,10 @@ describe('report currency (T-ENG-010a; P-100)', () => {
     expect(currency(r, { ...live, expectations: [{ kind: 'no-fan-out', join: 0, side: 'right' }] }).reason).toBe('expectations changed');
     expect(declarationKey([{ b: 1, a: 2 }])).toBe(declarationKey([{ a: 2, b: 1 }]));
   });
-  it('a report that never reached the engine is never current', () => {
-    expect(currency({ ...r, stamp: { ...r.stamp, generation: null } }, live).reason).toBe('analysis never reached the engine');
+  it('a report that never reached the engine carries no snapshot: only its query and declarations decide currency (M10)', () => {
+    const queued = { ...r, stamp: { ...r.stamp, generation: null }, join: null };
+    expect(currency(queued, { ...live, generation: G(7), epoch: E(9) })).toEqual({ current: true });
+    expect(currency(queued, { ...live, sqlText: 'other' }).reason).toBe('query changed');
   });
 
   it('report store: editor edits, declaration edits, epoch and generation changes make the report historical; returning to the same text after a data change does not make it current', () => {

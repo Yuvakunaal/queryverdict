@@ -405,3 +405,194 @@ kbd,
     display: none;
   }
 }
+
+/* ---------- Operations, details and recovery (M10) ---------- */
+.op-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-left: var(--space-2);
+  border-left: var(--rule) solid var(--border);
+  color: var(--text);
+  white-space: nowrap;
+}
+.op-state {
+  font-weight: 600;
+}
+.op-label {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.op-time,
+.op-more {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.status-strip .btn-small {
+  min-height: 1.5rem;
+  padding: 0 var(--space-2);
+  font-size: var(--text-meta);
+}
+.status-tx.btn {
+  border-color: transparent;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.status-details {
+  margin-left: auto;
+}
+.status-details + .status-scope {
+  margin-left: 0;
+}
+.op-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.op-subhead {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-ui);
+  line-height: var(--leading-ui);
+  font-weight: 600;
+}
+.op-note {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+}
+.op-note[data-tone='warning'] {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.op-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--text-label);
+}
+.op-dl div {
+  display: contents;
+}
+.op-dl dt {
+  color: var(--text-muted);
+}
+.op-dl dd {
+  margin: 0;
+}
+.op-list .op-subhead {
+  margin-top: var(--space-3);
+  font-size: var(--text-label);
+}
+.op-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.op-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule) solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: var(--text-label);
+}
+.op-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+.op-item-main .op-cancel {
+  margin-left: auto;
+}
+.op-reason {
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  line-height: var(--leading-meta);
+}
+.op-limits td,
+.op-limits th[scope='row'] {
+  font-family: var(--font-ui);
+  white-space: normal;
+}
+.op-limits th[scope='row'] {
+  font-weight: 600;
+  text-align: left;
+}
+.recovery-notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: var(--rule) solid var(--border);
+  background: var(--neutral-bg);
+  color: var(--neutral-text);
+  font-size: var(--text-label);
+  line-height: var(--leading-label);
+}
+.recovery-notice[data-tone='warning'] { background: var(--warning-bg); color: var(--warning-text); }
+.recovery-notice[data-tone='violation'] { background: var(--violation-bg); color: var(--violation-text); }
+.recovery-notice p {
+  margin: 0;
+  max-width: 72rem;
+}
+.recovery-title {
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-ui);
+  font-weight: 600;
+}
+.recovery-reason {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+.recovery-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.recovery-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1) !important;
+}
+.recovery-notice .muted {
+  color: inherit;
+}
+@media (forced-colors: active) {
+  .recovery-notice,
+  .op-item {
+    border: 1px solid CanvasText;
+  }
+}
+@media (max-width: 899px) {
+  .status-strip {
+    flex-wrap: wrap;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+  .op-label {
+    max-width: 8rem;
+  }
+}

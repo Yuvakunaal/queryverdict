@@ -259,6 +259,18 @@ const INCOMPLETE: Record<string, { headline: string; next: string }> = {
 };
 
 function incompleteAnswer(report: VerdictReport, p: Presentation): Answer {
+  // Refused before it started (the session's own reasons, carried by the fence): nothing failed.
+  const refused = report.nonAuthoritativeReasons.find((r) => r.startsWith('the analysis was refused: '));
+  if (refused) {
+    const queue = /queue-wait/.test(refused);
+    return {
+      kind: queue ? 'not-started:queue-wait' : 'not-started:refused', tone: 'neutral',
+      headline: queue ? 'The analysis waited longer than its limit for other work to finish, so it was not started.' : /engine failed/.test(refused) ? 'The engine is unavailable, so nothing was analyzed.' : 'The analysis was not started.',
+      meaning: ['Nothing was measured. Your Run SQL result is unaffected.'],
+      next: [queue ? 'Analyze again when the operations ahead of it have finished (Operation details lists them).' : 'Analyze again once the engine is ready.'],
+      effects: [], also: [], measured: false, healthy: false, presentation: p,
+    };
+  }
   const f = report.findings.find((x) => x.category === 'inconclusive' || x.category === 'diagnostic-failure');
   const code = f?.code ?? '';
   const known = INCOMPLETE[code];
@@ -439,7 +451,8 @@ export function answerFor(report: VerdictReport, current: boolean, historicalRea
     : report.status === 'query-failed' ? queryFailedAnswer(report, p)
     : report.status === 'cancelled' || report.status === 'stale' ? interruptedAnswer(report, p)
     : incompleteAnswer(report, p);
-  if (p !== 'historical') return base;
+  // An interrupted run has no evidence to be historical about; its own headline is the answer.
+  if (p !== 'historical' || report.status === 'cancelled' || report.status === 'stale') return base;
   return {
     ...base,
     kind: `historical:${base.kind}`,

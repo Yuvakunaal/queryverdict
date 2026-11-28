@@ -43,6 +43,7 @@ interface OpRecord {
   readonly kind: OperationKind;
   readonly body: Body<unknown>;
   readonly bounds: OperationBounds;
+  readonly label?: string;
   phase: 'queued' | 'active' | 'settled';
   generation: Generation | null;
   queueDeadline: number;
@@ -51,6 +52,10 @@ interface OpRecord {
   runTimer?: ReturnType<typeof setTimeout>;
   lease?: LeaseImpl;
   ending: boolean;
+  /** A cancel was requested (by the user or a deadline) at any point before settlement. */
+  cancelRequested: boolean;
+  /** The body completed after its run deadline (a delayed timer). */
+  pastDeadline: boolean;
   resolve: (r: OperationResult<unknown>) => void;
 }
 
@@ -325,13 +330,17 @@ export class EngineSession {
 
   // ------------------------------------------------------------------ queue
 
-  submit<T>(kind: OperationKind, body: Body<T>, bounds: OperationBounds): OperationHandle<T> {
+  /**
+   * Queues an operation. `label` names what it is about for status UI (M10): a statement kind, a
+   * file or relation name — never SQL text or data.
+   */
+  submit<T>(kind: OperationKind, body: Body<T>, bounds: OperationBounds, label?: string): OperationHandle<T> {
     let resolve!: (r: OperationResult<unknown>) => void;
     const result = new Promise<OperationResult<unknown>>((r) => (resolve = r));
     const t = this.now();
     const rec: OpRecord = {
-      id: newOperationId(), kind, body: body as Body<unknown>, bounds, phase: 'queued', generation: null,
-      queueDeadline: t + bounds.queueWaitMs, runDeadline: Number.POSITIVE_INFINITY, ending: false, resolve,
+      id: newOperationId(), kind, body: body as Body<unknown>, bounds, ...(label ? { label } : {}), phase: 'queued', generation: null,
+      queueDeadline: t + bounds.queueWaitMs, runDeadline: Number.POSITIVE_INFINITY, ending: false, cancelRequested: false, pastDeadline: false, resolve,
     };
     const handle: OperationHandle<T> = {
       id: rec.id,
@@ -340,9 +349,9 @@ export class EngineSession {
         return rec.generation;
       },
       result: result as Promise<OperationResult<T>>,
-      cancel: () => this.cancel(rec, 'user'),
+      cancel: () => this.cancelRec(rec, 'user'),
     };
-    this.emit({ type: 'operation', id: rec.id, kind, phase: 'queued' });
+    this.emit({ type: 'operation', id: rec.id, kind, phase: 'queued', queueWaitMs: bounds.queueWaitMs, ...(label ? { label } : {}) });
     const bad = invalidBounds(bounds);
     if (bad) {
       this.settle(rec, { status: 'refused', reason: `invalid bounds: ${bad}` });
@@ -378,16 +387,38 @@ export class EngineSession {
     rec.phase = 'settled';
     clearTimeout(rec.queueTimer);
     clearTimeout(rec.runTimer);
-    rec.resolve(value === undefined ? { terminal, generation: rec.generation } : { terminal, value, generation: rec.generation });
-    this.emit({ type: 'operation', id: rec.id, kind: rec.kind, phase: 'settled', terminal });
+    // A cancel that could no longer change the outcome is still reported, so evidence is withheld.
+    const late = rec.cancelRequested && terminal.status === 'ok';
+    const extra = { ...(late ? { cancelRequested: true } : {}), ...(rec.pastDeadline ? { pastDeadline: true } : {}) };
+    rec.resolve(value === undefined ? { terminal, generation: rec.generation, ...extra } : { terminal, value, generation: rec.generation, ...extra });
+    this.emit({ type: 'operation', id: rec.id, kind: rec.kind, phase: 'settled', terminal, ...(late ? { cancelRequested: true } : {}), ...(rec.label ? { label: rec.label } : {}) });
   }
 
+  private pumping = false;
+
   private pump() {
-    if (this.active || this._state.kind !== 'ready' || !this.instance || this.disposed) return;
-    let rec: OpRecord | undefined;
-    while ((rec = this.queue.shift()) && rec.phase !== 'queued');
-    if (!rec) return;
-    this.startOp(rec, this.instance);
+    // Not re-entrant: settling an expired operation emits events synchronously, and a subscriber
+    // may submit (which calls pump). Ownership is re-checked before every dispatch (Codex M10).
+    if (this.pumping) return;
+    this.pumping = true;
+    try {
+      for (;;) {
+        if (this.active || this._state.kind !== 'ready' || !this.instance || this.disposed) return;
+        let rec: OpRecord | undefined;
+        while ((rec = this.queue.shift()) && rec.phase !== 'queued');
+        if (!rec) return;
+        // The queue-wait timer may have been delayed (background tab, busy main thread): an
+        // operation whose wait limit has passed is refused here, before it reaches the engine.
+        if (this.now() >= rec.queueDeadline) {
+          this.settle(rec, { status: 'refused', reason: `queue-wait: did not start within ${rec.bounds.queueWaitMs} ms` });
+          continue;
+        }
+        this.startOp(rec, this.instance);
+        return;
+      }
+    } finally {
+      this.pumping = false;
+    }
   }
 
   private startOp(rec: OpRecord, instance: EngineInstance) {
@@ -399,8 +430,8 @@ export class EngineSession {
     rec.lease = lease;
     this.active = rec;
     this.setState({ kind: 'busy', op: rec.id });
-    this.emit({ type: 'operation', id: rec.id, kind: rec.kind, phase: 'active' });
-    rec.runTimer = setTimeout(() => this.cancel(rec, 'deadline'), rec.bounds.runMs);
+    this.emit({ type: 'operation', id: rec.id, kind: rec.kind, phase: 'active', ...(rec.label ? { label: rec.label } : {}) });
+    rec.runTimer = setTimeout(() => this.cancelRec(rec, 'deadline'), rec.bounds.runMs);
     Promise.resolve()
       .then(() => rec.body(lease))
       .then(
@@ -412,10 +443,26 @@ export class EngineSession {
   /** The body settled on its own. Ignored if the operation was already revoked (late result). */
   private complete(rec: OpRecord, terminal: Terminal, value?: unknown) {
     if (rec.phase !== 'active' || rec.ending || this.active !== rec) return;
+    // The deadline timer may have been delayed: the work is done (and may have committed), so it
+    // is reported as it ended, flagged as past its deadline for callers that publish evidence.
+    if (this.now() > rec.runDeadline) rec.pastDeadline = true;
     void this.wrapUp(rec, terminal, value);
   }
 
-  private cancel(rec: OpRecord, by: 'user' | 'deadline') {
+  /**
+   * Cancels a queued or active operation by id, exactly as its handle's cancel() does (M10: the
+   * operation list). Returns false when no such operation is queued or active (already settled,
+   * or unknown); repeated calls are harmless.
+   */
+  cancel(id: OperationId): boolean {
+    const rec = this.active?.id === id ? this.active : this.queue.find((r) => r.id === id);
+    if (!rec || rec.phase === 'settled') return false;
+    this.cancelRec(rec, 'user');
+    return true;
+  }
+
+  private cancelRec(rec: OpRecord, by: 'user' | 'deadline') {
+    if (rec.phase !== 'settled') rec.cancelRequested = true;
     if (rec.phase === 'queued') {
       this.removeQueued(rec);
       this.settle(rec, { status: 'cancelled', by, stop: 'cooperative' });
@@ -555,11 +602,23 @@ export class EngineSession {
    * Applies overdue deadlines immediately (for example after a background tab becomes visible
    * and its timers were throttled). Bounds are guaranteed in the foreground only.
    */
-  reconcile(): void {
+  reconcile(): { readonly expired: readonly OperationId[]; readonly deadline: OperationId | null } {
     const t = this.now();
-    for (const rec of [...this.queue]) if (rec.phase === 'queued' && rec.queueDeadline <= t) this.expireQueued(rec);
+    const expired: OperationId[] = [];
+    for (const rec of [...this.queue]) {
+      if (rec.phase === 'queued' && rec.queueDeadline <= t) {
+        this.expireQueued(rec);
+        expired.push(rec.id);
+      }
+    }
     const rec = this.active;
-    if (rec && rec.phase === 'active' && !rec.ending && rec.runDeadline <= t) this.cancel(rec, 'deadline');
+    let deadline: OperationId | null = null;
+    if (rec && rec.phase === 'active' && !rec.ending && rec.runDeadline <= t) {
+      this.cancelRec(rec, 'deadline');
+      deadline = rec.id;
+    }
+    // What this call did (M10: reported to the user once), not what other code did meanwhile.
+    return { expired, deadline };
   }
 
   /** Terminal: every pending handle settles as stale; workers (including a booting candidate) are terminated. */

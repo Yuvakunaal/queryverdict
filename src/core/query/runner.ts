@@ -199,8 +199,73 @@ async function runStatement(
 }
 
 /** Classifies one statement inside the lease (DuckDB's parser; nothing executes). */
+/**
+ * Exactly one ROLLBACK or ABORT statement (optionally TRANSACTION or WORK), with comments anywhere
+ * (nested block comments and any characters inside comments allowed) and an optional terminator —
+ * nothing else. Comments are skipped with DuckDB's rules; any quote outside a comment means this is
+ * not one of these statements.
+ */
+export function isBareRollback(sql: string): boolean {
+  const words: string[] = [];
+  let word = '';
+  let terminated = false;
+  const flush = () => {
+    if (word) words.push(word);
+    word = '';
+  };
+  for (let i = 0; i < sql.length; ) {
+    const c = sql[i] as string;
+    const d = sql[i + 1];
+    if (c === '-' && d === '-') {
+      const nl = sql.indexOf('\n', i + 2);
+      flush();
+      i = nl < 0 ? sql.length : nl + 1;
+      continue;
+    }
+    if (c === '/' && d === '*') {
+      flush();
+      let depth = 1;
+      i += 2;
+      while (i < sql.length && depth > 0) {
+        if (sql[i] === '/' && sql[i + 1] === '*') {
+          depth++;
+          i += 2;
+        } else if (sql[i] === '*' && sql[i + 1] === '/') {
+          depth--;
+          i += 2;
+        } else i++;
+      }
+      if (depth > 0) return false; // unterminated comment
+      continue;
+    }
+    if (terminated && !/\s/.test(c)) return false; // anything after the terminator
+    if (c === ';') {
+      flush();
+      terminated = true;
+    } else if (/\s/.test(c)) flush();
+    else if (/[A-Za-z]/.test(c)) word += c;
+    else return false; // quotes, punctuation, digits: not a bare ROLLBACK
+    i++;
+  }
+  flush();
+  return /^(ROLLBACK|ABORT)$/i.test(words[0] ?? '') && (words.length === 1 || (words.length === 2 && /^(TRANSACTION|WORK)$/i.test(words[1] ?? '')));
+}
+
+/** DuckDB's error for any statement other than ending the transaction, once it has failed. */
+const ABORTED_TRANSACTION = /Current transaction is aborted/i;
+
 async function classify(lease: Lease, sql: string): Promise<StatementClass> {
-  const cls = await classifyStatement(lease, sql);
+  let cls: StatementClass;
+  try {
+    cls = await classifyStatement(lease, sql);
+  } catch (e) {
+    // After an error inside a transaction DuckDB refuses every statement except ending it, so the
+    // parser check itself fails. Without this, ROLLBACK could never run and the user would be stuck
+    // until the engine restarted (found in M10). Only an exact ROLLBACK/ABORT is let through, as one
+    // statement that may change data; nothing else bypasses classification.
+    if (e instanceof EngineError && ABORTED_TRANSACTION.test(e.message) && isBareRollback(sql)) return { kind: 'possibly-mutating', transactionHint: 'end' };
+    throw e;
+  }
   if (cls.kind !== 'unparseable') return cls;
   const prepared = await lease.prepareCheck(sql);
   if (prepared.ok) return { kind: 'possibly-mutating', transactionHint: cls.transactionHint };
@@ -286,6 +351,12 @@ export function runQuery(session: EngineSession, sql: string, profile: ReleasePr
  * statement runs). They then run in order; the first error stops the rest and names the
  * statement; the result shown is the last statement's. `progress` says what reached the engine.
  */
+/** Status label of a Run SQL action: its first keyword and statement count, never its text (M10). */
+export function queryLabel(statements: readonly string[]): string {
+  const kw = statements.length ? leadingKeyword(statements[0] as string) || 'SQL' : 'SQL';
+  return statements.length > 1 ? `${kw} · ${statements.length} statements` : kw;
+}
+
 export function runStatements(session: EngineSession, statements: readonly string[], profile: ReleaseProfile): QueryHandle {
   const n = statements.length;
   const progress: RunProgress = { total: n, completed: 0, mutationSent: false, mutationInFlight: false, transactionHint: null };
@@ -330,6 +401,7 @@ export function runStatements(session: EngineSession, statements: readonly strin
       return { ...(last as QueryRun), dataChanged: progress.mutationSent, statements: n, transactionHint: progress.transactionHint };
     },
     boundsOf(profile),
+    queryLabel(statements),
   );
   return settle(session, inner, progress, start);
 }

@@ -162,10 +162,13 @@ export function currency(
   live: { generation: Generation | null; epoch: DataEpoch; state: SessionState; queryHash?: string; sqlText?: string; expectations?: readonly unknown[] },
 ): { current: boolean; reason?: string } {
   if (live.state.kind === 'disposed') return { current: false, reason: 'session ended' };
-  // A run that never reached the engine has no snapshot to be current for.
-  if (report.stamp.generation === null) return { current: false, reason: 'analysis never reached the engine' };
-  if (live.generation !== report.stamp.generation) return { current: false, reason: 'engine restarted' };
-  if (live.epoch !== report.stamp.epoch) return { current: false, reason: 'data may have changed' };
+  // A run that never reached the engine (refused, cancelled or timed out while queued) has no
+  // snapshot and carries no evidence (the fence withholds it); only its query and declarations
+  // decide whether it is the current answer (M10).
+  if (report.stamp.generation !== null) {
+    if (live.generation !== report.stamp.generation) return { current: false, reason: 'engine restarted' };
+    if (live.epoch !== report.stamp.epoch) return { current: false, reason: 'data may have changed' };
+  }
   if (live.queryHash !== undefined && live.queryHash !== report.identity.queryHash) return { current: false, reason: 'query changed' };
   if (live.sqlText !== undefined && live.sqlText !== report.identity.sqlText) return { current: false, reason: 'query changed' };
   if (live.expectations !== undefined && declarationKey(live.expectations) !== declarationKey(report.expectations.map((o) => o.expectation))) {

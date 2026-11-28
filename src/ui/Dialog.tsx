@@ -14,6 +14,8 @@ export interface DialogProps {
   returnFocus: RefObject<HTMLElement | null>;
   /** Wider layout for content such as file lists. */
   wide?: boolean;
+  /** Open with focus on the title, so long content is read (and shown) from the top. */
+  focusTitle?: boolean;
   children: ReactNode;
 }
 
@@ -22,8 +24,9 @@ export interface DialogProps {
  * the title, focus containment and Escape from the platform, explicit initial focus, and focus
  * returned to `returnFocus` on every kind of dismissal (button, Escape, pointer).
  */
-export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, children }: DialogProps) {
+export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, focusTitle, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -31,11 +34,12 @@ export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, 
     if (!dialog) return;
     if (open && !dialog.open) {
       dialog.showModal();
-      initialFocus?.current?.focus();
+      if (focusTitle) titleRef.current?.focus();
+      else initialFocus?.current?.focus();
     } else if (!open && dialog.open) {
       dialog.close();
     }
-  }, [open, initialFocus]);
+  }, [open, initialFocus, focusTitle]);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -51,7 +55,7 @@ export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, 
   return (
     <dialog ref={ref} className="dialog" data-size={wide ? 'wide' : undefined} aria-labelledby={titleId}>
       <div className="dialog-body">
-        <h2 id={titleId} className="dialog-title">
+        <h2 id={titleId} ref={titleRef} className="dialog-title" {...(focusTitle ? { tabIndex: -1 } : {})}>
           {title}
         </h2>
         {open ? children : null}

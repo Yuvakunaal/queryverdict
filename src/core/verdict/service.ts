@@ -65,7 +65,8 @@ export class Verdict implements VerdictService {
     const hash = sha256(sql);
     let cancelled = false;
     let deadlineReached = false;
-    const inner = session.submit<DraftReport>('verdict', async (lease) => this.body(lease, sql, await hash, declared), bounds);
+    const submittedAt = performance.now();
+    const inner = session.submit<DraftReport>('verdict', async (lease) => this.body(lease, sql, await hash, declared), bounds, 'the query in the editor');
     // One analysis-wide deadline that includes the time spent waiting in the queue.
     const timer = setTimeout(() => {
       deadlineReached = true;
@@ -75,9 +76,14 @@ export class Verdict implements VerdictService {
       const queryHash = await hash;
       const r = await inner.result;
       clearTimeout(timer);
+      // The deadline timer may have been delayed (background tab): the clock decides.
+      if (r.pastDeadline || performance.now() - submittedAt >= deadlineMs) deadlineReached = true;
       // ---- publication fence: no await between this check and the hand-off ----
       const report = publish(r.value ?? null, {
-        id, sqlText: sql, queryHash, declared, terminal: r.terminal, resultGeneration: r.generation, cancelled,
+        id, sqlText: sql, queryHash, declared, terminal: r.terminal, resultGeneration: r.generation,
+        // A cancel requested through any control (this handle, or the session by id) counts, even
+        // one that arrived while the operation was already finishing (Codex M10).
+        cancelled: cancelled || r.cancelRequested === true,
         deadlineMs: deadlineReached ? deadlineMs : null,
         session: { generation: session.generation, epoch: session.epoch, state: session.state }, now: Date.now(),
       });

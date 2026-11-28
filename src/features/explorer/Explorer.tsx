@@ -47,21 +47,9 @@ export function useExplorer(runtime: EngineRuntime, options: ExplorerOptions = {
   const opener = useRef<HTMLElement | null>(null);
   const sidebarImport = useRef<HTMLButtonElement>(null);
   const datasetsHeading = useRef<HTMLHeadingElement>(null);
-  const lostSql = useRef<{ generation: number | null; names: string[] }>({ generation: engine.generation, names: [] });
-  const [sqlLost, setSqlLost] = useState<string[]>([]);
 
   const entry = entries.find((e) => entryKey(e) === selected) ?? null;
   const importing = batches.flatMap((b) => b.items.filter((i) => isActiveStage(i.progress.stage)));
-
-  // Tables created by SQL are not tracked across a restart; tell the user which ones were lost.
-  useEffect(() => {
-    const prev = lostSql.current;
-    if (engine.generation !== prev.generation && prev.generation !== null && engine.generation !== null && prev.names.length) {
-      setSqlLost(prev.names);
-      announcer.announce(`The engine restarted. ${prev.names.length} ${prev.names.length === 1 ? 'table' : 'tables'} created by SQL must be recreated.`);
-    }
-    if (engine.state.kind === 'ready') lostSql.current = { generation: engine.generation, names: entries.filter((e) => e.origin === 'sql').map((e) => e.relation) };
-  }, [engine.generation, engine.state.kind, entries, announcer]);
 
   // A removed or vanished selection: drop its preview and keep keyboard focus in the explorer
   // (focus would otherwise fall back to the page when the inspector disappears).
@@ -139,12 +127,6 @@ export function useExplorer(runtime: EngineRuntime, options: ExplorerOptions = {
         </Button>
       </div>
       {!engineReady ? <p className="sidebar-note">Import is available when the engine is ready.</p> : null}
-      {sqlLost.length ? (
-        <p className="sidebar-note" data-tone="warning">
-          The engine restarted. Tables created by SQL were lost and must be recreated: <span className="mono">{sqlLost.join(', ')}</span>.{' '}
-          <Button variant="quiet" onClick={() => setSqlLost([])}>Dismiss</Button>
-        </p>
-      ) : null}
       <div className="sidebar-list">
         {entries.length || importing.length ? (
           <DatasetTree entries={entries} importing={importing} selected={selected} expanded={expanded} onSelect={select} onToggle={toggle} onShowImports={() => openImport(null)} />

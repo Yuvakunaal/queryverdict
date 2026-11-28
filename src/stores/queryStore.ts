@@ -58,6 +58,8 @@ export function createQueryStore(session: EngineSession, profile: ReleaseProfile
   const off = session.subscribe((e) => {
     const s = store.getSnapshot().state;
     if (e.type === 'operation' && handle && e.id === handle.id && e.phase === 'active' && s.status === 'queued') set({ ...s, status: 'running' });
+    // Cancelled from anywhere (the editor's Cancel or the operation list): one Cancelling state (M10).
+    if (e.type === 'state' && e.state.kind === 'cancelling' && handle && e.state.op === handle.id && (s.status === 'queued' || s.status === 'running')) set({ ...s, status: 'cancelling' });
     // The runner advances the epoch before its result is published, so any epoch change seen
     // while a result is shown is a later change (another statement, an import, a removal).
     if (e.type === 'epoch' && s.status === 'done') historical('The data may have changed since this result.');
@@ -115,7 +117,7 @@ export function createQueryStore(session: EngineSession, profile: ReleaseProfile
           set({ status: 'cancelled', seq: mine, sql, message, progress }, tx);
           announcer.announce(message);
         } else {
-          const message = 'The engine restarted while this query was running. No result is shown.';
+          const message = t.status === 'stale' && t.reason === 'disposed' ? 'The session ended while this query was running. No result is shown.' : 'The engine restarted while this query was running. No result is shown.';
           set({ status: 'stale', seq: mine, sql, message }, false);
           announcer.announce(message);
         }

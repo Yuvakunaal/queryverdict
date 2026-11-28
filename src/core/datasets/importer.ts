@@ -86,13 +86,20 @@ export class FileImporter implements Importer {
 
   /** Imports one file (also used by re-import with the original relation name). */
   run(file: File, format: DatasetFormat, requestedName: string | undefined, set: (stage: ImportProgress['stage'], extra?: { relation?: string; reason?: string }) => void = () => undefined): OperationHandle<DatasetEntry> {
-    const inner = this.session.submit('import', (lease) => this.body(lease, file, format, requestedName, set), this.bounds());
+    const inner = this.session.submit('import', (lease) => this.body(lease, file, format, requestedName, set), this.bounds(), file.name);
     const result = inner.result.then(async (r): Promise<OperationResult<DatasetEntry>> => {
       // Publish only results from the engine that is still current (stale results are dropped).
       if (r.terminal.status === 'ok' && r.value && r.generation !== null && r.generation === this.session.generation) {
         const entry = await this.recorder.record(r.value.tracked);
+        // The engine may have been replaced while the catalog was read: never report Done for a
+        // table that recovery has already lost (Codex M10).
+        if (r.generation !== this.session.generation) {
+          const reason = 'The engine restarted right after this import, so its table was lost. Re-import the file.';
+          set('failed', { relation: entry.relation, reason });
+          return { terminal: { status: 'stale', reason: 'generation-changed' }, generation: r.generation };
+        }
         set('done', { relation: entry.relation });
-        return { terminal: r.terminal, value: entry, generation: r.generation };
+        return { terminal: r.terminal, value: entry, generation: r.generation, ...(r.cancelRequested ? { cancelRequested: true } : {}) };
       }
       const reason = r.terminal.status === 'error' ? r.terminal.message : r.terminal.status === 'refused' ? r.terminal.reason : r.terminal.status === 'ok' ? 'the engine was replaced before the import was published' : r.terminal.status;
       set(r.terminal.status === 'cancelled' ? 'cancelled' : 'failed', { reason });
@@ -128,8 +135,18 @@ export class FileImporter implements Importer {
     // it, so a failed import never leaves a transaction or table behind.
     await beginOwnTransaction(lease, 'importing');
     let epochBefore: DataEpoch | null = null;
+    let identity: readonly (string | null)[] | undefined;
+    let count: readonly (string | null)[] | undefined;
     try {
       await lease.query(`CREATE TABLE ${quoteIdent(relation)} AS SELECT * FROM ${readerSql(format, path)}`, { maxRows: 10 });
+      // Identity and row count are read inside the import's own transaction, before COMMIT, so
+      // COMMIT is the last engine step: a cancel before it rolls back (no table); after it the
+      // import is complete and recorded (Codex M10: the cancellation boundary is the commit).
+      [identity] = await lease.query(
+        `SELECT database_name::VARCHAR, schema_name::VARCHAR, table_oid::VARCHAR FROM duckdb_tables() WHERE table_name = ${sqlString(relation)} AND database_name = current_database() AND schema_name = current_schema()`,
+        { columns: 3, maxRows: 1, exactRows: 1 },
+      );
+      [count] = await lease.query(`SELECT count(*)::VARCHAR FROM ${quoteIdent(relation)}`, { columns: 1, maxRows: 1, exactRows: 1 });
       set('committing', { relation });
       await lease.query('COMMIT', { maxRows: 1 });
       lease.forgetCleanup('ROLLBACK');
@@ -138,12 +155,7 @@ export class FileImporter implements Importer {
       epochBefore = this.session.epoch as DataEpoch;
       this.session.markDataChanged();
     }
-    await lease.dropFile(path);
-    const [identity] = await lease.query(
-      `SELECT database_name::VARCHAR, schema_name::VARCHAR, table_oid::VARCHAR FROM duckdb_tables() WHERE table_name = ${sqlString(relation)} AND database_name = current_database() AND schema_name = current_schema()`,
-      { columns: 3, maxRows: 1, exactRows: 1 },
-    );
-    const [count] = await lease.query(`SELECT count(*)::VARCHAR FROM ${quoteIdent(relation)}`, { columns: 1, maxRows: 1, exactRows: 1 });
+    // The registered file is dropped by the session's deferred clean-up (nothing after COMMIT can be revoked).
     const tracked: TrackedImport = {
       relation,
       identity: { database: identity?.[0] ?? '', schema: identity?.[1] ?? '', oid: identity?.[2] ?? '' },

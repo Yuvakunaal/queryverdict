@@ -122,7 +122,7 @@ class Registry implements DatasetRegistry, ImportRecorder {
         columns: columns.map((r): CatalogColumn => ({ database: r[0] ?? '', schema: r[1] ?? '', relation: r[2] ?? '', name: r[3] ?? '', type: r[4] ?? '', nullable: decodeNullable(r[5]) })),
       };
       return snapshot;
-    }, this.bounds());
+    }, this.bounds(), 'dataset list');
     const r = await h.result;
     // A snapshot taken on a replaced engine, or before data changed again, is never published.
     if (r.terminal.status !== 'ok' || !r.value || r.generation !== this.session.generation || this.session.epoch !== epochAtStart) {
@@ -169,7 +169,7 @@ class Registry implements DatasetRegistry, ImportRecorder {
       } finally {
         this.session.markDataChanged();
       }
-    }, this.bounds());
+    }, this.bounds(), entry.relation);
     const result = h.result.then((r) => {
       if (r.terminal.status === 'ok' && r.generation === this.session.generation) forget();
       return r;

@@ -29,6 +29,14 @@ export interface OperationResult<T> {
   readonly value?: T;
   /** Engine generation the operation ran on (null if it never started). */
   readonly generation: Generation | null;
+  /**
+   * A cancel was requested before settlement but could not change the outcome (it arrived while
+   * the operation was already finishing: clean-up, the final ROLLBACK). Callers that publish
+   * evidence must treat the operation as cancelled (M10, Codex).
+   */
+  readonly cancelRequested?: boolean;
+  /** The body finished after its run deadline had passed (the deadline timer was delayed). */
+  readonly pastDeadline?: boolean;
 }
 
 export interface OperationHandle<T> {
@@ -120,7 +128,19 @@ export type SessionEvent =
   | { readonly type: 'state'; readonly state: SessionState }
   | { readonly type: 'ready'; readonly info: BootInfo }
   | { readonly type: 'epoch'; readonly epoch: DataEpoch }
-  | { readonly type: 'operation'; readonly id: OperationId; readonly kind: OperationKind; readonly phase: 'queued' | 'active' | 'settled'; readonly terminal?: Terminal }
+  | {
+      readonly type: 'operation';
+      readonly id: OperationId;
+      readonly kind: OperationKind;
+      readonly phase: 'queued' | 'active' | 'settled';
+      readonly terminal?: Terminal;
+      /** Settled events: a cancel request arrived too late to change the outcome. */
+      readonly cancelRequested?: boolean;
+      /** What the operation is about, for status UI (a statement kind, file or relation name; never SQL text or data). */
+      readonly label?: string;
+      /** The operation's queue-wait bound, in ms (queued events). */
+      readonly queueWaitMs?: number;
+    }
   | { readonly type: 'log'; readonly message: string };
 
 export interface StatementClass {

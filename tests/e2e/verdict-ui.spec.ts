@@ -501,7 +501,7 @@ test.describe('Visual Verdict (harness app view)', () => {
     await page.getByRole('tab', { name: 'Join keys' }).click();
     await expect(page.locator('.key-profile')).toContainText('Left input');
     await page.evaluate(() => (window as unknown as { __qvApp: Rt }).__qvApp.session.restart('test: engine replaced'));
-    await expect(page.getByRole('status')).toHaveText(/Engine ready|engine restarted/i, { timeout: 30_000 });
+    await expect(page.getByRole('status')).toHaveText(/Engine ready|engine (was )?restarted/i, { timeout: 30_000 });
     await expect.poll(async () => (await reportView(page)).historicalReason).toBe('engine restarted');
     await page.getByRole('tab', { name: 'Verdict' }).first().click();
     await expect(verdict(page).locator('.vd-answer-headline')).toContainText('Historical: The engine restarted after this analysis');

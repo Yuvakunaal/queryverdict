@@ -285,3 +285,25 @@ describe('QueryRunner', () => {
     expect(session.epoch).toBe(before + 1);
   });
 });
+
+describe('ROLLBACK in an aborted transaction (M10 correction)', () => {
+  const ABORTED = new Error('TransactionContext Error: Current transaction is aborted (please ROLLBACK)');
+  const abortedEngine = () => {
+    engine().handler = (q) => (q.includes('json_serialize_sql(') ? ABORTED : undefined);
+    engine().streamHandler = (q) => (/\b(ROLLBACK|ABORT)\b/i.test(q) ? [] : ABORTED);
+  };
+  it('an exact ROLLBACK (or ABORT) still runs and ends the transaction', async () => {
+    abortedEngine();
+    for (const sql of ['ROLLBACK', 'rollback;', 'ABORT', 'ROLLBACK TRANSACTION', '-- end it\nROLLBACK WORK;', 'ROLLBACK /* recovery */ WORK', '/* a */ ROLLBACK /* b */ ;  -- c', "ROLLBACK /* client's note */ WORK", 'ROLLBACK /* outer /* inner */ outer tail */ WORK']) {
+      const r = await settle(runStatements(session, [sql], DEFAULT_PROFILE).result);
+      expect([sql, r.terminal.status, r.value?.transactionHint]).toEqual([sql, 'ok', 'end']);
+    }
+  });
+  it('nothing else bypasses classification: other statements still fail with the engine’s message', async () => {
+    abortedEngine();
+    for (const sql of ['SELECT 1', 'COMMIT', 'ROLLBACK; DROP TABLE t', 'ROLLBACK TO SAVEPOINT s', 'DELETE FROM t', "ROLLBACK /* x */; SELECT 'y'", 'ROLLBACK WORK WORK', 'ROLLBACK /* unterminated', "ROLLBACK 'x'"]) {
+      const r = await settle(runStatements(session, [sql], DEFAULT_PROFILE).result);
+      expect([sql, r.terminal.status]).toEqual([sql, 'error']);
+    }
+  });
+});

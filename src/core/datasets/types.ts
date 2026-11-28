@@ -63,6 +63,8 @@ export interface DatasetRegistry extends Store<readonly DatasetEntry[]> {
    */
   remove(relation: string, target?: { readonly origin: DatasetOrigin; readonly database: string; readonly schema: string; readonly oid: string }): OperationHandle<void>;
   reimport(relation: string): OperationHandle<DatasetEntry>;
+  /** Sum of the source file sizes imported on the current engine (what the combined import limit counts). */
+  importedBytes(): number;
 }
 
 /** Engine catalog as read in one operation (all attached databases and schemas). */
