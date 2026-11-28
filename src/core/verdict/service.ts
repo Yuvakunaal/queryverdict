@@ -29,6 +29,7 @@ import {
 import { keyBytes, qualifyGrouping, quotedKeys, resolveKeys, type KeyPair } from './qualify';
 import { recognise, type RecognisedJoin } from './recognise';
 import { columnsOf, resolveRelation, type OriginLookup, type ResolvedRelation } from './relations';
+import { buildReplay, type ReplayOutcome } from './replay';
 import { publish, type DraftReport } from './report';
 import { checkDerived, checkInvariants, derive, exactDerived, exactStats, parseCount, STAT_FIELDS } from './stats';
 import type { DatasetIdentity, Finding, JoinEvidence, JoinStats, JoinValidation, ReportStatus, ResourceReport, VerdictReport, VerdictService, Witness, WitnessKind } from './types';
@@ -323,8 +324,11 @@ class Analysis {
       return x;
     };
     const semiCost: ProbeCost = { scansOfInputs: 2, pairRows: 0n, groupingBytes: q.transient };
-    const leftSemi = parseCount((await this.run.one('semi-join-left', semiCost, await countSql(semi(node.left as JsonObject, node.right as JsonObject)), 1))[0]);
-    const rightSemi = parseCount((await this.run.one('semi-join-right', semiCost, await countSql(semi(node.right as JsonObject, node.left as JsonObject)), 1))[0]);
+    // The engine-rendered statements are kept, untagged, for the replay bundle (M12).
+    const semiLeftSql = await countSql(semi(node.left as JsonObject, node.right as JsonObject));
+    const semiRightSql = await countSql(semi(node.right as JsonObject, node.left as JsonObject));
+    const leftSemi = parseCount((await this.run.one('semi-join-left', semiCost, semiLeftSql, 1))[0]);
+    const rightSemi = parseCount((await this.run.one('semi-join-right', semiCost, semiRightSql, 1))[0]);
     if (leftSemi !== stats.leftRowsMatched || rightSemi !== stats.rightRowsMatched) {
       validation.semiJoin = 'disagreed';
       return this.inconclusive('semantic-mismatch', `Grouping by key does not reproduce the join's own matching (SEMI JOIN matched ${leftSemi} left / ${rightSemi} right rows; key frequencies say ${stats.leftRowsMatched} / ${stats.rightRowsMatched}). All measurements are withheld.`, { semiLeft: String(leftSemi), semiRight: String(rightSemi), frequencyLeft: String(stats.leftRowsMatched), frequencyRight: String(stats.rightRowsMatched) });
@@ -336,8 +340,10 @@ class Analysis {
     let budgetNotes = 0;
     const executedCost: ProbeCost = { scansOfInputs: 2, pairRows: derived.outputRows, groupingBytes: q.transient };
     const ok = this.gate.check([executedCost]);
+    let executedSql: string | null = null;
     if (ok.ok) {
-      const actual = parseCount((await this.run.one('executed-count', executedCost, await countSql(node), 1))[0]);
+      executedSql = await countSql(node);
+      const actual = parseCount((await this.run.one('executed-count', executedCost, executedSql, 1))[0]);
       if (actual !== derived.outputRows) {
         validation.executedCount = 'disagreed';
         return this.inconclusive('semantic-mismatch', `The computed output (${derived.outputRows} rows) differs from the executed count (${actual}). All measurements are withheld.`, { computed: String(derived.outputRows), executed: String(actual) });
@@ -368,6 +374,7 @@ class Analysis {
 
     // 12. Witness identity: every key re-counted on both inputs, then through the join (budgeted).
     let witnessState: JoinValidation['witnesses'] = 'verified';
+    let witnessJoinSql: string | null = null;
     if (witnesses.length) {
       const inputCounts = await this.run.query('witness-inputs', { scansOfInputs: 2 * witnesses.length, pairRows: 0n, groupingBytes: 0n }, witnessInputsSql(L, R, witnesses.map((w) => w.key)), { columns: 2, maxRows: 2 * witnesses.length, exactRows: 2 * witnesses.length });
       const mismatches: string[] = [];
@@ -387,6 +394,7 @@ class Analysis {
           t.alias = ref.ref;
         }
         const joinCount = await countSql(renamed);
+        witnessJoinSql = joinCount;
         for (const [i, w] of witnesses.entries()) {
           const got = parseCount((await this.run.one('witness-join', costs[i] as ProbeCost, witnessCtes(L, R, w.key) + joinCount, 1))[0]);
           if (String(got) !== w.outputRows) mismatches.push(`${w.kind} key (${w.key.join(', ')}): expected ${w.outputRows} join rows, found ${got}`);
@@ -433,13 +441,23 @@ class Analysis {
     const expectations = completeOutcomes(this.declared, { type: join.type, stats, derived }, 'not evaluated');
     const unchecked = expectations.filter((o) => o.outcome === 'unchecked');
     const status: ReportStatus = unchecked.length ? 'partially-analyzed' : 'analyzed';
+    // 15. Replay bundle (M12) from this run's validated evidence and the engine it ran on. The
+    // fence keeps it only if the report is authoritative.
+    const info = this.session.info;
+    const replay: ReplayOutcome = buildReplay({
+      engine: info && info.generation === this.lease.generation ? { duckdb: info.duckdb, package: info.packageVersion } : null,
+      join: this.join,
+      left: { relation: left.identity.relation, ref: join.left.ref, temporary: left.identity.temporary },
+      right: { relation: right.identity.relation, ref: join.right.ref, temporary: right.identity.temporary },
+      rendered: { semiLeft: semiLeftSql, semiRight: semiRightSql, executed: executedSql, witnessJoin: witnessJoinSql },
+    });
     if (unchecked.length) this.reasons.push(`${unchecked.length} expectation(s) unchecked`);
     if (this.declared.length) this.checked.push(`${this.declared.length - unchecked.length} of ${this.declared.length} expectation(s) evaluated`);
     return {
       sqlText: this.sqlText, queryHash: this.queryHash, inputs: this.inputs, stamp: this.stamp, status,
       nonAuthoritativeReasons: status === 'analyzed' ? [...this.reasons] : [...this.reasons, `analysis status is ${status}`],
       join: this.join, findings: [...findings, ...outcomeFindings(expectations)], expectations,
-      coverage: { checked: this.checked, notChecked: this.notChecked }, resources: this.resourceReport(),
+      coverage: { checked: this.checked, notChecked: this.notChecked }, resources: this.resourceReport(), replay,
     };
   }
 

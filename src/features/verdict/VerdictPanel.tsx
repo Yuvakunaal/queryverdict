@@ -1,10 +1,11 @@
-import { useId, type Ref } from 'react';
+import { useId, useRef, useState, type Ref } from 'react';
 import type { AnalysisState } from '../../stores/analysisStore';
 import type { EngineSnapshot } from '../../stores/engineStore';
 import type { ExpectationStore } from '../../stores/expectationStore';
 import type { ReportView } from '../../stores/reportStore';
 import { Badge } from '../../ui/Badge';
 import { Button } from '../../ui/Button';
+import { CopyDialog, type CopyMode } from './CopyDialog';
 import { Coverage } from './Coverage';
 import { ExpectationOutcomes, ExpectationsEditor, type DeclarationState } from './ExpectationsEditor';
 import { Findings } from './Findings';
@@ -49,6 +50,16 @@ export function VerdictPanel({ view, analysis, engine, expectations, analyzeKeys
   const declarations: DeclarationState = !report || !current ? 'pending' : hasValidatedJoin(report) ? 'evaluated' : 'not-evaluated';
 
   const answer = report ? answerFor(report, current, view.historicalReason) : null;
+  // Copy previews (M12): opened only by these buttons; nothing is copied until Copy in the dialog.
+  const [copyMode, setCopyMode] = useState<CopyMode | null>(null);
+  // The control that opened the dialog, kept after closing so focus returns to it on every kind of close (Codex M12).
+  const [opener, setOpener] = useState<CopyMode>('summary');
+  const openCopy = (m: CopyMode) => {
+    setOpener(m);
+    setCopyMode(m);
+  };
+  const summaryBtn = useRef<HTMLButtonElement>(null);
+  const replayBtn = useRef<HTMLButtonElement>(null);
 
   return (
     <article className="verdict" data-detail={detail || undefined} data-presentation={answer?.presentation} aria-labelledby={h('title')}>
@@ -77,6 +88,16 @@ export function VerdictPanel({ view, analysis, engine, expectations, analyzeKeys
           </p>
         ) : null}
         <div className="vd-actions">
+          {report ? (
+            <>
+              <Button ref={summaryBtn} className="btn-small" variant="quiet" onClick={() => openCopy('summary')} aria-haspopup="dialog">
+                Copy summary…
+              </Button>
+              <Button ref={replayBtn} className="btn-small" variant="quiet" onClick={() => openCopy('replay')} aria-haspopup="dialog">
+                View diagnostic SQL
+              </Button>
+            </>
+          ) : null}
           {detail ? (
             <Button className="btn-small" onClick={onBack}>
               Back to SQL
@@ -129,6 +150,7 @@ export function VerdictPanel({ view, analysis, engine, expectations, analyzeKeys
       {report && join && answer?.measured ? <Witnesses join={join} current={current} headingId={h('witnesses')} /> : null}
 
       {report ? <Coverage report={report} current={current} headingId={h('coverage')} statusFindings={!answer?.measured} /> : null}
+      <CopyDialog mode={copyMode} view={view} onClose={() => setCopyMode(null)} returnFocus={opener === 'replay' ? replayBtn : summaryBtn} />
     </article>
   );
 }

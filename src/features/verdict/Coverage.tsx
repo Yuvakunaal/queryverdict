@@ -95,7 +95,15 @@ export function Coverage({ report, current, headingId, statusFindings }: { repor
           </div>
           <div>
             <dt>Dialect</dt>
-            <dd>DuckDB SQL, on the engine in this tab</dd>
+            <dd>DuckDB SQL, on the engine in this tab{report.replay ? ` (DuckDB ${report.replay.engine.duckdb}, duckdb-wasm ${report.replay.engine.package})` : ''}</dd>
+          </div>
+          <div>
+            <dt>Reproduction</dt>
+            <dd>
+              {report.replay
+                ? `View diagnostic SQL shows a curated script of ${report.replay.statements.length} labelled statements with the expected values of this report. It needs the two input tables with the analysed rows; the probes were diagnostic statements, not the query itself. Nothing is run or copied until you choose Copy.`
+                : (report.replayUnavailable ?? 'Diagnostic SQL is not available for this report.')}
+            </dd>
           </div>
           {report.identity.inputs.map((x, i) => (
             <div key={x.oid}>

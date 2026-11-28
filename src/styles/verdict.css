@@ -878,3 +878,94 @@
     color: CanvasText;
   }
 }
+
+/* ---------- Copy preview (M12) ---------- */
+.vd-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dialog:has(.copy-dialog) {
+  width: min(52rem, calc(100vw - 2 * var(--space-4)));
+}
+.copy-dialog {
+  display: grid;
+  gap: var(--space-3);
+}
+.copy-dialog p {
+  margin: 0;
+}
+.copy-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+.copy-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule) solid var(--warning-text);
+  border-left-width: 4px;
+  border-radius: var(--radius-control);
+}
+.copy-notice p {
+  flex: 1 1 20rem;
+}
+.copy-disclosure,
+.copy-unavailable {
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  line-height: var(--leading-meta);
+}
+.copy-unavailable {
+  color: var(--text);
+}
+.copy-unavailable ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+}
+.copy-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--rule) solid var(--border);
+  border-radius: var(--radius-control);
+}
+.copy-options legend {
+  padding: 0 var(--space-1);
+  font-size: var(--text-meta);
+  color: var(--text-muted);
+}
+.copy-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 1.75rem;
+}
+.copy-preview {
+  max-height: min(24rem, 50vh);
+  overflow: auto;
+  border: var(--rule) solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+}
+.copy-preview:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus);
+  outline-offset: 2px;
+}
+.copy-text {
+  margin: 0;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: var(--leading-meta);
+  white-space: pre;
+  tab-size: 2;
+}
+.copy-dialog .dialog-actions {
+  margin-top: 0;
+}

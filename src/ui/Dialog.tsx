@@ -44,12 +44,29 @@ export function Dialog({ open, title, onClose, initialFocus, returnFocus, wide, 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    const handleClose = () => {
+    // Escape fires `cancel` synchronously; the `close` event that follows is queued as a task.
+    // Reporting the dismissal at `cancel` keeps the owner's open state in step with the native
+    // dialog, so a control activated in between (for example, opening another dialog at once)
+    // sees it closed (found in M12 testing).
+    const handleCancel = (e: Event) => {
+      // `cancel` also bubbles from a file input whose picker was dismissed: that is not a dismissal of this dialog.
+      if (e.target !== dialog) return;
       returnFocus.current?.focus();
       onClose();
     };
+    const handleClose = () => {
+      // A close event that fires after the dialog was opened again is stale: it must not close
+      // the new open or move focus.
+      if (dialog.open) return;
+      returnFocus.current?.focus();
+      onClose();
+    };
+    dialog.addEventListener('cancel', handleCancel);
     dialog.addEventListener('close', handleClose);
-    return () => dialog.removeEventListener('close', handleClose);
+    return () => {
+      dialog.removeEventListener('cancel', handleCancel);
+      dialog.removeEventListener('close', handleClose);
+    };
   }, [onClose, returnFocus]);
 
   return (
