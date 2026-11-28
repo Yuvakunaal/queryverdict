@@ -30,6 +30,7 @@ function engine(inst: FakeInstance, opts: { failCreate?: boolean; stallCreate?: 
       return [];
     }
     if (sql === 'COMMIT') {
+      // The catalog id is assigned at CREATE and kept by COMMIT (as in DuckDB).
       if (pending) tables.push({ name: pending, oid: String(100 + tables.length) });
       pending = null;
       return [];
@@ -43,6 +44,8 @@ function engine(inst: FakeInstance, opts: { failCreate?: boolean; stallCreate?: 
     if (sql.includes('FROM duckdb_tables() WHERE table_name =')) {
       const name = /table_name = '((?:[^']|'')+)'/.exec(sql)?.[1]?.replaceAll("''", "'");
       const t = tables.find((x) => x.name === name);
+      // Inside the import's own transaction its new table is visible to it, with its final id.
+      if (!t && pending === name) return [['memory', 'main', String(100 + tables.length)]];
       return t ? [['memory', 'main', t.oid]] : [];
     }
     if (sql.startsWith('SELECT count(*)')) return [['3']];
