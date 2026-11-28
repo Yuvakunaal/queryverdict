@@ -59,6 +59,8 @@ export function Workspace({ runtime, workspace, focusEditorRef }: WorkspaceProps
   const reportView = useSyncExternalStore(runtime.reports.subscribe, runtime.reports.getSnapshot);
   const engine = useSyncExternalStore(runtime.engine.subscribe, runtime.engine.getSnapshot);
   const analyzing = isAnalysisActive(analysis);
+  // A failed or stopped engine refuses work; its actions are disabled and the recovery notice says why (PRD §5).
+  const engineDown = engine.state.kind === 'failed' || engine.state.kind === 'disposed';
   const analyzeButton = useRef<HTMLButtonElement>(null);
   const verdictHeading = useRef<HTMLHeadingElement>(null);
   const wasAnalyzing = useRef(analyzing);
@@ -248,7 +250,7 @@ export function Workspace({ runtime, workspace, focusEditorRef }: WorkspaceProps
         <Button className="btn-small" variant="quiet" aria-pressed={state.wrap} onClick={() => workspace.setWrap(!state.wrap)}>
           Wrap lines
         </Button>
-        <Button ref={analyzeButton} className="btn-compact" onClick={analyze} aria-keyshortcuts={analyzeKeys.aria} title={`Analyze (${keyLabel(analyzeKeys)})`}>
+        <Button ref={analyzeButton} className="btn-compact" onClick={analyze} disabled={engineDown} aria-keyshortcuts={analyzeKeys.aria} title={engineDown ? 'Unavailable: the engine is not running' : `Analyze (${keyLabel(analyzeKeys)})`}>
           Analyze
         </Button>
         {analyzing ? (
@@ -261,7 +263,7 @@ export function Workspace({ runtime, workspace, focusEditorRef }: WorkspaceProps
             {query.state.status === 'cancelling' ? 'Cancelling…' : 'Cancel'}
           </Button>
         ) : null}
-        <Button ref={runButton} className="btn-compact" variant="primary" onClick={run} aria-keyshortcuts={runKeys.aria} title={`Run SQL (${keyLabel(runKeys)})`}>
+        <Button ref={runButton} className="btn-compact" variant="primary" onClick={run} disabled={engineDown} aria-keyshortcuts={runKeys.aria} title={engineDown ? 'Unavailable: the engine is not running' : `Run SQL (${keyLabel(runKeys)})`}>
           <svg className="run-glyph" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
             <path d="M5.25 3.4c0-.86.94-1.39 1.67-.94l6.06 3.77c.69.43.69 1.43 0 1.86L6.92 11.86c-.73.45-1.67-.08-1.67-.94z" fill="currentColor" />
           </svg>
