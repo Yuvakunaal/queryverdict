@@ -91,22 +91,43 @@ export function frequencySql(temp: string, s: SideSql): string {
   return `CREATE TEMP TABLE ${temp} AS SELECT ${aliasKeys(s)}, count(*)::HUGEINT AS c FROM ${s.table} WHERE ${notNull} GROUP BY ALL`;
 }
 
+/** One row per matched key, with L(k) and R(k) (`lc`, `rc`): the relation the statistics call `m`. */
+export function matchedSelect(lf: string, rf: string, n: number): string {
+  const on = Array.from({ length: n }, (_, i) => `${lf}.k${i} = ${rf}.k${i}`).join(' AND ');
+  return `SELECT ${lf}.c AS lc, ${rf}.c AS rc FROM ${lf} JOIN ${rf} ON ${on}`;
+}
+
+/** The matched-key CTE the analyser's statistics statement reads. */
+export function matchedCte(lf: string, rf: string, n: number): string {
+  return `WITH m AS MATERIALIZED (${matchedSelect(lf, rf, n)})`;
+}
+
+/**
+ * The 18 frequency-derived statistics as scalar subqueries, in STAT_FIELDS order after rows and
+ * NULL-key rows (see stats.ts). Shared by the analyser and the replay bundle (M12), so a replayed
+ * statistic is the same expression the analyser evaluated. `usesMatched` marks those reading the
+ * matched-key relation (`m` in the analyser; a temporary table in the replay).
+ */
+export function statisticExpressions(lf: string, rf: string, matched = 'm'): readonly { readonly sql: string; readonly usesMatched: boolean }[] {
+  const t = (sql: string) => ({ sql, usesMatched: false });
+  const m = (sql: string) => ({ sql: sql.replace(/ FROM m\b/, ` FROM ${matched}`), usesMatched: true });
+  return [
+    t(`SELECT coalesce(sum(c), 0) FROM ${lf}`), t(`SELECT coalesce(sum(c), 0) FROM ${rf}`),
+    t(`SELECT count(*) FROM ${lf}`), t(`SELECT count(*) FROM ${rf}`),
+    t(`SELECT count(*) FROM ${lf} WHERE c > 1`), t(`SELECT count(*) FROM ${rf} WHERE c > 1`),
+    t(`SELECT coalesce(max(c), 0) FROM ${lf}`), t(`SELECT coalesce(max(c), 0) FROM ${rf}`),
+    m('SELECT coalesce(max(lc), 0) FROM m'), m('SELECT coalesce(max(rc), 0) FROM m'),
+    m('SELECT count(*) FROM m'), m('SELECT coalesce(sum(lc * rc), 0) FROM m'),
+    m('SELECT coalesce(sum(lc), 0) FROM m'), m('SELECT coalesce(sum(rc), 0) FROM m'),
+    m('SELECT coalesce(sum(lc) FILTER (WHERE rc > 1), 0) FROM m'), m('SELECT coalesce(sum(lc * (rc - 1)) FILTER (WHERE rc > 1), 0) FROM m'),
+    m('SELECT coalesce(sum(rc) FILTER (WHERE lc > 1), 0) FROM m'), m('SELECT coalesce(sum(rc * (lc - 1)) FILTER (WHERE lc > 1), 0) FROM m'),
+  ];
+}
+
 /** The 18 frequency-derived statistics, in this order (see stats.ts). */
 export function statisticsSql(lf: string, rf: string, n: number): string {
-  const on = Array.from({ length: n }, (_, i) => `${lf}.k${i} = ${rf}.k${i}`).join(' AND ');
-  const v = (e: string) => `(${e})::VARCHAR`;
-  return `WITH m AS MATERIALIZED (SELECT ${lf}.c AS lc, ${rf}.c AS rc FROM ${lf} JOIN ${rf} ON ${on})
-SELECT ${[
-    v(`SELECT coalesce(sum(c), 0) FROM ${lf}`), v(`SELECT coalesce(sum(c), 0) FROM ${rf}`),
-    v(`SELECT count(*) FROM ${lf}`), v(`SELECT count(*) FROM ${rf}`),
-    v(`SELECT count(*) FROM ${lf} WHERE c > 1`), v(`SELECT count(*) FROM ${rf} WHERE c > 1`),
-    v(`SELECT coalesce(max(c), 0) FROM ${lf}`), v(`SELECT coalesce(max(c), 0) FROM ${rf}`),
-    v('SELECT coalesce(max(lc), 0) FROM m'), v('SELECT coalesce(max(rc), 0) FROM m'),
-    v('SELECT count(*) FROM m'), v('SELECT coalesce(sum(lc * rc), 0) FROM m'),
-    v('SELECT coalesce(sum(lc), 0) FROM m'), v('SELECT coalesce(sum(rc), 0) FROM m'),
-    v('SELECT coalesce(sum(lc) FILTER (WHERE rc > 1), 0) FROM m'), v('SELECT coalesce(sum(lc * (rc - 1)) FILTER (WHERE rc > 1), 0) FROM m'),
-    v('SELECT coalesce(sum(rc) FILTER (WHERE lc > 1), 0) FROM m'), v('SELECT coalesce(sum(rc * (lc - 1)) FILTER (WHERE lc > 1), 0) FROM m'),
-  ].join(',\n  ')}`;
+  return `${matchedCte(lf, rf, n)}
+SELECT ${statisticExpressions(lf, rf).map((e) => `(${e.sql})::VARCHAR`).join(',\n  ')}`;
 }
 
 export const WITNESS_LIMIT = 5;

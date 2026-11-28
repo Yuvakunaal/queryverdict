@@ -11,6 +11,7 @@
 import type { DataEpoch, Generation, SessionState, Terminal } from '../engine/types';
 import { completeOutcomes, withdrawOutcomes } from './expectations';
 import { finding, outcomeFindings } from './findings';
+import type { ReplayOutcome } from './replay';
 import type { DatasetIdentity, ExpectationOutcome, Finding, JoinEvidence, ReportStatus, ResourceReport, VerdictReport } from './types';
 
 export const DISCLAIMER =
@@ -31,7 +32,13 @@ export interface DraftReport {
   readonly expectations: readonly ExpectationOutcome[];
   readonly coverage: { readonly checked: readonly string[]; readonly notChecked: readonly string[] };
   readonly resources: ResourceReport | null;
+  /** The replay bundle built from this draft's validated evidence (M12); kept only if the report is authoritative. */
+  readonly replay?: ReplayOutcome;
 }
+
+/** Why a non-authoritative report carries no replay (M12): it is never promoted into reproducible evidence. */
+export const REPLAY_NOT_AUTHORITATIVE =
+  'Diagnostic SQL is provided only for an authoritative report: a complete, validated analysis of a supported join. This report is not authoritative, so its values are not offered as reproducible evidence.';
 
 export interface FenceContext {
   readonly id: string;
@@ -120,16 +127,20 @@ export function publish(draft: DraftReport | null, ctx: FenceContext): VerdictRe
       coverage: { checked: [], notChecked: ['every check (the analysis was interrupted, stale or failed)'] },
       resources: draft?.resources ?? null,
       replay: null,
+      replayUnavailable: REPLAY_NOT_AUTHORITATIVE,
       disclaimer: DISCLAIMER,
     };
   }
 
   const reasons = [...draft.nonAuthoritativeReasons];
+  const authoritative = reasons.length === 0 && draft.status === 'analyzed';
+  const replay = authoritative && draft.replay?.ok ? draft.replay.bundle : null;
+  const replayUnavailable = replay ? undefined : !authoritative ? REPLAY_NOT_AUTHORITATIVE : draft.replay && !draft.replay.ok ? `Diagnostic SQL is not available: ${draft.replay.reason}.` : 'Diagnostic SQL is not available: no replay was built for this analysis.';
   return {
     id: ctx.id,
     identity: { queryHash: draft.queryHash, sqlText: draft.sqlText, inputs: draft.inputs },
     stamp: { generation: draft.stamp.generation, epoch: draft.stamp.epoch, finalisedAt: ctx.now },
-    authoritative: reasons.length === 0 && draft.status === 'analyzed',
+    authoritative,
     nonAuthoritativeReasons: reasons.length === 0 && draft.status !== 'analyzed' ? [`analysis status is ${draft.status}`] : reasons,
     status: draft.status,
     join: draft.join,
@@ -137,7 +148,8 @@ export function publish(draft: DraftReport | null, ctx: FenceContext): VerdictRe
     expectations: draft.expectations,
     coverage: draft.coverage,
     resources: draft.resources,
-    replay: null,
+    replay,
+    ...(replayUnavailable ? { replayUnavailable } : {}),
     disclaimer: DISCLAIMER,
   };
 }

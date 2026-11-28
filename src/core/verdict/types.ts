@@ -149,9 +149,31 @@ export interface ResourceReport {
   readonly statements: number;
 }
 
-/** Reserved for M12 (replay bundle); always null in M08. */
+/** One labelled statement of a replay bundle (ARCHITECTURE §18.2; M12, replay.ts). */
+export interface ReplayStatement {
+  /** What the statement measures, in words. */
+  readonly label: string;
+  readonly sql: string;
+  /**
+   * The value the report holds for this statement's result, as exact text. One row is its cells
+   * joined by ", "; several rows are joined by "; "; "(no rows)" when the report holds none.
+   * Absent for setup statements (they create the temporary frequency tables).
+   */
+  readonly expect?: string;
+  /** Machine-readable source of `expect` in the report (for verification), e.g. "stats.leftRows". */
+  readonly measures?: string;
+}
+
 export interface ReplayBundle {
-  readonly reserved: never;
+  /** Engine the analysis ran on, from the session's boot information (never a constant). */
+  readonly engine: { readonly duckdb: string; readonly package: string };
+  /** Tables, columns and snapshot the statements need, in words. */
+  readonly prerequisites: string;
+  readonly statements: readonly ReplayStatement[];
+  /** Temporary tables the script creates (it drops nothing and changes no other table). */
+  readonly temporaryTables: readonly string[];
+  /** What the bundle does not reproduce, and why. */
+  readonly limitations: readonly string[];
 }
 
 export type ReportStatus = 'analyzed' | 'partially-analyzed' | 'inconclusive' | 'unsupported' | 'query-failed'
@@ -171,7 +193,10 @@ export interface VerdictReport {
   readonly expectations: readonly ExpectationOutcome[];
   readonly coverage: { readonly checked: readonly string[]; readonly notChecked: readonly string[] };
   readonly resources: ResourceReport | null;
+  /** The curated diagnostic replay (M12): present only on an authoritative report. */
   readonly replay: ReplayBundle | null;
+  /** Why `replay` is null, in words (M12). */
+  readonly replayUnavailable?: string;
   readonly disclaimer: string;
 }
 
